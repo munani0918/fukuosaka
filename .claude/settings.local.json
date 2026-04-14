@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npx tsc:*)",
+      "Bash(npx --prefix \"C:/Users/munhwan/fukuosaka\" tsc --noEmit)",
+      "Bash(node -e ':*)",
+      "Bash(node --input-type=module)",
+      "Bash(npx tsx -e ':*)",
+      "Bash(find /c/Users/munhwan/fukuosaka/app -name \"page.tsx\" -exec grep -l \"use server\" {} \\\\;)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(xargs grep:*)",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(list\\(d.keys\\(\\)\\), indent=2\\)\\)\")",
+      "Bash(xargs -I{} cat {})",
+      "Bash(find .next -name \"*action*\")",
+      "Bash(find .next -name \"server-action*\")",
+      "Bash(grep -rn \"primaryTheme[^s]\" src/ app/)",
+      "Bash(echo \"exit:$?\")",
+      "Bash(npm run:*)",
+      "Bash(dir \"C:\\\\Users\\\\munhwan\\\\fukuosaka\\\\app\\\\hotel\")"
+    ]
+  }
+}
