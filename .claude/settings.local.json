@@ -18,7 +18,9 @@
       "Bash(grep -rn \"primaryTheme[^s]\" src/ app/)",
       "Bash(echo \"exit:$?\")",
       "Bash(npm run:*)",
-      "Bash(dir \"C:\\\\Users\\\\munhwan\\\\fukuosaka\\\\app\\\\hotel\")"
+      "Bash(dir \"C:\\\\Users\\\\munhwan\\\\fukuosaka\\\\app\\\\hotel\")",
+      "Bash(dir \"C:\\\\Users\\\\munhwan\\\\fukuosaka\\\\src\")",
+      "Bash(dir \"C:\\\\Users\\\\munhwan\\\\fukuosaka\\\\app\\\\api\\\\myrealtrip\")"
     ]
   }
 }
