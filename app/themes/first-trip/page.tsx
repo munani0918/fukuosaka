@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { hotels, type Hotel, type PartnerLinks } from "@/src/data/hotels";
+import { buildMylinkUrl } from "@/src/lib/myrealtrip";
 
 const guideItems = [
   {
@@ -34,8 +35,25 @@ const PLATFORMS: { key: keyof PartnerLinks; label: string; activeColor: string }
   { key: "tripdotcom", label: "Trip.com",     activeColor: "bg-[#003580] text-white" },
 ];
 
+// 특정 호텔·플랫폼 버튼 URL을 서버에서만 교체하는 override map
+// MYREALTRIP_MYLINK_ID는 서버에서만 읽히고 클라이언트에 노출되지 않는다.
+const buildPartnerLinksOverrides = (): Record<string, Partial<PartnerLinks>> => {
+  const { url: osa001MylinkUrl } = buildMylinkUrl({
+    targetUrl:
+      "https://accommodation.myrealtrip.com/union/products/1101376?checkIn=2026-06-28&checkOut=2026-06-29&adultCount=2&childCount=0&isDomestic=false&providerRoomId=&segment=&childAges=",
+    utmContent: "OSA001-first-trip-card-myrealtrip",
+  });
+
+  return {
+    "swissotel-nankai": { myrealtrip: osa001MylinkUrl },
+  };
+};
+
 export default function FirstTripPage() {
   const firstTripHotels = hotels.filter((h) => h.primaryThemes.includes("첫 여행용"));
+
+  // 서버에서 override map 생성 (렌더마다 한 번만 실행)
+  const partnerLinksOverrides = buildPartnerLinksOverrides();
 
   return (
     <div className="min-h-screen bg-gray-50 pb-10">
@@ -146,7 +164,10 @@ export default function FirstTripPage() {
                   {/* 예약처 3개 고정 — 링크 없으면 비활성 */}
                   <div className="grid grid-cols-3 gap-2">
                     {PLATFORMS.map(({ key, label, activeColor }) => {
-                      const url = hotel.partnerLinks?.[key];
+                      // OSA001 마이리얼트립 버튼만 mylink URL로 교체, 나머지는 원본 그대로
+                      const url =
+                        partnerLinksOverrides[hotel.id]?.[key] ??
+                        hotel.partnerLinks?.[key];
                       return url ? (
                         <a
                           key={key}
