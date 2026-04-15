@@ -35,6 +35,11 @@ const PLATFORMS: { key: keyof PartnerLinks; label: string; activeColor: string }
   { key: "tripdotcom", label: "Trip.com",     activeColor: "bg-[#003580] text-white" },
 ];
 
+/** 실링크가 연결된 호텔의 마이리얼트립 버튼 라벨 override */
+const MYLINK_LABEL_OVERRIDES: Record<string, string> = {
+  "hotel-nikko-osaka": "마이리얼트립 최신 가격 보기",
+};
+
 // 특정 호텔·플랫폼 버튼 URL을 서버에서만 교체하는 override map
 const buildPartnerLinksOverrides = (): Record<string, Partial<PartnerLinks>> => {
   const { url: osa201MylinkUrl } = buildMylinkUrl({
@@ -164,6 +169,10 @@ export default function CalmPage() {
                       const url =
                         partnerLinksOverrides[hotel.id]?.[key] ??
                         hotel.partnerLinks?.[key];
+                      const displayLabel =
+                        key === "myrealtrip"
+                          ? (MYLINK_LABEL_OVERRIDES[hotel.id] ?? label)
+                          : label;
                       return url ? (
                         <a
                           key={key}
@@ -172,7 +181,7 @@ export default function CalmPage() {
                           rel="noopener noreferrer"
                           className={`flex items-center justify-center h-11 rounded-xl text-xs font-bold transition-opacity active:opacity-75 ${activeColor}`}
                         >
-                          {label}
+                          {displayLabel}
                         </a>
                       ) : (
                         <span

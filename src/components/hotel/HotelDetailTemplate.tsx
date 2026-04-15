@@ -22,7 +22,7 @@ const PLATFORMS: {
   color: string;
 }[] = [
   { key: "agoda",      label: "Agoda에서 보기",        color: "bg-[#e31837] text-white" },
-  { key: "myrealtrip", label: "마이리얼트립에서 보기",  color: "bg-[#00b8f1] text-white" },
+  { key: "myrealtrip", label: "마이리얼트립 최신 가격 보기", color: "bg-[#00b8f1] text-white" },
   { key: "tripdotcom", label: "Trip.com에서 보기",      color: "bg-[#003580] text-white" },
 ];
 

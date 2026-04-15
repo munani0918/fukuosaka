@@ -15,8 +15,8 @@ const guideItems = [
   },
   {
     condition: "4인 이상 가족이 넓게 머물고 싶다면",
-    hotel: "미마루 오사카 덴노지",
-    hotelId: "mimaru-osaka-tennoji",
+    hotel: "미마루 오사카 난바 노스",
+    hotelId: "mimaru-osaka-namba-north",
   },
 ];
 
@@ -35,6 +35,12 @@ const PLATFORMS: { key: keyof PartnerLinks; label: string; activeColor: string }
   { key: "tripdotcom", label: "Trip.com",     activeColor: "bg-[#003580] text-white" },
 ];
 
+/** 실링크가 연결된 호텔의 마이리얼트립 버튼 라벨 override */
+const MYLINK_LABEL_OVERRIDES: Record<string, string> = {
+  "rihga-royal-hotel-osaka":     "마이리얼트립 최신 가격 보기",
+  "mimaru-osaka-namba-north":    "마이리얼트립 최신 가격 보기",
+};
+
 // 특정 호텔·플랫폼 버튼 URL을 서버에서만 교체하는 override map
 const buildPartnerLinksOverrides = (): Record<string, Partial<PartnerLinks>> => {
   const { url: osa301MylinkUrl } = buildMylinkUrl({
@@ -42,8 +48,14 @@ const buildPartnerLinksOverrides = (): Record<string, Partial<PartnerLinks>> => 
     utmContent: "OSA301-family-card-myrealtrip",
   });
 
+  const { url: osa303MylinkUrl } = buildMylinkUrl({
+    targetUrl: "https://accommodation.myrealtrip.com/union/products/1544900?checkIn=2026-06-28&checkOut=2026-06-29&roomCount=1&adultCount=2&childCount=0&providerRoomId=&segment=&isDomestic=false",
+    utmContent: "OSA303-family-card-myrealtrip",
+  });
+
   return {
-    "rihga-royal-hotel-osaka": { myrealtrip: osa301MylinkUrl },
+    "rihga-royal-hotel-osaka":  { myrealtrip: osa301MylinkUrl },
+    "mimaru-osaka-namba-north": { myrealtrip: osa303MylinkUrl },
   };
 };
 
@@ -164,6 +176,10 @@ export default function FamilyPage() {
                       const url =
                         partnerLinksOverrides[hotel.id]?.[key] ??
                         hotel.partnerLinks?.[key];
+                      const displayLabel =
+                        key === "myrealtrip"
+                          ? (MYLINK_LABEL_OVERRIDES[hotel.id] ?? label)
+                          : label;
                       return url ? (
                         <a
                           key={key}
@@ -172,7 +188,7 @@ export default function FamilyPage() {
                           rel="noopener noreferrer"
                           className={`flex items-center justify-center h-11 rounded-xl text-xs font-bold transition-opacity active:opacity-75 ${activeColor}`}
                         >
-                          {label}
+                          {displayLabel}
                         </a>
                       ) : (
                         <span
