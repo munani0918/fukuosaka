@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { hotels, type Hotel, type PartnerLinks } from "@/src/data/hotels";
+import { buildMylinkUrl } from "@/src/lib/myrealtrip";
 
 const guideItems = [
   {
@@ -34,8 +35,21 @@ const PLATFORMS: { key: keyof PartnerLinks; label: string; activeColor: string }
   { key: "tripdotcom", label: "Trip.com",     activeColor: "bg-[#003580] text-white" },
 ];
 
+// 특정 호텔·플랫폼 버튼 URL을 서버에서만 교체하는 override map
+const buildPartnerLinksOverrides = (): Record<string, Partial<PartnerLinks>> => {
+  const { url: osa301MylinkUrl } = buildMylinkUrl({
+    targetUrl: "https://accommodation.myrealtrip.com/union/products/4069388?checkIn=2026-06-01&checkOut=2026-06-02&roomCount=1&adultCount=2&childCount=0&providerRoomId=&segment=&isDomestic=false",
+    utmContent: "OSA301-family-card-myrealtrip",
+  });
+
+  return {
+    "rihga-royal-hotel-osaka": { myrealtrip: osa301MylinkUrl },
+  };
+};
+
 export default function FamilyPage() {
   const familyHotels = hotels.filter((h) => h.primaryThemes.includes("가족·부모님 동반"));
+  const partnerLinksOverrides = buildPartnerLinksOverrides();
 
   return (
     <div className="min-h-screen bg-gray-50 pb-10">
@@ -147,7 +161,9 @@ export default function FamilyPage() {
                   {/* 예약처 3개 고정 */}
                   <div className="grid grid-cols-3 gap-2">
                     {PLATFORMS.map(({ key, label, activeColor }) => {
-                      const url = hotel.partnerLinks?.[key];
+                      const url =
+                        partnerLinksOverrides[hotel.id]?.[key] ??
+                        hotel.partnerLinks?.[key];
                       return url ? (
                         <a
                           key={key}
