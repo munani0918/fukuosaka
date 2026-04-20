@@ -726,6 +726,15 @@ function fmtFareDate(iso) {
   return `${d.getMonth()+1}.${d.getDate()}(${days[d.getDay()]})`;
 }
 
+const AIRLINE_CODE = {
+  KE:'대한항공', OZ:'아시아나', 7:'제주항공', LJ:'진에어',
+  TW:'티웨이항공', RS:'에어서울', BX:'에어부산', ZE:'이스타항공',
+  '7C':'제주항공',
+};
+function airlineName(code) {
+  return AIRLINE_CODE[code] || code || '';
+}
+
 function renderFareCard(dest, best) {
   const priceEl = document.getElementById(`${dest.toLowerCase()}-price`);
   const datesEl = document.getElementById(`${dest.toLowerCase()}-dates`);
@@ -746,7 +755,7 @@ function renderFareCard(dest, best) {
     ? `${fmtFareDate(best.departureDate)} ~ ${fmtFareDate(best.returnDate)} · ${nights}박${nights+1}일`
     : `${fmtFareDate(best.departureDate)}`;
   datesEl.innerHTML = dateStr
-    + (best.airline ? `<br><span style="color:var(--muted)">${best.airline}</span>` : '')
+    + (best.airline ? `<br><span style="color:var(--muted)">${airlineName(best.airline)}</span>` : '')
     + (best.isDirect ? ' <span class="fare-badge">직항</span>' : '');
 }
 

@@ -80,7 +80,6 @@ export async function GET(request: NextRequest) {
         fetchedAt: new Date().toISOString(),
         origin: depCityCd,
         period,
-        _rawKeys: Object.keys(raw ?? {}), // 디버그용 — 응답 최상위 키 확인
       },
       { headers: CORS }
     );
