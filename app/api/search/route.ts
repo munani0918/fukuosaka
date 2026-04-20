@@ -94,7 +94,7 @@ function fixReservationUrl(url: string, airCode: string, outDep?: string, outArr
   if (airCode) u = u.replace(/(?<=\?|&)air=[^&]+/, `air=${airCode}%2C${airCode}`);
   if (outDep && retDep) u = u.replace(/(?<=\?|&)dtm=[^&]+/, `dtm=${outDep}%2C${retDep}`);
   if (outArr && retArr) u = u.replace(/(?<=\?|&)atm=[^&]+/, `atm=${outArr}%2C${retArr}`);
-  if (airMismatch) u = u.replace(/(?<=\?|&)fgtno=[^&]+/, 'fgtno=');
+  if (airMismatch) u = u.replace(/[?&]fgtno=[^&]*/g, '').replace(/[?&]itno=[^&]*/g, '').replace(/[?&]sno=[^&]*/g, '');
   return u;
 }
 
