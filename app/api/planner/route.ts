@@ -47,7 +47,10 @@ function fixReservationUrl(url: string, airCode: string, outDep?: string, outArr
 function parseFlights(data: Record<string, unknown> | null) {
   const items: FlightItem[] = (data as { result?: { items?: FlightItem[] } })?.result?.items ?? [];
   const fmt = (t?: string) => t ? `${t.substring(0, 2)}:${t.substring(2)}` : '';
-  return items.slice(0, 3).map((item) => {
+  const filtered = items.filter(item =>
+    item.legs?.some(l => l.legIndex === 2) || (item.legs?.length ?? 0) > 1
+  );
+  return filtered.slice(0, 3).map((item) => {
     const out = item.legs?.find(l => l.legIndex === 1) ?? item.legs?.[0];
     const ret = item.legs?.find(l => l.legIndex === 2) ?? item.legs?.[1];
     const airCode = item.airline?.code ?? '';

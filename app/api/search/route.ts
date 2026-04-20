@@ -98,10 +98,16 @@ function fixReservationUrl(url: string, airCode: string, outDep?: string, outArr
   return u;
 }
 
-function parseFlights(data: Record<string, unknown> | null) {
+function parseFlights(data: Record<string, unknown> | null, roundTrip = true) {
   const items: FlightItem[] = (data as { result?: { items?: FlightItem[] } })?.result?.items ?? [];
   const fmt = (t?: string) => t ? `${t.substring(0, 2)}:${t.substring(2)}` : '';
-  return items.slice(0, 5).map((item) => {
+  const filtered = roundTrip
+    ? items.filter(item => {
+        const hasReturn = item.legs?.some(l => l.legIndex === 2) || (item.legs?.length ?? 0) > 1;
+        return hasReturn;
+      })
+    : items;
+  return filtered.slice(0, 5).map((item) => {
     const out = item.legs?.find(l => l.legIndex === 1) ?? item.legs?.[0];
     const ret = item.legs?.find(l => l.legIndex === 2) ?? item.legs?.[1];
     const airCode = item.airline?.code ?? '';
@@ -173,7 +179,7 @@ export async function GET(request: NextRequest) {
       const data = await callMrtMcp('searchInternationalFlights', {
         origin, destination, departDate, returnDate, tripType, maxResults: 12,
       });
-      return NextResponse.json({ flights: parseFlights(data as Record<string, unknown>) }, { headers: CORS });
+      return NextResponse.json({ flights: parseFlights(data as Record<string, unknown>, tripType === 'ROUND_TRIP') }, { headers: CORS });
     }
 
     return NextResponse.json({ error: 'type 파라미터가 필요합니다 (stays | tnas | flights)' }, { status: 400, headers: CORS });
