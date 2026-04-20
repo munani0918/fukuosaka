@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FUKUOSAKA — AI 플래너</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:          #F5F0E8;
+      --card:        #FFFFFF;
+      --ink:         #1C1C1E;
+      --ink-light:   #48484A;
+      --muted:       #8E8E93;
+      --border:      #E8E3DA;
+      --cream-dark:  #EDE6D8;
+      --primary:     #2d5040;
+      --primary-hov: #1e3a2c;
+      --sel:         #5B3FA6;
+      --sel-pale:    rgba(91,63,166,.10);
+      --green:       #3d7a54;
+      --green-pale:  rgba(61,122,84,.10);
+      --green-border:rgba(61,122,84,.35);
+      --accent-pale: rgba(123,94,167,.08);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html, body { font-family:'Noto Sans KR',-apple-system,sans-serif; background:var(--bg); color:var(--ink); min-height:100vh; }
+    #app { max-width:430px; margin:0 auto; min-height:100vh; background:var(--bg); position:relative; overflow:hidden; }
+
+    /* ── Header ─────────────────────────────── */
+    .wiz-header {
+      position:sticky; top:0; z-index:10; background:var(--bg);
+      padding:20px 20px 16px; display:flex; align-items:center; gap:14px;
+    }
+    .back-btn {
+      width:36px; height:36px; border-radius:50%;
+      border:1.5px solid var(--border); background:var(--card);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; font-size:18px; flex-shrink:0; transition:all .15s;
+      color:var(--ink);
+    }
+    .back-btn:hover { border-color:var(--sel); color:var(--sel); }
+
+    /* ── Progress ────────────────────────────── */
+    .prog-wrap  { flex:1; display:flex; flex-direction:column; gap:7px; }
+    .prog-dots  { display:flex; align-items:center; gap:0; }
+    .p-seg      { flex:1; height:4px; background:var(--border); border-radius:2px; overflow:hidden; position:relative; }
+    .p-seg-fill { height:100%; background:var(--sel); border-radius:2px; transition:width .35s ease; }
+    .prog-label { font-size:12px; font-weight:700; color:var(--muted); }
+
+    /* ── Step container ──────────────────────── */
+    .step-wrap { padding:8px 20px 120px; }
+    .step-in  { animation:sIn  .25s ease; }
+    .step-out { animation:sOut .25s ease forwards; }
+    .step-in-rev  { animation:sInR  .25s ease; }
+    @keyframes sIn  { from{opacity:0;transform:translateX(28px)} to{opacity:1;transform:translateX(0)} }
+    @keyframes sInR { from{opacity:0;transform:translateX(-28px)} to{opacity:1;transform:translateX(0)} }
+
+    .step-title { font-size:26px; font-weight:900; color:var(--ink); letter-spacing:-.04em; line-height:1.25; margin-bottom:8px; }
+    .step-sub   { font-size:14px; color:var(--muted); line-height:1.55; margin-bottom:28px; }
+
+    /* ── City cards ──────────────────────────── */
+    .city-card {
+      background:var(--card); border-radius:16px; padding:20px;
+      display:flex; gap:16px; align-items:flex-start;
+      margin-bottom:12px; border:2px solid transparent;
+      cursor:pointer; transition:all .2s;
+    }
+    .city-card:hover    { border-color:var(--border); transform:translateY(-1px); }
+    .city-card.selected { border-color:var(--sel); box-shadow:0 0 0 4px var(--sel-pale); }
+    .city-ico { width:52px; height:52px; border-radius:14px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:26px; }
+    .city-name { font-size:20px; font-weight:800; color:var(--ink); letter-spacing:-.03em; margin-bottom:2px; }
+    .city-sub  { font-size:12px; color:var(--muted); margin-bottom:10px; }
+    .city-tags { display:flex; flex-wrap:wrap; gap:5px; }
+    .city-tag  { font-size:11px; color:var(--muted); background:var(--cream-dark); padding:3px 9px; border-radius:999px; }
+
+    /* ── Info banner ─────────────────────────── */
+    .info-banner {
+      background:var(--accent-pale); border-radius:12px;
+      padding:12px 14px; margin-bottom:20px;
+      font-size:12px; color:#6a4fa0; line-height:1.55; font-weight:600;
+    }
+
+    /* ── Date pickers ────────────────────────── */
+    .date-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+    .date-lbl  { font-size:11px; font-weight:700; color:var(--muted); margin-bottom:5px; }
+    .date-sub  { font-size:11px; color:var(--muted); margin-top:4px; }
+    .date-in {
+      width:100%; padding:12px 10px; border-radius:12px;
+      border:1.5px solid var(--border); background:var(--card);
+      font-family:inherit; font-size:13px; font-weight:600; color:var(--ink); outline:none;
+      transition:border-color .15s;
+    }
+    .date-in:focus { border-color:var(--sel); }
+    .date-summary {
+      text-align:center; font-size:12px; font-weight:600; color:var(--muted);
+      background:var(--card); border-radius:10px; padding:10px;
+      margin-bottom:16px;
+    }
+    .date-summary strong { color:var(--sel); }
+
+    /* ── Night quick-select ──────────────────── */
+    .sec-lbl  { font-size:13px; font-weight:700; color:var(--ink); margin-bottom:10px; }
+    .night-row { display:flex; gap:8px; margin-bottom:20px; }
+    .nq {
+      flex:1; padding:10px 4px; border-radius:10px;
+      border:1.5px solid var(--border); background:var(--card);
+      font-family:inherit; font-size:12px; font-weight:700; color:var(--muted);
+      cursor:pointer; transition:all .15s; text-align:center; line-height:1.35;
+    }
+    .nq.on { background:var(--primary); color:#fff; border-color:var(--primary); }
+
+    /* ── Airport chips ───────────────────────── */
+    .airport-row { display:flex; gap:8px; flex-wrap:wrap; }
+    .apchip {
+      padding:8px 18px; border-radius:999px;
+      border:1.5px solid var(--border); background:var(--card);
+      font-family:inherit; font-size:14px; font-weight:700; color:var(--ink);
+      cursor:pointer; transition:all .15s;
+    }
+    .apchip.on { background:var(--sel); color:#fff; border-color:var(--sel); }
+
+    /* ── Stepper (people) ────────────────────── */
+    .people-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:24px; }
+    .stepper-card { background:var(--card); border-radius:14px; padding:16px; }
+    .stpr-lbl { font-size:12px; color:var(--muted); margin-bottom:14px; }
+    .stpr-row { display:flex; align-items:center; gap:10px; }
+    .stpr-btn {
+      width:30px; height:30px; border-radius:50%;
+      border:1.5px solid var(--border); background:var(--card);
+      font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+      transition:all .15s; color:var(--ink);
+    }
+    .stpr-btn.plus { background:var(--sel); color:#fff; border-color:var(--sel); }
+    .stpr-val { font-size:22px; font-weight:800; flex:1; text-align:center; }
+
+    /* ── Budget input ────────────────────────── */
+    .budget-wrap { position:relative; margin-bottom:12px; }
+    .budget-in {
+      width:100%; padding:16px 48px 16px 16px; border-radius:14px;
+      border:1.5px solid var(--border); background:var(--card);
+      font-family:inherit; font-size:18px; font-weight:700; color:var(--ink); outline:none;
+      transition:border-color .15s;
+    }
+    .budget-in:focus { border-color:var(--sel); }
+    .budget-unit { position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:14px; font-weight:700; color:var(--muted); }
+    .budget-presets { display:flex; gap:6px; flex-wrap:wrap; }
+    .bp {
+      padding:7px 14px; border-radius:999px;
+      border:1.5px solid var(--border); background:var(--card);
+      font-family:inherit; font-size:12px; font-weight:700; color:var(--muted);
+      cursor:pointer; transition:all .15s;
+    }
+    .bp:hover { border-color:var(--sel); color:var(--sel); }
+    .bp.on    { border-color:var(--sel); background:var(--sel-pale); color:var(--sel); }
+    .budget-note { font-size:11px; color:var(--muted); margin-bottom:10px; line-height:1.5; }
+
+    /* ── Visit + Style chips ─────────────────── */
+    .visit-row { display:flex; gap:8px; margin-bottom:24px; }
+    .vchip {
+      flex:1; padding:10px 8px; border-radius:999px;
+      border:1.5px solid var(--border); background:var(--card);
+      font-family:inherit; font-size:13px; font-weight:700; color:var(--ink);
+      cursor:pointer; transition:all .15s; text-align:center;
+    }
+    .vchip.on { background:var(--sel); color:#fff; border-color:var(--sel); }
+
+    .style-grid { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+    .schip {
+      padding:8px 16px; border-radius:999px;
+      border:1.5px solid var(--border); background:var(--card);
+      font-family:inherit; font-size:13px; font-weight:700; color:var(--ink);
+      cursor:pointer; transition:all .15s;
+    }
+    .schip.on { background:var(--sel); color:#fff; border-color:var(--sel); }
+
+    .ai-hint {
+      background:var(--green-pale); border:1.5px solid var(--green-border); border-radius:14px;
+      padding:14px 16px; display:flex; gap:10px; align-items:flex-start;
+      transition:all .3s;
+    }
+    .ai-hint-icon { font-size:14px; flex-shrink:0; color:var(--green); margin-top:1px; }
+    .ai-hint-text { font-size:13px; color:var(--green); line-height:1.55; font-weight:600; }
+
+    /* ── Package cards ───────────────────────── */
+    .pkg-card {
+      background:var(--card); border-radius:14px; padding:16px;
+      margin-bottom:10px; border:2px solid transparent;
+      cursor:pointer; transition:all .2s; display:flex; align-items:center; gap:12px;
+    }
+    .pkg-card:hover    { border-color:var(--border); }
+    .pkg-card.selected { border-color:var(--green); box-shadow:0 0 0 3px var(--green-pale); }
+    .pkg-body  { flex:1; }
+    .pkg-title { font-size:15px; font-weight:800; color:var(--ink); margin-bottom:3px; display:flex; align-items:center; gap:6px; }
+    .pkg-sub   { font-size:12px; color:var(--muted); }
+    .pkg-badge { font-size:10px; font-weight:800; padding:2px 8px; border-radius:999px; white-space:nowrap; }
+    .pkg-check { font-size:22px; color:var(--green); font-weight:900; opacity:0; transition:opacity .15s; }
+    .pkg-card.selected .pkg-check { opacity:1; }
+
+    /* ── Fixed footer ────────────────────────── */
+    .wiz-footer {
+      position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+      width:100%; max-width:430px; background:var(--bg);
+      padding:14px 20px 32px; border-top:1px solid var(--border); z-index:20;
+    }
+    .wiz-cta {
+      width:100%; padding:16px; border-radius:14px;
+      background:var(--primary); color:#fff; border:none;
+      font-family:inherit; font-size:16px; font-weight:800;
+      cursor:pointer; transition:all .15s; letter-spacing:-.01em;
+    }
+    .wiz-cta:hover   { background:var(--primary-hov); }
+    .wiz-cta:active  { transform:scale(.97); }
+    .wiz-cta:disabled { background:var(--border); color:var(--muted); cursor:not-allowed; }
+
+    /* ═══════════════════════════════════════════
+       LOADING SCREEN
+    ═══════════════════════════════════════════ */
+    #loading-screen {
+      position:fixed; inset:0; z-index:1000; background:#1C1C1E;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      padding:32px; opacity:0; pointer-events:none; transition:opacity .3s;
+      max-width:430px; margin:0 auto;
+    }
+    #loading-screen.show { opacity:1; pointer-events:all; }
+
+    /* Spinning rings */
+    .rings { position:relative; width:130px; height:130px; margin-bottom:40px; flex-shrink:0; }
+    .ring {
+      position:absolute; border-radius:50%;
+      border:2.5px solid rgba(123,94,167,.25); border-top-color:#7B5EA7;
+    }
+    .ring-1 { inset:0;    animation:spin 2.0s linear infinite; }
+    .ring-2 { inset:14px; animation:spin 2.6s linear infinite reverse; border-top-color:#a89fcc; border-color:rgba(168,159,204,.2); }
+    .ring-3 { inset:28px; animation:spin 3.3s linear infinite; border-top-color:#c5b8e8; border-color:rgba(197,184,232,.15); }
+    .ring-center {
+      position:absolute; inset:44px; border-radius:50%;
+      background:#7B5EA7; display:flex; align-items:center; justify-content:center;
+      font-size:20px; color:#fff; animation:pulse 2s ease-in-out infinite;
+    }
+    @keyframes spin  { to { transform:rotate(360deg); } }
+    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+
+    .ld-eyebrow { font-size:11px; font-weight:800; letter-spacing:.16em; color:#7B5EA7; margin-bottom:12px; }
+    .ld-title {
+      font-size:22px; font-weight:900; color:#fff;
+      text-align:center; letter-spacing:-.04em; margin-bottom:6px; line-height:1.3;
+    }
+    .ld-sub { font-size:13px; color:#EDE6D8; text-align:center; margin-bottom:36px; line-height:1.6; }
+
+    /* Phase list */
+    .phases { width:100%; max-width:280px; }
+    .phase {
+      display:flex; align-items:center; gap:12px; margin-bottom:12px;
+      opacity:.3; transition:opacity .35s;
+    }
+    .phase.active { opacity:1; }
+    .phase.done   { opacity:.75; }
+    .phase-dot {
+      width:20px; height:20px; border-radius:50%; flex-shrink:0;
+      background:rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center;
+      font-size:11px; transition:all .3s;
+    }
+    .phase.active .phase-dot { background:rgba(123,94,167,.4); border:2px solid #7B5EA7; animation:pulseDot 1s ease-in-out infinite; }
+    .phase.done .phase-dot   { background:#7B5EA7; color:#fff; }
+    @keyframes pulseDot { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+    .phase-text { font-size:13px; color:#EDE6D8; font-weight:600; }
+    .phase.active .phase-text { color:#fff; }
+
+    /* Progress bar */
+    .ld-progress-wrap { width:100%; max-width:280px; margin-top:28px; }
+    .ld-progress-bg { width:100%; height:4px; background:rgba(255,255,255,.12); border-radius:2px; overflow:hidden; }
+    .ld-progress-fill {
+      height:100%; background:linear-gradient(90deg,#7B5EA7,#a89fcc);
+      border-radius:2px; width:0%;
+      transition:width .5s ease;
+    }
+    .ld-progress-label { font-size:11px; color:rgba(255,255,255,.5); text-align:right; margin-top:6px; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══ LOADING SCREEN ═══ -->
+  <div id="loading-screen">
+    <div class="rings">
+      <div class="ring ring-1"></div>
+      <div class="ring ring-2"></div>
+      <div class="ring ring-3"></div>
+      <div class="ring-center">✦</div>
+    </div>
+    <div class="ld-eyebrow">AI PLANNING</div>
+    <div class="ld-title" id="ld-title">후쿠오카 3박4일<br>플랜 생성 중</div>
+    <div class="ld-sub" id="ld-sub">예산 0원 기준<br>최적 구성을 찾고 있어요</div>
+    <div class="phases" id="phase-list">
+      <div class="phase" data-phase="0"><div class="phase-dot"></div><div class="phase-text">✈️ 항공권 실시간 가격 조회 중...</div></div>
+      <div class="phase" data-phase="1"><div class="phase-dot"></div><div class="phase-text">🏨 숙소 옵션 분석 중...</div></div>
+      <div class="phase" data-phase="2"><div class="phase-dot"></div><div class="phase-text">🎟 투어·입장권 데이터 수집 중...</div></div>
+      <div class="phase" data-phase="3"><div class="phase-dot"></div><div class="phase-text">🤖 예산 배분 최적화 중...</div></div>
+      <div class="phase" data-phase="4"><div class="phase-dot"></div><div class="phase-text">✍️ 여행 작가 큐레이션 적용 중...</div></div>
+    </div>
+    <div class="ld-progress-wrap">
+      <div class="ld-progress-bg"><div class="ld-progress-fill" id="ld-bar"></div></div>
+      <div class="ld-progress-label" id="ld-pct">0%</div>
+    </div>
+  </div>
+
+  <!-- ═══ WIZARD ═══ -->
+  <div id="wizard">
+
+    <!-- Header -->
+    <div class="wiz-header">
+      <button class="back-btn" id="back-btn" onclick="goBack()">←</button>
+      <div class="prog-wrap">
+        <div class="prog-dots" id="prog-dots">
+          <!-- 5 segments injected by JS -->
+        </div>
+        <div class="prog-label" id="prog-label">1/5 도시 선택</div>
+      </div>
+    </div>
+
+    <!-- Step area -->
+    <div id="step-area"></div>
+
+    <!-- Footer -->
+    <div class="wiz-footer">
+      <button class="wiz-cta" id="wiz-cta" onclick="goNext()">다음 단계 →</button>
+    </div>
+
+  </div><!-- #wizard -->
+</div><!-- #app -->
+
+<script>
+// ═══ STATE ═══════════════════════════════════
+const F = {
+  city: '', departDate: '', returnDate: '', nights: 3,
+  origin: 'ICN', adults: 2, children: 0, budget: 0,
+  visitCount: 'first', styles: [], packages: ['flight','hotel','tour'],
+};
+let step = 1;
+const TOTAL = 5;
+const STEP_LABELS = ['도시 선택','날짜·출발지','인원·예산','성향·방문','구성 선택'];
+
+// ═══ INIT ════════════════════════════════════
+function init(){
+  // Build progress bar segments
+  const dots = document.getElementById('prog-dots');
+  for(let i=0;i<TOTAL;i++){
+    const seg = document.createElement('div');
+    seg.className = 'p-seg'; seg.id = 'seg-'+i;
+    const fill = document.createElement('div');
+    fill.className = 'p-seg-fill'; fill.style.width = '0%';
+    seg.appendChild(fill);
+    dots.appendChild(seg);
+    if(i<TOTAL-1){ const sp = document.createElement('div'); sp.style.width='4px'; dots.appendChild(sp); }
+  }
+  // Default dates
+  const d1 = new Date(); d1.setDate(d1.getDate()+45);
+  const d2 = new Date(); d2.setDate(d2.getDate()+48);
+  F.departDate = d1.toISOString().slice(0,10);
+  F.returnDate = d2.toISOString().slice(0,10);
+  F.nights = 3;
+
+  // Pre-fill from saved conditions (수정하기 flow)
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('plannerConditions') || '{}');
+    if (saved.cityCode)   F.city       = saved.cityCode;
+    if (saved.date)       F.departDate = saved.date;
+    if (saved.returnDate) F.returnDate = saved.returnDate;
+    if (saved.nights)     F.nights     = +saved.nights;
+    if (saved.origin)     F.origin     = saved.origin;
+    if (saved.adults)     F.adults     = +saved.adults;
+    if (saved.children)   F.children   = +saved.children;
+    if (saved.budget)     F.budget     = +saved.budget;
+    if (saved.visitCount) F.visitCount = saved.visitCount;
+    if (Array.isArray(saved.styles))   F.styles   = saved.styles;
+    if (Array.isArray(saved.packages)) F.packages = saved.packages;
+  } catch(e){}
+
+  // Pre-fill from budget preset (home → wizard shortcut)
+  try {
+    const pb = sessionStorage.getItem('plannerBudget');
+    const pn = sessionStorage.getItem('plannerNights');
+    if (pb) { F.budget = +pb; sessionStorage.removeItem('plannerBudget'); }
+    if (pn) { F.nights = +pn; sessionStorage.removeItem('plannerNights'); }
+  } catch(e){}
+
+  renderStep(1, 'forward');
+  updateProgress();
+}
+
+// ═══ PROGRESS ════════════════════════════════
+function updateProgress(){
+  document.getElementById('prog-label').textContent = `${step}/${TOTAL} ${STEP_LABELS[step-1]}`;
+  for(let i=0;i<TOTAL;i++){
+    const fill = document.querySelector('#seg-'+i+' .p-seg-fill');
+    if(fill) fill.style.width = i < step ? '100%' : i === step-1 ? '60%' : '0%';
+  }
+  document.getElementById('back-btn').style.opacity = step===1 ? '0.4' : '1';
+}
+
+// ═══ NAVIGATION ══════════════════════════════
+function goNext(){
+  if(!canProceed()) return;
+  if(step < TOTAL){ step++; renderStep(step,'forward'); updateProgress(); }
+  else { startLoading(); }
+}
+function goBack(){
+  if(step===1){ window.location.href='/main-home.html'; return; }
+  step--; renderStep(step,'back'); updateProgress();
+}
+
+function canProceed(){
+  if(step===1) return !!F.city;
+  if(step===2) return !!F.departDate && !!F.returnDate;
+  if(step===3) return F.budget > 0;
+  if(step===4) return !!F.visitCount;
+  if(step===5) return F.packages.length > 0;
+  return true;
+}
+
+function refreshCta(){
+  const btn = document.getElementById('wiz-cta');
+  const ok = canProceed();
+  btn.disabled = !ok;
+  if(step===TOTAL) btn.textContent = '✦ AI 플랜 생성하기';
+  else btn.textContent = '다음 단계 →';
+}
+
+// ═══ STEP RENDERER ═══════════════════════════
+function renderStep(n, dir){
+  const area = document.getElementById('step-area');
+  const cls = dir==='back' ? 'step-in-rev' : 'step-in';
+  area.innerHTML = `<div class="step-wrap ${cls}">${STEP_TEMPLATES[n]()}</div>`;
+  refreshCta();
+  if(n===2) syncDateUI();
+}
+
+// ═══ STEP TEMPLATES ══════════════════════════
+const STEP_TEMPLATES = {
+  1: () => `
+    <div class="step-title">어느 도시로<br>가시나요?</div>
+    <div class="step-sub">도시 성격에 따라 추천 구성이 달라집니다</div>
+
+    <div class="city-card ${F.city==='FUK'?'selected':''}" onclick="pickCity('FUK',this)">
+      <div class="city-ico" style="background:#FFF0E8">🔥</div>
+      <div>
+        <div class="city-name">후쿠오카</div>
+        <div class="city-sub">규슈의 관문</div>
+        <div class="city-tags">
+          <span class="city-tag">힐링</span>
+          <span class="city-tag">근교 온천</span>
+          <span class="city-tag">야타이</span>
+          <span class="city-tag">가족</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="city-card ${F.city==='KIX'?'selected':''}" onclick="pickCity('KIX',this)">
+      <div class="city-ico" style="background:#EFF3FF">🏯</div>
+      <div>
+        <div class="city-name">오사카</div>
+        <div class="city-sub">서일본 최대 도시</div>
+        <div class="city-tags">
+          <span class="city-tag">쇼핑</span>
+          <span class="city-tag">미식</span>
+          <span class="city-tag">도시형</span>
+          <span class="city-tag">재방문</span>
+        </div>
+      </div>
+    </div>`,
+
+  2: () => `
+    <div class="step-title">출발일·귀국일·<br>출발지</div>
+    <div class="step-sub">날짜가 있어야 실시간 항공 가격을 조회할 수 있어요</div>
+
+    <div class="info-banner">실시간 항공 가격 조회를 위해 정확한 날짜를 입력해주세요</div>
+
+    <div class="date-grid">
+      <div>
+        <div class="date-lbl">출발일</div>
+        <input class="date-in" type="date" id="d-dep" value="${F.departDate}" oninput="onDepartChange()">
+        <div class="date-sub" id="dep-sub"></div>
+      </div>
+      <div>
+        <div class="date-lbl">귀국일</div>
+        <input class="date-in" type="date" id="d-ret" value="${F.returnDate}" oninput="onReturnChange()">
+        <div class="date-sub" id="ret-sub"></div>
+      </div>
+    </div>
+
+    <div class="date-summary" id="date-summary">—</div>
+
+    <div class="sec-lbl">빠른 선택</div>
+    <div class="night-row">
+      ${[2,3,4,5].map(n=>`<button class="nq${F.nights===n?' on':''}" onclick="pickNights(${n})">${n}박<br>${n+1}일</button>`).join('')}
+    </div>
+
+    <div class="sec-lbl">출발 공항</div>
+    <div class="airport-row">
+      ${[['ICN','인천'],['GMP','김포'],['PUS','부산'],['CJU','제주']].map(([c,l])=>`
+        <button class="apchip${F.origin===c?' on':''}" onclick="pickOrigin('${c}',this)">${l}</button>`).join('')}
+    </div>`,
+
+  3: () => `
+    <div class="step-title">인원과 총 예산</div>
+    <div class="step-sub">예산이 AI 배분의 기준이 됩니다</div>
+
+    <div class="people-grid">
+      <div class="stepper-card">
+        <div class="stpr-lbl">성인</div>
+        <div class="stpr-row">
+          <button class="stpr-btn" onclick="stepPeople('adults',-1)">−</button>
+          <div class="stpr-val" id="v-adults">${F.adults}</div>
+          <button class="stpr-btn plus" onclick="stepPeople('adults',1)">+</button>
+        </div>
+      </div>
+      <div class="stepper-card">
+        <div class="stpr-lbl">아동</div>
+        <div class="stpr-row">
+          <button class="stpr-btn" onclick="stepPeople('children',-1)">−</button>
+          <div class="stpr-val" id="v-children">${F.children}</div>
+          <button class="stpr-btn plus" onclick="stepPeople('children',1)">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-lbl" style="margin-bottom:4px">총 여행 예산</div>
+    <div class="budget-note">항공 + 숙소 + 투어 + 현지 사용 포함 총액<br>AI가 입력한 예산을 바탕으로 추천 비중을 자동 계산합니다</div>
+    <div class="budget-wrap">
+      <input class="budget-in" type="text" id="budget-in"
+        placeholder="예: 1,600,000" value="${F.budget?F.budget.toLocaleString():''}"
+        oninput="onBudgetInput(this)">
+      <div class="budget-unit">원</div>
+    </div>
+    <div class="budget-presets">
+      ${[[500000,'50만'],[800000,'80만'],[1200000,'120만'],[1600000,'160만'],[2000000,'200만']].map(([v,l])=>`
+        <button class="bp${F.budget===v?' on':''}" onclick="pickBudget(${v})">${l}</button>`).join('')}
+    </div>`,
+
+  4: () => `
+    <div class="step-title">방문 횟수·<br>여행 성향</div>
+    <div class="step-sub">선택에 따라 추천 코스와 숙소 위치가 달라집니다</div>
+
+    <div class="sec-lbl">방문 횟수</div>
+    <div class="visit-row">
+      ${[['first','처음이에요'],['second','재방문'],['many','3회 이상']].map(([v,l])=>`
+        <button class="vchip${F.visitCount===v?' on':''}" onclick="pickVisit('${v}',this)">${l}</button>`).join('')}
+    </div>
+
+    <div class="sec-lbl">여행 성향 <span style="font-weight:400;color:var(--muted);font-size:12px">(복수 선택 가능)</span></div>
+    <div class="style-sub" style="font-size:12px;color:var(--muted);margin-bottom:10px">성향에 따라 작가 추천 코스와 숙소 위치가 달라져요</div>
+    <div class="style-grid">
+      ${[['healing','힐링'],['food','먹방'],['shopping','쇼핑'],['local','로컬 탐방'],['family','가족'],['night','야경']].map(([v,l])=>`
+        <button class="schip${F.styles.includes(v)?' on':''}" onclick="toggleStyle('${v}',this)">${l}</button>`).join('')}
+    </div>
+    <div class="ai-hint" id="ai-hint">
+      <div class="ai-hint-icon">✦</div>
+      <div class="ai-hint-text" id="ai-hint-text">${getAiHint()}</div>
+    </div>`,
+
+  5: () => `
+    <div class="step-title">어떤 구성이<br>필요하세요?</div>
+    <div class="step-sub">선택한 구성에 맞게 추천 상품이 달라집니다</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:20px;background:var(--card);padding:10px 14px;border-radius:10px">
+      이 선택이 이후 CPA 추천 상품의 우선순위를 결정합니다
+    </div>
+
+    ${[
+      {key:'all',    title:'항공 + 숙소 + 투어', sub:'AI가 전체 구성을 자동 최적화합니다', badge:'가장 인기', badgeColor:'rgba(123,94,167,.15)', badgeTextColor:'#5B3FA6'},
+      {key:'fh',     title:'항공 + 숙소',         sub:'투어는 현지에서 직접 결정하실 분'},
+      {key:'ht',     title:'숙소 + 투어',          sub:'이미 항공을 예약하신 분 추천', badge2:'항공 예약 완료', badge2Color:'rgba(74,127,165,.12)', badge2TextColor:'#4A7FA5'},
+      {key:'fo',     title:'항공만',               sub:'숙소와 투어는 직접 계획하실 분'},
+      {key:'ho',     title:'숙소만',               sub:'항공·투어는 이미 준비된 분'},
+    ].map(p=>{
+      const sel = F.packages.join('+')==={all:'flight+hotel+tour',fh:'flight+hotel',ht:'hotel+tour',fo:'flight',ho:'hotel'}[p.key];
+      return `<div class="pkg-card${sel?' selected':''}" onclick="pickPackage('${p.key}',this)">
+        <div class="pkg-body">
+          <div class="pkg-title">
+            ${p.title}
+            ${p.badge?`<span class="pkg-badge" style="background:${p.badgeColor};color:${p.badgeTextColor}">${p.badge}</span>`:''}
+            ${p.badge2?`<span class="pkg-badge" style="background:${p.badge2Color};color:${p.badge2TextColor}">${p.badge2}</span>`:''}
+          </div>
+          <div class="pkg-sub">${p.sub}</div>
+        </div>
+        <div class="pkg-check">✓</div>
+      </div>`;
+    }).join('')}`,
+};
+
+// ═══ STEP 1 — City ═══════════════════════════
+function pickCity(code, el){
+  F.city = code;
+  document.querySelectorAll('.city-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  refreshCta();
+}
+
+// ═══ STEP 2 — Dates ══════════════════════════
+function onDepartChange(){
+  F.departDate = document.getElementById('d-dep').value;
+  if(F.departDate && F.returnDate){ recalcNights(); }
+  syncDateUI();
+  refreshCta();
+}
+function onReturnChange(){
+  F.returnDate = document.getElementById('d-ret').value;
+  if(F.departDate && F.returnDate){ recalcNights(); }
+  syncDateUI();
+  refreshCta();
+}
+function pickNights(n){
+  F.nights = n;
+  if(F.departDate){
+    const d = new Date(F.departDate); d.setDate(d.getDate()+n);
+    F.returnDate = d.toISOString().slice(0,10);
+    document.getElementById('d-ret').value = F.returnDate;
+  }
+  document.querySelectorAll('.nq').forEach(b=>b.classList.toggle('on',+b.textContent.trim()[0]===n));
+  syncDateUI(); refreshCta();
+}
+function pickOrigin(code, el){
+  F.origin = code;
+  document.querySelectorAll('.apchip').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+}
+function recalcNights(){
+  const d1=new Date(F.departDate), d2=new Date(F.returnDate);
+  F.nights = Math.max(1, Math.round((d2-d1)/(1000*60*60*24)));
+  document.querySelectorAll('.nq').forEach(b=>b.classList.toggle('on',+b.textContent.trim()[0]===F.nights));
+}
+const KO_DAY=['일','월','화','수','목','금','토'];
+function fmtDate(s){ if(!s)return ''; const d=new Date(s+'T00:00:00'); return `${s.slice(5).replace('-','/')}(${KO_DAY[d.getDay()]})`; }
+function syncDateUI(){
+  const el = document.getElementById('date-summary');
+  const depEl = document.getElementById('dep-sub');
+  const retEl = document.getElementById('ret-sub');
+  if(depEl) depEl.textContent = fmtDate(F.departDate);
+  if(retEl) retEl.textContent = fmtDate(F.returnDate);
+  if(el && F.departDate && F.returnDate){
+    el.innerHTML = `${fmtDate(F.departDate)} → ${fmtDate(F.returnDate)} &nbsp;<strong>${F.nights}박${F.nights+1}일</strong> ✓`;
+  }
+}
+
+// ═══ STEP 3 — People & Budget ════════════════
+function stepPeople(key, delta){
+  const min = key==='adults'?1:0;
+  F[key] = Math.max(min, Math.min(8, F[key]+delta));
+  const el = document.getElementById('v-'+key);
+  if(el) el.textContent = F[key];
+}
+function onBudgetInput(inp){
+  const raw = inp.value.replace(/[^0-9]/g,'');
+  F.budget = parseInt(raw)||0;
+  inp.value = F.budget ? F.budget.toLocaleString() : '';
+  document.querySelectorAll('.bp').forEach(b=>b.classList.remove('on'));
+  refreshCta();
+}
+function pickBudget(v){
+  F.budget = v;
+  const inp = document.getElementById('budget-in');
+  if(inp) inp.value = v.toLocaleString();
+  document.querySelectorAll('.bp').forEach(b=>b.classList.toggle('on', +b.getAttribute('onclick').match(/\d+/)[0]===v));
+  refreshCta();
+}
+
+// ═══ STEP 4 — Visit & Style ══════════════════
+function pickVisit(v, el){
+  F.visitCount = v;
+  document.querySelectorAll('.vchip').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('ai-hint-text').textContent = getAiHint();
+  refreshCta();
+}
+function toggleStyle(v, el){
+  const idx = F.styles.indexOf(v);
+  if(idx>=0) F.styles.splice(idx,1); else F.styles.push(v);
+  el.classList.toggle('on', F.styles.includes(v));
+  document.getElementById('ai-hint-text').textContent = getAiHint();
+}
+function getAiHint(){
+  const visit = F.visitCount;
+  const styles = F.styles;
+  if(!visit) return 'AI 추천 방향이 여기 표시돼요';
+  let base = {
+    first:  '처음 방문자를 위한 핵심 코스 중심 추천',
+    second: '재방문자를 위한 숨은 명소 & 심층 투어 추천',
+    many:   '마니아를 위한 근교 여행 & 특별 체험 추천',
+  }[visit] || '';
+  if(styles.includes('food'))     base += ' · 현지 맛집 루트 우선';
+  if(styles.includes('healing'))  base += ' · 온천 & 힐링 숙소 포함';
+  if(styles.includes('shopping')) base += ' · 쇼핑몰 & 드럭스토어 일정';
+  if(styles.includes('night'))    base += ' · 야경 명소 저녁 루트';
+  if(styles.includes('family'))   base += ' · 가족 친화 액티비티';
+  return base;
+}
+
+// ═══ STEP 5 — Package ════════════════════════
+const PKG_MAP = {all:['flight','hotel','tour'],fh:['flight','hotel'],ht:['hotel','tour'],fo:['flight'],ho:['hotel']};
+function pickPackage(key, el){
+  F.packages = PKG_MAP[key];
+  document.querySelectorAll('.pkg-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  refreshCta();
+}
+
+// ═══ LOADING SCREEN ═══════════════════════════
+function startLoading(){
+  // Update loading title
+  const cityName = F.city==='FUK'?'후쿠오카':'오사카';
+  document.getElementById('ld-title').innerHTML = `${cityName} ${F.nights}박${F.nights+1}일<br>플랜 생성 중`;
+  document.getElementById('ld-sub').innerHTML = `예산 ${F.budget.toLocaleString()}원 기준<br>최적 구성을 찾고 있어요`;
+
+  // Save to sessionStorage
+  const cond = {
+    cityCode: F.city, date: F.departDate, returnDate: F.returnDate,
+    nights: F.nights, origin: F.origin, adults: F.adults, children: F.children,
+    budget: F.budget, visitCount: F.visitCount, styles: F.styles, packages: F.packages,
+  };
+  sessionStorage.setItem('plannerConditions', JSON.stringify(cond));
+  sessionStorage.setItem('plannerBudget', String(F.budget));
+
+  // Show loading overlay
+  const ld = document.getElementById('loading-screen');
+  ld.classList.add('show');
+
+  // Animate phases
+  const phases = document.querySelectorAll('.phase');
+  let phaseIdx = 0;
+  const bar = document.getElementById('ld-bar');
+  const pct = document.getElementById('ld-pct');
+  const totalTime = 4200;
+  const phaseInterval = totalTime / (phases.length + 1);
+
+  // Progress bar smooth animation
+  let elapsed = 0;
+  const barTimer = setInterval(()=>{
+    elapsed += 50;
+    const p = Math.min(95, Math.round(elapsed/totalTime*100));
+    bar.style.width = p + '%';
+    pct.textContent = p + '%';
+  }, 50);
+
+  // Phase stepping
+  const phaseTimer = setInterval(()=>{
+    if(phaseIdx < phases.length){
+      // Mark previous as done
+      if(phaseIdx > 0) {
+        phases[phaseIdx-1].classList.remove('active');
+        phases[phaseIdx-1].classList.add('done');
+        phases[phaseIdx-1].querySelector('.phase-dot').textContent = '✓';
+      }
+      phases[phaseIdx].classList.add('active');
+      phaseIdx++;
+    }
+  }, phaseInterval);
+
+  // Navigate when done
+  setTimeout(()=>{
+    clearInterval(barTimer);
+    clearInterval(phaseTimer);
+    bar.style.width = '100%';
+    pct.textContent = '100%';
+    // Mark last phase done
+    phases.forEach(p=>{ p.classList.remove('active'); p.classList.add('done'); p.querySelector('.phase-dot').textContent='✓'; });
+    setTimeout(()=>{
+      const params = new URLSearchParams({
+        cityCode: F.city, date: F.departDate, nights: F.nights,
+      });
+      window.location.href = '/planner-result.html?' + params;
+    }, 400);
+  }, totalTime);
+}
+
+// ═══ BOOTSTRAP (반드시 STEP_TEMPLATES 정의 후 호출) ═══
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

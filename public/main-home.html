@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FUKUOSAKA — 예산 기반 AI 여행 플래너</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink:         #1C1C1E;
+      --ink-light:   #48484A;
+      --accent:      #7B5EA7;
+      --accent-pale: rgba(123,94,167,0.10);
+      --accent-glow: rgba(123,94,167,0.32);
+      --white:       #FFFFFF;
+      --cream:       #F5F0E8;
+      --cream-dark:  #EDE6D8;
+      --border:      #E8E3DA;
+      --muted:       #8E8E93;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html, body { font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; background:var(--cream); color:var(--ink); min-height:100vh; }
+    #app { max-width:430px; margin:0 auto; min-height:100vh; background:var(--cream); position:relative; overflow-x:hidden; }
+
+    /* ── Hero ──────────────────────────────── */
+    .hero { background:var(--ink); padding:52px 24px 36px; position:relative; overflow:hidden; }
+    .hero::before { content:''; position:absolute; top:-60px; right:-40px; width:200px; height:200px; border-radius:50%; background:var(--accent-glow); }
+    .hero::after  { content:''; position:absolute; bottom:-40px; left:-20px; width:140px; height:140px; border-radius:50%; background:rgba(107,143,122,0.18); }
+    .hero-in { position:relative; z-index:1; }
+    .hero-eyebrow { font-size:11px; font-weight:800; letter-spacing:.16em; color:var(--accent); margin-bottom:10px; }
+    .hero-title { font-size:28px; font-weight:900; color:#fff; letter-spacing:-.04em; line-height:1.25; margin-bottom:8px; }
+    .hero-sub { font-size:14px; color:var(--cream-dark); line-height:1.65; margin-bottom:24px; }
+    .hero-cta {
+      width:100%; padding:16px; border-radius:14px; background:var(--accent); color:#fff; border:none;
+      font-family:inherit; font-size:16px; font-weight:800; cursor:pointer; letter-spacing:-.01em;
+      box-shadow:0 4px 20px var(--accent-glow); transition:transform .15s, box-shadow .15s;
+    }
+    .hero-cta:hover  { transform:translateY(-1px); box-shadow:0 8px 28px var(--accent-glow); }
+    .hero-cta:active { transform:scale(.97); }
+
+    /* ── Stats bar ─────────────────────────── */
+    .stats-bar { background:var(--accent); padding:12px 24px; display:flex; justify-content:space-around; }
+    .stat-num   { font-size:14px; font-weight:800; color:#fff; text-align:center; }
+    .stat-lbl   { font-size:10px; color:rgba(255,255,255,.72); text-align:center; }
+
+    /* ── Search card ───────────────────────── */
+    .search-card { background:#fff; margin:16px; border-radius:20px; padding:20px; box-shadow:0 2px 16px rgba(28,28,30,.08); }
+    .s-lbl { font-size:11px; font-weight:800; color:var(--muted); letter-spacing:.05em; text-transform:uppercase; margin-bottom:8px; }
+    .city-btns { display:flex; gap:8px; margin-bottom:16px; }
+    .city-btn {
+      flex:1; padding:11px 8px; border-radius:12px; border:2px solid var(--border); background:#fff;
+      font-family:inherit; font-size:14px; font-weight:700; color:var(--ink); cursor:pointer; transition:all .15s; text-align:center;
+    }
+    .city-btn.on { border-color:var(--accent); background:var(--accent-pale); color:var(--accent); }
+    .date-input {
+      width:100%; padding:11px 12px; border-radius:10px; border:1.5px solid var(--border); background:var(--cream);
+      font-family:inherit; font-size:14px; font-weight:600; color:var(--ink); outline:none; transition:border-color .15s; margin-bottom:16px;
+    }
+    .date-input:focus { border-color:var(--accent); }
+    .nights-btns { display:flex; gap:6px; margin-bottom:20px; }
+    .night-btn {
+      flex:1; padding:10px 4px; border-radius:10px; border:2px solid var(--border); background:#fff;
+      font-family:inherit; font-size:13px; font-weight:700; color:var(--ink-light); cursor:pointer; transition:all .15s; line-height:1.3;
+    }
+    .night-btn.on { border-color:var(--accent); background:var(--accent); color:#fff; }
+    .search-go {
+      width:100%; padding:14px; border-radius:12px; background:var(--ink); color:#fff; border:none;
+      font-family:inherit; font-size:15px; font-weight:800; cursor:pointer; transition:all .15s; letter-spacing:-.01em;
+    }
+    .search-go:hover  { background:var(--ink-light); }
+    .search-go:active { transform:scale(.98); }
+
+    /* ── Section headers ───────────────────── */
+    .sec { padding:24px 16px 4px; }
+    .sec-title { font-size:16px; font-weight:800; color:var(--ink); letter-spacing:-.03em; margin-bottom:3px; }
+    .sec-sub   { font-size:12px; color:var(--muted); margin-bottom:14px; }
+
+    /* ── Horizontal scroll ─────────────────── */
+    .hscroll { display:flex; gap:12px; overflow-x:auto; padding:4px 16px 20px; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+    .hscroll::-webkit-scrollbar { display:none; }
+
+    /* ── Budget cards ──────────────────────── */
+    .budget-card {
+      flex-shrink:0; width:220px; border-radius:20px; padding:20px;
+      display:flex; flex-direction:column; gap:12px; cursor:pointer;
+      position:relative; overflow:hidden; transition:transform .2s, box-shadow .2s;
+    }
+    .budget-card:hover { transform:translateY(-3px); box-shadow:0 12px 32px rgba(0,0,0,.22); }
+    .budget-tier  { font-size:11px; font-weight:800; letter-spacing:.1em; opacity:.75; }
+    .budget-range { font-size:22px; font-weight:900; letter-spacing:-.04em; line-height:1; }
+    .budget-ex    { font-size:12px; font-weight:600; opacity:.75; }
+    .budget-desc  { font-size:12px; line-height:1.55; opacity:.82; }
+    .budget-cta {
+      display:inline-flex; align-items:center; gap:4px; font-size:13px; font-weight:800;
+      padding:8px 14px; border-radius:999px; border:none; cursor:pointer;
+      font-family:inherit; transition:all .15s; align-self:flex-start;
+    }
+    .budget-badge {
+      position:absolute; top:12px; right:12px; background:var(--accent); color:#fff;
+      font-size:10px; font-weight:800; padding:4px 8px; border-radius:999px; letter-spacing:.04em;
+    }
+
+    /* ── Banners ───────────────────────────── */
+    .banner-wrap { padding:24px 0 8px; }
+    .banner-hdr  { padding:0 16px; margin-bottom:14px; }
+    .banner-outer { overflow:hidden; }
+    .banner-track { display:flex; transition:transform .4s cubic-bezier(.4,0,.2,1); }
+    .banner-slide { flex-shrink:0; width:100%; padding:0 16px; }
+    .banner-card { border-radius:20px; padding:22px 24px; position:relative; overflow:hidden; cursor:pointer; transition:transform .2s; }
+    .banner-card:hover { transform:translateY(-2px); }
+    .b-badge { display:inline-block; font-size:10px; font-weight:800; letter-spacing:.1em; padding:4px 10px; border-radius:999px; margin-bottom:10px; }
+    .b-title { font-size:20px; font-weight:900; letter-spacing:-.04em; line-height:1.25; margin-bottom:6px; }
+    .b-desc  { font-size:13px; line-height:1.55; margin-bottom:20px; opacity:.85; }
+    .b-btn {
+      display:inline-flex; align-items:center; gap:6px; font-size:14px; font-weight:800;
+      padding:10px 18px; border-radius:999px; border:none; cursor:pointer;
+      font-family:inherit; text-decoration:none; transition:all .15s;
+    }
+    .b-btn:active { transform:scale(.95); }
+    .banner-dots { display:flex; justify-content:center; gap:6px; margin-top:14px; }
+    .b-dot { width:6px; height:6px; border-radius:50%; background:var(--border); cursor:pointer; transition:all .25s; }
+    .b-dot.on { width:18px; border-radius:3px; background:var(--accent); }
+
+    /* ── Product cards ─────────────────────── */
+    .prod-card {
+      flex-shrink:0; width:178px; background:#fff; border-radius:16px; overflow:hidden;
+      box-shadow:0 1px 8px rgba(28,28,30,.06); cursor:pointer; transition:transform .2s, box-shadow .2s;
+    }
+    .prod-card:hover { transform:translateY(-3px); box-shadow:0 8px 24px rgba(28,28,30,.12); }
+    .prod-img { width:100%; height:128px; object-fit:cover; display:block; }
+    .prod-ph  { width:100%; height:128px; background:linear-gradient(135deg,var(--cream-dark),var(--border)); display:flex; align-items:center; justify-content:center; font-size:34px; }
+    .prod-body { padding:12px; }
+    .prod-name { font-size:13px; font-weight:700; color:var(--ink); line-height:1.4; margin-bottom:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .prod-rating { font-size:11px; color:var(--muted); margin-bottom:6px; }
+    .prod-price  { font-size:14px; font-weight:800; color:var(--accent); margin-bottom:8px; }
+    .prod-btn {
+      display:block; width:100%; padding:8px; border-radius:8px; background:var(--accent); color:#fff; border:none;
+      font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; text-align:center; text-decoration:none; transition:all .15s;
+    }
+    .prod-btn:hover { background:#6a4f93; }
+
+    /* ── Coupon card ───────────────────────── */
+    .coupon-wrap { padding:0 16px 24px; }
+    .coupon-card {
+      border-radius:20px; background:linear-gradient(135deg,#1a3a5c,#0d2137);
+      padding:20px; display:flex; align-items:center; gap:16px;
+      cursor:pointer; transition:transform .2s; position:relative; overflow:hidden; text-decoration:none;
+    }
+    .coupon-card::before { content:''; position:absolute; top:-20px; right:-20px; width:90px; height:90px; border-radius:50%; background:rgba(255,255,255,.07); }
+    .coupon-card:hover { transform:translateY(-2px); }
+    .coupon-icon { width:52px; height:52px; border-radius:14px; background:rgba(255,255,255,.14); display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0; }
+    .coupon-body  { flex:1; }
+    .coupon-ptnr  { font-size:10px; font-weight:800; letter-spacing:.1em; color:rgba(255,255,255,.6); margin-bottom:4px; }
+    .coupon-title { font-size:15px; font-weight:800; color:#fff; letter-spacing:-.02em; line-height:1.35; margin-bottom:3px; }
+    .coupon-desc  { font-size:12px; color:rgba(255,255,255,.72); }
+    .coupon-cta   { flex-shrink:0; padding:8px 14px; border-radius:999px; background:#fff; color:#1a3a5c; border:none; font-family:inherit; font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap; }
+
+    /* ── Individual Search ─────────────────── */
+    .isearch-wrap {
+      background:#fff; margin:0 16px 24px; border-radius:20px;
+      box-shadow:0 2px 16px rgba(28,28,30,.08); overflow:hidden;
+    }
+    .isearch-desc {
+      padding:16px 16px 0;
+      font-size:12px; color:var(--muted); line-height:1.5;
+    }
+    .isearch-tabs {
+      display:flex; padding:12px 16px 0; gap:0;
+      border-bottom:1.5px solid var(--border);
+    }
+    .is-tab {
+      flex:1; padding:10px 0; font-family:inherit;
+      font-size:14px; font-weight:700; color:var(--muted);
+      background:none; border:none; cursor:pointer;
+      border-bottom:2.5px solid transparent; margin-bottom:-1.5px;
+      transition:color .15s, border-color .15s;
+    }
+    .is-tab.on { color:var(--accent); border-bottom-color:var(--accent); }
+    .isearch-body { padding:16px; }
+
+    /* input rows */
+    .is-row { display:flex; gap:8px; margin-bottom:10px; align-items:stretch; }
+    .is-input {
+      flex:1; padding:11px 12px; border-radius:10px;
+      border:1.5px solid var(--border); background:var(--cream);
+      font-family:inherit; font-size:14px; font-weight:500; color:var(--ink);
+      outline:none; transition:border-color .15s;
+    }
+    .is-input:focus { border-color:var(--accent); }
+    .is-go {
+      padding:11px 18px; border-radius:10px;
+      background:var(--accent); color:#fff; border:none;
+      font-family:inherit; font-size:14px; font-weight:800;
+      cursor:pointer; white-space:nowrap; transition:all .15s;
+    }
+    .is-go:hover  { background:#6a4f93; }
+    .is-go:active { transform:scale(.95); }
+
+    /* quick chips */
+    .is-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+    .is-chip {
+      padding:5px 12px; border-radius:999px;
+      border:1.5px solid var(--border); background:#fff;
+      font-family:inherit; font-size:12px; font-weight:700;
+      color:var(--ink-light); cursor:pointer; transition:all .15s;
+    }
+    .is-chip:hover { border-color:var(--accent); color:var(--accent); }
+    .is-chip.on   { border-color:var(--accent); background:var(--accent-pale); color:var(--accent); }
+
+    /* date pair */
+    .is-dates { display:flex; gap:8px; margin-bottom:10px; }
+    .is-date-field { flex:1; display:flex; flex-direction:column; gap:4px; }
+    .is-date-lbl  { font-size:10px; font-weight:700; color:var(--muted); }
+    .is-date-in {
+      padding:9px 10px; border-radius:10px;
+      border:1.5px solid var(--border); background:var(--cream);
+      font-family:inherit; font-size:13px; font-weight:600; color:var(--ink);
+      outline:none; transition:border-color .15s; width:100%;
+    }
+    .is-date-in:focus { border-color:var(--accent); }
+
+    /* adult stepper */
+    .is-stepper { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+    .is-stepper-lbl  { font-size:13px; font-weight:700; color:var(--ink); flex:1; }
+    .is-step-btn {
+      width:28px; height:28px; border-radius:50%; border:1.5px solid var(--border);
+      background:#fff; font-size:16px; cursor:pointer; display:flex;
+      align-items:center; justify-content:center; transition:all .15s; flex-shrink:0;
+    }
+    .is-step-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .is-step-val { font-size:18px; font-weight:800; min-width:20px; text-align:center; }
+
+    /* search results */
+    .is-results { margin-top:16px; display:none; }
+    .is-results.show { display:block; }
+    .is-res-title {
+      font-size:13px; font-weight:700; color:var(--muted);
+      margin-bottom:10px; letter-spacing:-.01em;
+    }
+    /* result cards vertical */
+    .is-stay-card {
+      display:flex; gap:12px; padding:14px; border-radius:14px;
+      background:var(--cream); margin-bottom:10px;
+      cursor:pointer; transition:transform .2s;
+    }
+    .is-stay-card:hover { transform:translateX(2px); }
+    .is-stay-img {
+      width:72px; height:72px; border-radius:10px; object-fit:cover;
+      background:var(--border); flex-shrink:0;
+    }
+    .is-stay-ph  { width:72px; height:72px; border-radius:10px; background:var(--border); display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0; }
+    .is-stay-name { font-size:13px; font-weight:700; color:var(--ink); line-height:1.4; margin-bottom:3px; }
+    .is-stay-sub  { font-size:11px; color:var(--muted); margin-bottom:6px; }
+    .is-stay-price { font-size:14px; font-weight:800; color:var(--accent); }
+
+    /* flight result card */
+    .is-flight-card {
+      border-radius:14px; background:var(--cream); padding:14px;
+      margin-bottom:10px; cursor:pointer; transition:transform .2s;
+    }
+    .is-flight-card:hover { transform:translateX(2px); }
+    .is-flight-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .is-flight-airline { font-size:13px; font-weight:700; color:var(--ink); }
+    .is-flight-price   { font-size:16px; font-weight:900; color:var(--accent); }
+    .is-flight-row { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
+    .is-flight-time { font-size:15px; font-weight:800; color:var(--ink); }
+    .is-flight-line { flex:1; height:1px; background:var(--border); position:relative; }
+    .is-flight-line::before { content:'›'; position:absolute; right:-4px; top:-8px; font-size:14px; color:var(--muted); }
+    .is-flight-badge { display:inline-block; font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; background:rgba(123,94,167,.12); color:var(--accent); }
+
+    /* loading in results */
+    .is-loading { text-align:center; padding:24px 0; }
+    .is-spinner { display:inline-block; width:24px; height:24px; border-radius:50%; border:2.5px solid var(--border); border-top-color:var(--accent); animation:spin .8s linear infinite; }
+
+    /* ── Skeleton ──────────────────────────── */
+    .ske { background:linear-gradient(90deg,var(--cream-dark) 25%,var(--cream) 50%,var(--cream-dark) 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; border-radius:8px; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    /* ── Bottom nav ────────────────────────── */
+    .bottom-nav {
+      position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:430px;
+      background:rgba(255,255,255,.95); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+      border-top:1px solid var(--border); padding:10px 0 24px; z-index:100; display:flex; justify-content:space-around;
+    }
+    .nav-item { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:4px 16px; border-radius:12px; transition:all .15s; }
+    .nav-item.on { background:var(--accent-pale); }
+    .nav-icon { font-size:20px; }
+    .nav-lbl  { font-size:10px; font-weight:700; color:var(--muted); }
+    .nav-item.on .nav-lbl { color:var(--accent); }
+    .bottom-space { height:80px; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ① HERO ─────────────────────────────────── -->
+  <div class="hero">
+    <div class="hero-in">
+      <div class="hero-eyebrow">FUKUOSAKA AI PLANNER</div>
+      <div class="hero-title">예산에 맞는<br>후쿠오카·오사카<br>여행을 짜드려요</div>
+      <div class="hero-sub">재방문자일수록 더 잘 맞는 플래너<br>여행작가 큐레이션 포함</div>
+      <button class="hero-cta" onclick="window.location.href='/planner-wizard.html'">내 여행 예산 입력하기 →</button>
+    </div>
+  </div>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar">
+    <div><div class="stat-num">3,240+</div><div class="stat-lbl">플랜 생성</div></div>
+    <div><div class="stat-num">4.8★</div><div class="stat-lbl">평균 만족도</div></div>
+    <div><div class="stat-num">2개 도시</div><div class="stat-lbl">후쿠오카·오사카</div></div>
+  </div>
+
+
+  <!-- ③ 추천 예산 3카드 ──────────────────────── -->
+  <div class="sec">
+    <div class="sec-title">추천 예산 예시</div>
+    <div class="sec-sub">예산대를 선택하면 바로 맞춤 플랜을 생성해드려요</div>
+  </div>
+  <div class="hscroll">
+
+    <!-- 가성비 -->
+    <div class="budget-card"
+         style="background:linear-gradient(135deg,#1a2a1f,#2d4a35);color:#fff"
+         onclick="pickBudget(600000,2)">
+      <div>
+        <div class="budget-tier" style="color:#7dcc8f">가성비</div>
+        <div class="budget-range">50~70만원</div>
+      </div>
+      <div class="budget-ex">🏯 오사카 2박3일 · ♨️ 후쿠오카 2박3일</div>
+      <div class="budget-desc">LCC 항공 + 중급 호텔로<br>알짜배기 핵심 코스만!</div>
+      <button class="budget-cta" style="background:rgba(125,204,143,.18);color:#7dcc8f;border:1.5px solid rgba(125,204,143,.4)">
+        이 예산으로 플랜 생성 →
+      </button>
+    </div>
+
+    <!-- 표준 -->
+    <div class="budget-card"
+         style="background:linear-gradient(135deg,#1a1a2e,#2d2d5a);color:#fff"
+         onclick="pickBudget(1000000,3)">
+      <div class="budget-badge">인기</div>
+      <div>
+        <div class="budget-tier" style="color:#a89fcc">표준</div>
+        <div class="budget-range">80~120만원</div>
+      </div>
+      <div class="budget-ex">🏯 오사카 3박4일 · ♨️ 후쿠오카 3박4일</div>
+      <div class="budget-desc">합리적 숙소 + 주요 투어<br>균형 잡힌 여행 구성!</div>
+      <button class="budget-cta" style="background:rgba(123,94,167,.22);color:#c5b8e8;border:1.5px solid rgba(123,94,167,.5)">
+        이 예산으로 플랜 생성 →
+      </button>
+    </div>
+
+    <!-- 럭셔리 -->
+    <div class="budget-card"
+         style="background:linear-gradient(135deg,#2a1a0e,#4a2f12);color:#fff"
+         onclick="pickBudget(1800000,4)">
+      <div>
+        <div class="budget-tier" style="color:#d4a853">럭셔리</div>
+        <div class="budget-range">150만원+</div>
+      </div>
+      <div class="budget-ex">🏯 오사카 4박5일 · ♨️ 후쿠오카 4박5일</div>
+      <div class="budget-desc">프리미엄 호텔 + 프라이빗 투어<br>여유로운 고급 여행!</div>
+      <button class="budget-cta" style="background:rgba(212,168,83,.18);color:#d4a853;border:1.5px solid rgba(212,168,83,.4)">
+        이 예산으로 플랜 생성 →
+      </button>
+    </div>
+
+  </div>
+
+
+  <!-- ④ 슬라이드 배너 ─────────────────────────── -->
+  <div class="banner-wrap">
+    <div class="banner-hdr">
+      <div class="sec-title" style="margin-bottom:2px">이벤트 &amp; 혜택</div>
+      <div style="font-size:12px;color:var(--muted)">파트너 특가 · 기획전 · 프로모션</div>
+    </div>
+
+    <div class="banner-outer">
+      <div class="banner-track" id="btrack">
+
+        <!-- 배너 1 — 호텔 특가 -->
+        <div class="banner-slide">
+          <div class="banner-card" style="background:linear-gradient(135deg,#7B5EA7,#5a3d8a)">
+            <div class="b-badge" style="background:rgba(255,255,255,.2);color:#fff">✨ 파트너 호텔</div>
+            <div class="b-title" style="color:#fff">오사카 도심 호텔<br>최대 25% 할인</div>
+            <div class="b-desc"  style="color:rgba(255,255,255,.85)">도톤보리·우메다 중심가 위치<br>조식 포함 특가 한정 운영</div>
+            <a href="https://www.myrealtrip.com/stays" target="_blank" class="b-btn" style="background:#fff;color:#7B5EA7">지금 확인하기 →</a>
+          </div>
+        </div>
+
+        <!-- 배너 2 — 투어 특가 -->
+        <div class="banner-slide">
+          <div class="banner-card" style="background:linear-gradient(135deg,#2d6a4f,#1b4332)">
+            <div class="b-badge" style="background:rgba(255,255,255,.2);color:#fff">🎫 투어 &amp; 티켓</div>
+            <div class="b-title" style="color:#fff">유니버설 스튜디오<br>익스프레스 특가</div>
+            <div class="b-desc"  style="color:rgba(255,255,255,.85)">마감 임박 특가 티켓<br>빠른 입장 · 대기 없이</div>
+            <a href="https://www.myrealtrip.com/offers" target="_blank" class="b-btn" style="background:#fff;color:#2d6a4f">티켓 보러가기 →</a>
+          </div>
+        </div>
+
+        <!-- 배너 3 — 여기어때 쿠폰 -->
+        <div class="banner-slide">
+          <div class="banner-card" style="background:linear-gradient(135deg,#1a3a5c,#0d2137)">
+            <div class="b-badge" style="background:rgba(255,255,255,.2);color:#fff">🎟 여기어때 제휴</div>
+            <div class="b-title" style="color:#fff">여기어때 쿠폰<br>최대 1만원 할인</div>
+            <div class="b-desc"  style="color:rgba(255,255,255,.85)">후쿠오카·오사카 숙박 예약 시<br>제휴 쿠폰으로 즉시 할인</div>
+            <a href="https://www.yeogieottae.com" target="_blank" class="b-btn" style="background:#fff;color:#1a3a5c">쿠폰 받으러 가기 →</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="banner-dots" id="bdots">
+      <div class="b-dot on" onclick="goBanner(0)"></div>
+      <div class="b-dot"    onclick="goBanner(1)"></div>
+      <div class="b-dot"    onclick="goBanner(2)"></div>
+    </div>
+  </div>
+
+  <!-- ⑤ 인기 숙소 ──────────────────────────────── -->
+  <div class="sec">
+    <div class="sec-title">🏨 인기 숙소</div>
+    <div class="sec-sub">지금 많이 찾는 오사카·후쿠오카 추천 숙소</div>
+  </div>
+  <div class="hscroll" id="stays-list">
+    <div class="prod-card"><div class="ske" style="height:128px;border-radius:0"></div><div style="padding:12px"><div class="ske" style="height:14px;margin-bottom:8px"></div><div class="ske" style="height:12px;width:65%;margin-bottom:10px"></div><div class="ske" style="height:32px;border-radius:8px"></div></div></div>
+    <div class="prod-card"><div class="ske" style="height:128px;border-radius:0"></div><div style="padding:12px"><div class="ske" style="height:14px;margin-bottom:8px"></div><div class="ske" style="height:12px;width:65%;margin-bottom:10px"></div><div class="ske" style="height:32px;border-radius:8px"></div></div></div>
+    <div class="prod-card"><div class="ske" style="height:128px;border-radius:0"></div><div style="padding:12px"><div class="ske" style="height:14px;margin-bottom:8px"></div><div class="ske" style="height:12px;width:65%;margin-bottom:10px"></div><div class="ske" style="height:32px;border-radius:8px"></div></div></div>
+  </div>
+
+  <!-- ⑥ 인기 투어 & 티켓 ─────────────────────── -->
+  <div class="sec">
+    <div class="sec-title">🎟 인기 투어 &amp; 티켓</div>
+    <div class="sec-sub">현지 가이드 추천 · 예약 베스트</div>
+  </div>
+  <div class="hscroll" id="tnas-list">
+    <div class="prod-card"><div class="ske" style="height:128px;border-radius:0"></div><div style="padding:12px"><div class="ske" style="height:14px;margin-bottom:8px"></div><div class="ske" style="height:12px;width:65%;margin-bottom:10px"></div><div class="ske" style="height:32px;border-radius:8px"></div></div></div>
+    <div class="prod-card"><div class="ske" style="height:128px;border-radius:0"></div><div style="padding:12px"><div class="ske" style="height:14px;margin-bottom:8px"></div><div class="ske" style="height:12px;width:65%;margin-bottom:10px"></div><div class="ske" style="height:32px;border-radius:8px"></div></div></div>
+    <div class="prod-card"><div class="ske" style="height:128px;border-radius:0"></div><div style="padding:12px"><div class="ske" style="height:14px;margin-bottom:8px"></div><div class="ske" style="height:12px;width:65%;margin-bottom:10px"></div><div class="ske" style="height:32px;border-radius:8px"></div></div></div>
+  </div>
+
+  <!-- 여기어때 쿠폰 카드 ─────────────────────── -->
+  <div class="coupon-wrap">
+    <a href="https://www.yeogieottae.com" target="_blank" class="coupon-card">
+      <div class="coupon-icon">🎟</div>
+      <div class="coupon-body">
+        <div class="coupon-ptnr">여기어때 AFFILIATE</div>
+        <div class="coupon-title">숙박 예약 전<br>할인 쿠폰 챙기세요</div>
+        <div class="coupon-desc">제휴 쿠폰 · 즉시 할인 적용</div>
+      </div>
+      <button class="coupon-cta" onclick="event.preventDefault();window.open('https://www.yeogieottae.com','_blank')">쿠폰 받기</button>
+    </a>
+  </div>
+
+  <div class="bottom-space"></div>
+
+  <!-- BOTTOM NAV ──────────────────────────────── -->
+  <nav class="bottom-nav">
+    <div class="nav-item on">
+      <div class="nav-icon">🏠</div>
+      <div class="nav-lbl" style="color:var(--accent)">홈</div>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/planner-wizard.html'">
+      <div class="nav-icon">✦</div>
+      <div class="nav-lbl">AI플래너</div>
+    </div>
+    <div class="nav-item" onclick="goPlanner()">
+      <div class="nav-icon">🏨</div>
+      <div class="nav-lbl">숙소</div>
+    </div>
+    <div class="nav-item" onclick="goPlanner()">
+      <div class="nav-icon">🎟</div>
+      <div class="nav-lbl">투어</div>
+    </div>
+  </nav>
+
+</div><!-- #app -->
+
+<script>
+// ─── State ────────────────────────────────────
+const S = {
+  city:'KIX', nights:3, bIdx:0, bTimer:null,
+  adults:2, origin:'ICN', dest:'KIX',
+  stayKw:'오사카', tnaKw:'오사카 관광',
+};
+
+// ─── Init ─────────────────────────────────────
+(function init(){
+  // Restore saved conditions
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('plannerConditions') || '{}');
+  } catch(e){}
+
+  fetchPopular();
+  startBanners();
+
+  // Touch swipe on banner
+  const track = document.getElementById('btrack');
+  let sx = 0;
+  track.addEventListener('touchstart', e => { clearInterval(S.bTimer); sx = e.touches[0].clientX; }, {passive:true});
+  track.addEventListener('touchend', e => {
+    const dx = sx - e.changedTouches[0].clientX;
+    if (Math.abs(dx) > 50) goBanner(dx > 0 ? Math.min(2, S.bIdx+1) : Math.max(0, S.bIdx-1));
+    startBanners();
+  }, {passive:true});
+})();
+
+// ─── Navigate ─────────────────────────────────
+function futureDate(days) {
+  const d = new Date(); d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0,10);
+}
+
+function pickBudget(budget, nights) {
+  sessionStorage.setItem('plannerBudget', String(budget));
+  sessionStorage.setItem('plannerNights', String(nights));
+  window.location.href = '/planner-wizard.html';
+}
+
+// ─── Popular products ──────────────────────────
+async function fetchPopular() {
+  try {
+    const date = futureDate(60);
+    const r = await fetch(`/api/planner?cityCode=KIX&date=${date}&nights=3`);
+    const d = await r.json();
+    if (d.stays && d.stays.length) renderStays(d.stays); else renderStaysFallback();
+    if (d.tnas  && d.tnas.length)  renderTnas(d.tnas);   else renderTnasFallback();
+  } catch(e) {
+    renderStaysFallback();
+    renderTnasFallback();
+  }
+}
+
+function stayCard(s) {
+  const url = (s.bookUrl || 'https://www.myrealtrip.com/stays').replace(/"/g,'&quot;');
+  const imgH = s.img
+    ? `<img class="prod-img" src="${s.img.replace(/"/g,'&quot;')}" alt="" loading="lazy"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+       <div class="prod-ph" style="display:none">🏨</div>`
+    : `<div class="prod-ph">🏨</div>`;
+  return `<div class="prod-card" onclick="window.open('${url}','_blank')">
+    ${imgH}
+    <div class="prod-body">
+      <div class="prod-name">${s.name || '추천 숙소'}</div>
+      ${s.rating ? `<div class="prod-rating">⭐ ${s.rating} (${s.reviewCount || ''})</div>` : ''}
+      <div class="prod-price">${s.price || ''}</div>
+      <a href="${url}" target="_blank" class="prod-btn">예약하기</a>
+    </div>
+  </div>`;
+}
+
+function tnaCard(t) {
+  const url = (t.bookUrl || 'https://www.myrealtrip.com/offers').replace(/"/g,'&quot;');
+  const imgH = t.img
+    ? `<img class="prod-img" src="${t.img.replace(/"/g,'&quot;')}" alt="" loading="lazy"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+       <div class="prod-ph" style="display:none">🎟</div>`
+    : `<div class="prod-ph">🎟</div>`;
+  const tagH = t.tag ? `<div style="display:inline-block;background:var(--accent-pale);color:var(--accent);font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;margin-bottom:6px">${t.tag}</div>` : '';
+  return `<div class="prod-card" onclick="window.open('${url}','_blank')">
+    ${imgH}
+    <div class="prod-body">
+      ${tagH}
+      <div class="prod-name">${t.name || '추천 투어'}</div>
+      ${t.rating ? `<div class="prod-rating">⭐ ${t.rating}</div>` : ''}
+      <div class="prod-price">${t.price || ''}</div>
+      <a href="${url}" target="_blank" class="prod-btn">예약하기</a>
+    </div>
+  </div>`;
+}
+
+function renderStays(items) { document.getElementById('stays-list').innerHTML = items.slice(0,4).map(stayCard).join(''); }
+function renderTnas(items)  { document.getElementById('tnas-list').innerHTML  = items.slice(0,6).map(tnaCard).join(''); }
+
+function renderStaysFallback() {
+  renderStays([
+    {name:'도톤보리 도보 5분 비즈니스 호텔', price:'75,000원~', bookUrl:'https://www.myrealtrip.com/stays'},
+    {name:'우메다역 직결 시티 호텔',         price:'89,000원~', bookUrl:'https://www.myrealtrip.com/stays'},
+    {name:'난바 프리미엄 스위트',            price:'122,000원~', bookUrl:'https://www.myrealtrip.com/stays'},
+  ]);
+}
+function renderTnasFallback() {
+  renderTnas([
+    {name:'오사카 도톤보리 야경 야간 투어',  price:'45,000원~', bookUrl:'https://www.myrealtrip.com/offers'},
+    {name:'유니버설 스튜디오 일일 입장권',   price:'85,000원~', bookUrl:'https://www.myrealtrip.com/offers'},
+    {name:'후쿠오카 야타이 음식 체험 투어',  price:'55,000원~', bookUrl:'https://www.myrealtrip.com/offers'},
+  ]);
+}
+
+// ─── Individual Search ────────────────────────
+
+// Tab switch
+function switchTab(tab) {
+  document.querySelectorAll('.is-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  ['stays','tnas','flights'].forEach(t => {
+    const el = document.getElementById('form-' + t);
+    if (el) el.style.display = t === tab ? '' : 'none';
+  });
+}
+
+// Stays keyword chips
+function setStayKw(kw) {
+  S.stayKw = kw;
+  document.getElementById('stays-kw').value = kw;
+  document.querySelectorAll('#form-stays .is-chip').forEach(b => {
+    b.classList.toggle('on', b.textContent.includes(kw.replace(/[🏯♨️]/g,'').trim()));
+  });
+}
+// TNAs keyword chips
+function setTnaKw(kw) {
+  S.tnaKw = kw;
+  document.getElementById('tnas-kw').value = kw;
+  document.querySelectorAll('#form-tnas .is-chip').forEach(b => {
+    b.classList.toggle('on', b.getAttribute('onclick')?.includes(kw));
+  });
+}
+// Flight origin/dest
+function pickOrigin(code) {
+  S.origin = code;
+  document.querySelectorAll('#origin-chips .is-chip').forEach(b => b.classList.toggle('on', b.dataset.orig === code));
+}
+function pickDest(code) {
+  S.dest = code;
+  document.querySelectorAll('#dest-chips .is-chip').forEach(b => b.classList.toggle('on', b.dataset.dest === code));
+}
+// Adult stepper
+function stepAdult(d) {
+  S.adults = Math.max(1, Math.min(6, S.adults + d));
+  document.getElementById('adult-val').textContent = S.adults;
+}
+
+// Search dispatcher
+async function doSearch(type) {
+  const resultEl = document.getElementById('res-' + type);
+  resultEl.className = 'is-results show';
+  resultEl.innerHTML = `<div class="is-loading"><div class="is-spinner"></div></div>`;
+
+  try {
+    let url = '/api/search?type=' + type;
+    if (type === 'stays') {
+      const kw  = document.getElementById('stays-kw').value  || S.stayKw;
+      const cin  = document.getElementById('stays-cin').value;
+      const cout = document.getElementById('stays-cout').value;
+      url += `&keyword=${encodeURIComponent(kw)}&adultCount=${S.adults}`;
+      if (cin)  url += `&checkIn=${cin}`;
+      if (cout) url += `&checkOut=${cout}`;
+    }
+    if (type === 'tnas') {
+      const kw = document.getElementById('tnas-kw').value || S.tnaKw;
+      url += `&query=${encodeURIComponent(kw)}&perPage=6`;
+    }
+    if (type === 'flights') {
+      const dep = document.getElementById('fl-depart').value;
+      const ret = document.getElementById('fl-return').value;
+      if (!dep) { resultEl.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:13px">출발일을 선택해주세요</div>'; return; }
+      url += `&origin=${S.origin}&destination=${S.dest}&departDate=${dep}`;
+      if (ret) url += `&returnDate=${ret}`;
+    }
+
+    const r = await fetch(url);
+    const d = await r.json();
+
+    if (type === 'stays')   resultEl.innerHTML = renderStayResults(d.stays   || []);
+    if (type === 'tnas')    resultEl.innerHTML = renderTnaResults(d.tnas     || []);
+    if (type === 'flights') resultEl.innerHTML = renderFlightResults(d.flights|| []);
+
+  } catch(e) {
+    resultEl.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:13px">검색 중 오류가 발생했어요. 다시 시도해주세요.</div>';
+  }
+}
+
+function renderStayResults(items) {
+  if (!items.length) return '<div style="padding:12px;color:var(--muted);font-size:13px">검색 결과가 없어요</div>';
+  const hdr = `<div class="is-res-title">숙소 검색 결과 ${items.length}개</div>`;
+  const cards = items.map(s => {
+    const url  = (s.bookUrl || 'https://www.myrealtrip.com/stays').replace(/"/g,'&quot;');
+    const imgH = s.img
+      ? `<img class="is-stay-img" src="${s.img.replace(/"/g,'&quot;')}" alt="" loading="lazy" onerror="this.style.display='none'">`
+      : `<div class="is-stay-ph">🏨</div>`;
+    return `<div class="is-stay-card" onclick="window.open('${url}','_blank')">
+      ${imgH}
+      <div style="flex:1;min-width:0">
+        <div class="is-stay-name">${s.name || '추천 숙소'}</div>
+        <div class="is-stay-sub">${s.rating ? '⭐ ' + s.rating + ' (' + (s.reviewCount||'') + ')' : ''}</div>
+        <div class="is-stay-price">${s.price || ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+  return hdr + cards;
+}
+
+function renderTnaResults(items) {
+  if (!items.length) return '<div style="padding:12px;color:var(--muted);font-size:13px">검색 결과가 없어요</div>';
+  const hdr = `<div class="is-res-title">투어 검색 결과 ${items.length}개</div>`;
+  const cards = items.map(t => {
+    const url  = (t.bookUrl || 'https://www.myrealtrip.com/offers').replace(/"/g,'&quot;');
+    const imgH = t.img
+      ? `<img class="is-stay-img" src="${t.img.replace(/"/g,'&quot;')}" alt="" loading="lazy" onerror="this.style.display='none'">`
+      : `<div class="is-stay-ph">🎟</div>`;
+    const tagH = t.tag ? `<span style="background:var(--accent-pale);color:var(--accent);font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;margin-right:4px">${t.tag}</span>` : '';
+    return `<div class="is-stay-card" onclick="window.open('${url}','_blank')">
+      ${imgH}
+      <div style="flex:1;min-width:0">
+        <div style="margin-bottom:4px">${tagH}</div>
+        <div class="is-stay-name">${t.name || '추천 투어'}</div>
+        <div class="is-stay-sub">${t.rating ? '⭐ ' + t.rating : ''}</div>
+        <div class="is-stay-price">${t.price || ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+  return hdr + cards;
+}
+
+function renderFlightResults(items) {
+  if (!items.length) return '<div style="padding:12px;color:var(--muted);font-size:13px">검색 결과가 없어요. 날짜를 확인해주세요.</div>';
+  const originName = {ICN:'인천',GMP:'김포',PUS:'김해',CJU:'제주'}[S.origin] || S.origin;
+  const destName   = {KIX:'오사카',FUK:'후쿠오카'}[S.dest] || S.dest;
+  const hdr = `<div class="is-res-title">항공권 검색 결과 — ${originName} → ${destName}</div>`;
+  const cards = items.map(f => {
+    const o   = f.outbound;
+    const ret = f.inbound;
+    const url = (f.reservationUrl || 'https://www.myrealtrip.com/flights').replace(/"/g,'&quot;');
+    const cheapBadge = f.isCheapest ? '<span class="is-flight-badge">최저가</span>' : '';
+    const directBadge = f.isDirect
+      ? '<span class="is-flight-badge" style="background:rgba(107,143,122,.12);color:#3d7a54">직항</span>'
+      : '<span class="is-flight-badge" style="background:rgba(184,150,46,.12);color:#8a6e10">경유</span>';
+    const dur = o ? `${Math.floor(o.duration/60)}h${o.duration%60}m` : '';
+    const retRow = ret ? `<div class="is-flight-row" style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border)">
+      <span class="is-flight-time">${ret.departTime}</span>
+      <div class="is-flight-line"></div>
+      <span class="is-flight-time">${ret.arriveTime}</span>
+      <span style="color:var(--muted);font-size:11px">${ret.date}</span>
+    </div>` : '';
+    return `<div class="is-flight-card" onclick="window.open('${url}','_blank')">
+      <div class="is-flight-top">
+        <div>
+          <div class="is-flight-airline">${f.airline}</div>
+          <div style="margin-top:4px;display:flex;gap:4px">${cheapBadge}${directBadge}</div>
+        </div>
+        <div>
+          <div class="is-flight-price">${f.price ? f.price.toLocaleString() + '원' : ''}</div>
+          <div style="font-size:10px;color:var(--muted);text-align:right">왕복 총액</div>
+        </div>
+      </div>
+      <div class="is-flight-row">
+        <span class="is-flight-time">${o?.departTime||''}</span>
+        <div class="is-flight-line"></div>
+        <span class="is-flight-time">${o?.arriveTime||''}</span>
+        <span style="color:var(--muted);font-size:11px">${dur}</span>
+      </div>
+      ${retRow}
+    </div>`;
+  }).join('');
+  return hdr + cards;
+}
+
+// ─── Banners ──────────────────────────────────
+function goBanner(i) {
+  S.bIdx = i;
+  document.getElementById('btrack').style.transform = `translateX(-${i * 100}%)`;
+  document.querySelectorAll('.b-dot').forEach((d,j) => d.classList.toggle('on', j === i));
+}
+function startBanners() {
+  clearInterval(S.bTimer);
+  S.bTimer = setInterval(() => goBanner((S.bIdx + 1) % 3), 4200);
+}
+</script>
+</body>
+</html>
