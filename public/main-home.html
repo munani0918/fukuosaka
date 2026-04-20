@@ -343,17 +343,26 @@
 
     <!-- 항공 폼 -->
     <div class="isearch-body" id="form-flights" style="display:none">
-      <!-- 목적지 카드 -->
+      <!-- 출발지 -->
+      <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:7px">출발지</div>
+      <div id="origin-chips" style="display:flex;gap:6px;margin-bottom:14px">
+        <button class="is-chip on" data-origin="ICN" onclick="pickOriginCity('ICN')" style="flex:1;padding:8px 0;border-radius:10px;font-size:13px">인천</button>
+        <button class="is-chip"    data-origin="GMP" onclick="pickOriginCity('GMP')" style="flex:1;padding:8px 0;border-radius:10px;font-size:13px">김포</button>
+        <button class="is-chip"    data-origin="PUS" onclick="pickOriginCity('PUS')" style="flex:1;padding:8px 0;border-radius:10px;font-size:13px">김해</button>
+        <button class="is-chip"    data-origin="CJU" onclick="pickOriginCity('CJU')" style="flex:1;padding:8px 0;border-radius:10px;font-size:13px">제주</button>
+      </div>
+      <!-- 목적지 -->
+      <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:7px">목적지</div>
       <div style="display:flex;gap:8px;margin-bottom:14px">
         <button id="dest-fuk" class="is-chip" style="flex:1;text-align:left;padding:11px 14px;border-radius:14px;height:auto"
                 onclick="pickDestCity('FUK')">
           <div style="font-size:10px;font-weight:800;letter-spacing:.06em;color:var(--muted);margin-bottom:3px">→ FUK</div>
-          <div style="font-size:13px;font-weight:700;color:var(--ink)">인천 → 후쿠오카</div>
+          <div id="dest-fuk-label" style="font-size:13px;font-weight:700;color:var(--ink)">인천 → 후쿠오카</div>
         </button>
         <button id="dest-kix" class="is-chip on" style="flex:1;text-align:left;padding:11px 14px;border-radius:14px;height:auto"
                 onclick="pickDestCity('KIX')">
           <div style="font-size:10px;font-weight:800;letter-spacing:.06em;color:var(--accent);margin-bottom:3px">→ KIX</div>
-          <div style="font-size:13px;font-weight:700;color:var(--ink)">인천 → 오사카</div>
+          <div id="dest-kix-label" style="font-size:13px;font-weight:700;color:var(--ink)">인천 → 오사카</div>
         </button>
       </div>
       <!-- 날짜 -->
@@ -368,8 +377,7 @@
         </div>
       </div>
       <div id="fl-nights-lbl" style="font-size:12px;color:var(--muted);margin:6px 0 14px">날짜를 선택해주세요</div>
-      <button class="is-go" style="width:100%;padding:13px;border-radius:12px" onclick="doSearch('flights')">항공 검색</button>
-      <div id="res-flights" class="is-results"></div>
+      <button class="is-go" style="width:100%;padding:13px;border-radius:12px" onclick="goFlightSearch()">항공 검색</button>
     </div>
   </div>
 
@@ -676,12 +684,20 @@ function setTnaKw(kw) {
     b.classList.toggle('on', b.getAttribute('onclick')?.includes(kw));
   });
 }
-// Flight destination cards
+// Flight origin/destination
+const ORIGIN_LABEL = {ICN:'인천', GMP:'김포', PUS:'김해', CJU:'제주'};
+function pickOriginCity(code) {
+  S.origin = code;
+  document.querySelectorAll('#origin-chips button').forEach(b => b.classList.toggle('on', b.dataset.origin === code));
+  // update destination card labels
+  const name = ORIGIN_LABEL[code] || code;
+  document.getElementById('dest-fuk-label').textContent = `${name} → 후쿠오카`;
+  document.getElementById('dest-kix-label').textContent = `${name} → 오사카`;
+}
 function pickDestCity(code) {
   S.dest = code;
   document.getElementById('dest-fuk').classList.toggle('on', code === 'FUK');
   document.getElementById('dest-kix').classList.toggle('on', code === 'KIX');
-  // update FUK label color
   document.querySelector('#dest-fuk div:first-child').style.color = code === 'FUK' ? 'var(--accent)' : 'var(--muted)';
   document.querySelector('#dest-kix div:first-child').style.color = code === 'KIX' ? 'var(--accent)' : 'var(--muted)';
 }
@@ -691,8 +707,15 @@ function updateNightCount() {
   const lbl = document.getElementById('fl-nights-lbl');
   if (!dep || !ret) { lbl.textContent = '날짜를 선택해주세요'; return; }
   const nights = Math.round((new Date(ret) - new Date(dep)) / 86400000);
-  if (nights > 0) lbl.textContent = `왕복 ${nights}박${nights+1}일`;
-  else lbl.textContent = '귀국일이 출발일보다 빠릅니다';
+  lbl.textContent = nights > 0 ? `왕복 ${nights}박${nights+1}일` : '귀국일이 출발일보다 빠릅니다';
+}
+function goFlightSearch() {
+  const dep = document.getElementById('fl-depart').value;
+  const ret = document.getElementById('fl-return').value;
+  if (!dep) { alert('출발일을 선택해주세요'); return; }
+  const p = new URLSearchParams({ origin: S.origin, destination: S.dest, departDate: dep });
+  if (ret) p.set('returnDate', ret);
+  window.location.href = '/flight-results.html?' + p;
 }
 // Adult stepper
 function stepAdult(d) {

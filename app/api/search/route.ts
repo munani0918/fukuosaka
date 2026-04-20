@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
       const returnDate  = p.get('returnDate')  ?? '';
       const tripType    = returnDate ? 'ROUND_TRIP' : 'ONE_WAY';
       const data = await callMrtMcp('searchInternationalFlights', {
-        origin, destination, departDate, returnDate, tripType, maxResults: 5,
+        origin, destination, departDate, returnDate, tripType, maxResults: 12,
       });
       return NextResponse.json({ flights: parseFlights(data as Record<string, unknown>) }, { headers: CORS });
     }
