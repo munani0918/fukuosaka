@@ -1,83 +1,76 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const MRT_MCP_URL = 'https://mcp-servers.myrealtrip.com/mcp';
+const PARTNER_API = 'https://partner-ext-api.myrealtrip.com';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, OPTIONS' };
 
-async function callMrtMcp(toolName: string, args: Record<string, unknown>) {
-  const body = JSON.stringify({
-    jsonrpc: '2.0', id: Date.now(), method: 'tools/call',
-    params: { name: toolName, arguments: args },
-  });
-  const res = await fetch(MRT_MCP_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream' },
-    body,
-  });
-  const json = await res.json() as { result?: { content?: { text?: string }[] } };
-  const text = json.result?.content?.[0]?.text;
-  return text ? JSON.parse(text) : null;
+interface FareEntry {
+  departureDate: string;
+  returnDate:    string;
+  fromCity:      string;
+  toCity:        string;
+  totalPrice:    number;
+  averagePrice:  number;
+  airline:       string;
+  period:        number;
+  transfer:      number;
 }
 
-interface FlightItem {
-  airline?: { name?: string };
-  legs?: Array<{
-    legIndex?: number; isDirect?: boolean; durationMinutes?: number;
-    departDate?: string; departTime?: string; arriveDate?: string; arriveTime?: string;
-  }>;
-  price?: { total?: number };
-  isCheapest?: boolean;
-}
-
-function cheapestFromSearch(data: Record<string, unknown> | null, departDate: string, returnDate: string) {
-  const items: FlightItem[] = (data as { result?: { items?: FlightItem[] } })?.result?.items ?? [];
-  if (!items.length) return null;
-
-  const sorted = items
-    .map(f => ({ price: f.price?.total ?? 0, airline: f.airline?.name ?? '', isDirect: f.legs?.[0]?.isDirect ?? true }))
-    .filter(f => f.price > 0)
-    .sort((a, b) => a.price - b.price);
-
-  if (!sorted.length) return null;
-  return { ...sorted[0], departureDate: departDate, returnDate };
-}
-
-function todayPlus(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-// Search 3 date windows per route in parallel, return the cheapest found
-async function findCheapest(origin: string, destination: string, nights: number) {
-  const windows = [35, 49, 63]; // 5주, 7주, 9주 후 출발
-  const searches = windows.map(offset => {
-    const dep = todayPlus(offset);
-    const ret = todayPlus(offset + nights);
-    return callMrtMcp('searchInternationalFlights', {
-      origin, destination,
-      departDate: dep, returnDate: ret,
-      tripType: 'ROUND_TRIP', maxResults: 3,
-    }).then(data => cheapestFromSearch(data as Record<string, unknown> | null, dep, ret));
-  });
-
-  const results = await Promise.all(searches);
-  const valid = results.filter(Boolean) as NonNullable<ReturnType<typeof cheapestFromSearch>>[];
-  if (!valid.length) return null;
-  return valid.sort((a, b) => a.price - b.price)[0];
+function pickCheapest(items: FareEntry[], toCity: string) {
+  const filtered = items
+    .filter(f => f.toCity === toCity && f.totalPrice > 0)
+    .sort((a, b) => a.totalPrice - b.totalPrice);
+  if (!filtered.length) return null;
+  const best = filtered[0];
+  return {
+    departureDate: best.departureDate,
+    returnDate:    best.returnDate,
+    price:         best.totalPrice,
+    averagePrice:  best.averagePrice,
+    airline:       best.airline,
+    isDirect:      best.transfer === 0,
+    nights:        best.period,
+  };
 }
 
 export async function GET(request: NextRequest) {
-  const origin = request.nextUrl.searchParams.get('origin') ?? 'ICN';
-  const nights = parseInt(request.nextUrl.searchParams.get('nights') ?? '3');
+  const apiKey = process.env.MRT_PARTNER_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: 'MRT_PARTNER_API_KEY 환경변수가 없습니다.' }, { status: 500, headers: CORS });
+  }
+
+  const depCityCd = request.nextUrl.searchParams.get('origin') ?? 'ICN';
+  const period    = parseInt(request.nextUrl.searchParams.get('period') ?? '4');
 
   try {
-    const [fuk, kix] = await Promise.all([
-      findCheapest(origin, 'FUK', nights),
-      findCheapest(origin, 'KIX', nights),
-    ]);
+    // 다중 목적지 최저가 조회 — FUK + KIX 한 번에
+    const res = await fetch(`${PARTNER_API}/v1/products/flight/calendar/lowest`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        depCityCd,
+        arrCityCds: ['FUK', 'KIX'],
+        period,
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      return NextResponse.json({ error: `Partner API ${res.status}: ${errText}` }, { status: res.status, headers: CORS });
+    }
+
+    const data: FareEntry[] = await res.json();
 
     return NextResponse.json(
-      { fuk, kix, fetchedAt: new Date().toISOString(), origin, nights },
+      {
+        fuk: pickCheapest(data, 'FUK'),
+        kix: pickCheapest(data, 'KIX'),
+        fetchedAt: new Date().toISOString(),
+        origin: depCityCd,
+        period,
+      },
       { headers: CORS }
     );
   } catch (err) {
