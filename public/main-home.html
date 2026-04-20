@@ -348,7 +348,7 @@
   <div class="fare-section">
     <div class="fare-hdr">
       <div class="fare-title">✈️ 실시간 항공권 최저가</div>
-      <div class="fare-info">ⓘ 인천 출발 기준 · 가격은 실시간으로 변동될 수 있어요</div>
+      <div class="fare-info">ⓘ 인천 출발 · 5~9주 후 출발 기준 최저가 · 가격은 변동될 수 있어요</div>
     </div>
     <div class="fare-grid" id="fare-grid">
       <!-- FUK -->
@@ -726,17 +726,16 @@ function fmtFareDate(iso) {
   return `${d.getMonth()+1}.${d.getDate()}(${days[d.getDay()]})`;
 }
 
-function renderFareCard(dest, items) {
+function renderFareCard(dest, best) {
   const priceEl = document.getElementById(`${dest.toLowerCase()}-price`);
   const datesEl = document.getElementById(`${dest.toLowerCase()}-dates`);
-  if (!items || items.length === 0) {
+  if (!best || !best.price) {
     priceEl.style = '';
     priceEl.textContent = '—';
     datesEl.style = '';
     datesEl.textContent = '정보 없음';
     return;
   }
-  const best = items[0];
   const nights = best.returnDate
     ? Math.round((new Date(best.returnDate) - new Date(best.departureDate)) / 86400000)
     : 3;
@@ -747,13 +746,14 @@ function renderFareCard(dest, items) {
     ? `${fmtFareDate(best.departureDate)} ~ ${fmtFareDate(best.returnDate)} · ${nights}박${nights+1}일`
     : `${fmtFareDate(best.departureDate)}`;
   datesEl.innerHTML = dateStr
-    + (best.isDirect ? '<br><span class="fare-badge">직항</span>' : '');
+    + (best.airline ? `<br><span style="color:var(--muted)">${best.airline}</span>` : '')
+    + (best.isDirect ? ' <span class="fare-badge">직항</span>' : '');
 }
 
 async function fetchFareCalendar() {
   document.getElementById('fare-updated').textContent = '조회 중...';
   try {
-    const res  = await fetch('/api/fare-calendar?origin=ICN&period=3');
+    const res  = await fetch('/api/fare-calendar?origin=ICN&nights=3');
     const data = await res.json();
     if (data.error) throw new Error(data.error);
 

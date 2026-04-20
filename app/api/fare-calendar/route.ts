@@ -18,36 +18,27 @@ async function callMrtMcp(toolName: string, args: Record<string, unknown>) {
   return text ? JSON.parse(text) : null;
 }
 
-interface FareItem {
-  departureDate: string;
-  returnDate:    string;
-  price:         number;
-  isDirect:      boolean;
+interface FlightItem {
+  airline?: { name?: string };
+  legs?: Array<{
+    legIndex?: number; isDirect?: boolean; durationMinutes?: number;
+    departDate?: string; departTime?: string; arriveDate?: string; arriveTime?: string;
+  }>;
+  price?: { total?: number };
+  isCheapest?: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseFareCalendar(data: any): FareItem[] {
-  if (!data) return [];
+function cheapestFromSearch(data: Record<string, unknown> | null, departDate: string, returnDate: string) {
+  const items: FlightItem[] = (data as { result?: { items?: FlightItem[] } })?.result?.items ?? [];
+  if (!items.length) return null;
 
-  // Try common response shapes from MRT MCP
-  const itins: unknown[] =
-    data?.result?.itineraries  ??
-    data?.itineraries           ??
-    data?.result?.items         ??
-    data?.items                 ??
-    (Array.isArray(data) ? data : []);
+  const sorted = items
+    .map(f => ({ price: f.price?.total ?? 0, airline: f.airline?.name ?? '', isDirect: f.legs?.[0]?.isDirect ?? true }))
+    .filter(f => f.price > 0)
+    .sort((a, b) => a.price - b.price);
 
-  if (!Array.isArray(itins) || itins.length === 0) return [];
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return itins.map((item: any) => ({
-    departureDate: item.departureDate ?? item.outboundDate ?? item.date ?? '',
-    returnDate:    item.returnDate    ?? item.inboundDate  ?? item.returnDate ?? '',
-    price:         Number(item.price?.total ?? item.totalPrice ?? item.lowestPrice ?? item.price ?? 0),
-    isDirect:      item.isDirect ?? item.direct ?? true,
-  }))
-  .filter(f => f.price > 0 && f.departureDate)
-  .sort((a, b) => a.price - b.price);
+  if (!sorted.length) return null;
+  return { ...sorted[0], departureDate: departDate, returnDate };
 }
 
 function todayPlus(days: number): string {
@@ -56,28 +47,37 @@ function todayPlus(days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Search 3 date windows per route in parallel, return the cheapest found
+async function findCheapest(origin: string, destination: string, nights: number) {
+  const windows = [35, 49, 63]; // 5주, 7주, 9주 후 출발
+  const searches = windows.map(offset => {
+    const dep = todayPlus(offset);
+    const ret = todayPlus(offset + nights);
+    return callMrtMcp('searchInternationalFlights', {
+      origin, destination,
+      departDate: dep, returnDate: ret,
+      tripType: 'ROUND_TRIP', maxResults: 3,
+    }).then(data => cheapestFromSearch(data as Record<string, unknown> | null, dep, ret));
+  });
+
+  const results = await Promise.all(searches);
+  const valid = results.filter(Boolean) as NonNullable<ReturnType<typeof cheapestFromSearch>>[];
+  if (!valid.length) return null;
+  return valid.sort((a, b) => a.price - b.price)[0];
+}
+
 export async function GET(request: NextRequest) {
   const origin = request.nextUrl.searchParams.get('origin') ?? 'ICN';
-  const period = parseInt(request.nextUrl.searchParams.get('period') ?? '3');
-  const departureDate = todayPlus(7); // start scanning from 7 days out
+  const nights = parseInt(request.nextUrl.searchParams.get('nights') ?? '3');
 
   try {
-    const [fukData, kixData] = await Promise.all([
-      callMrtMcp('flightsFareCalendar', {
-        from: origin, to: 'FUK', departureDate, period,
-        maxResults: 5, transfer: 0, international: true, airlines: ['*'],
-      }),
-      callMrtMcp('flightsFareCalendar', {
-        from: origin, to: 'KIX', departureDate, period,
-        maxResults: 5, transfer: 0, international: true, airlines: ['*'],
-      }),
+    const [fuk, kix] = await Promise.all([
+      findCheapest(origin, 'FUK', nights),
+      findCheapest(origin, 'KIX', nights),
     ]);
 
-    const fuk = parseFareCalendar(fukData);
-    const kix = parseFareCalendar(kixData);
-
     return NextResponse.json(
-      { fuk, kix, fetchedAt: new Date().toISOString(), origin, period },
+      { fuk, kix, fetchedAt: new Date().toISOString(), origin, nights },
       { headers: CORS }
     );
   } catch (err) {
