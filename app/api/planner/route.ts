@@ -36,8 +36,8 @@ function parseFlights(data: Record<string, unknown> | null) {
   const items: FlightItem[] = (data as { result?: { items?: FlightItem[] } })?.result?.items ?? [];
   const fmt = (t?: string) => t ? `${t.substring(0, 2)}:${t.substring(2)}` : '';
   return items.slice(0, 3).map((item) => {
-    const out = item.legs?.find(l => l.legIndex === 1);
-    const ret = item.legs?.find(l => l.legIndex === 2);
+    const out = item.legs?.find(l => l.legIndex === 1) ?? item.legs?.[0];
+    const ret = item.legs?.find(l => l.legIndex === 2) ?? item.legs?.[1];
     return {
       airline: item.airline?.name ?? '',
       airlineCode: item.airline?.code ?? '',
@@ -128,6 +128,7 @@ export async function GET(request: NextRequest) {
   const cityCode = p.get('cityCode') ?? 'KIX';
   const date     = p.get('date')     ?? '2026-06-24';
   const nights   = parseInt(p.get('nights') ?? '3');
+  const origin   = p.get('origin')   ?? 'ICN';
 
   const d = new Date(date);
   d.setDate(d.getDate() + nights);
@@ -140,7 +141,7 @@ export async function GET(request: NextRequest) {
   try {
     const [flightData, stayData, tnaData] = await Promise.all([
       callMrtMcp('searchInternationalFlights', {
-        origin: 'ICN', destination: cityCode,
+        origin, destination: cityCode,
         departDate: date, returnDate, tripType: 'ROUND_TRIP', maxResults: 3,
       }),
       callMrtMcp('searchStays', {

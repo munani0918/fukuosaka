@@ -90,8 +90,8 @@ function parseFlights(data: Record<string, unknown> | null) {
   const items: FlightItem[] = (data as { result?: { items?: FlightItem[] } })?.result?.items ?? [];
   const fmt = (t?: string) => t ? `${t.substring(0, 2)}:${t.substring(2)}` : '';
   return items.slice(0, 5).map((item) => {
-    const out = item.legs?.find(l => l.legIndex === 1);
-    const ret = item.legs?.find(l => l.legIndex === 2);
+    const out = item.legs?.find(l => l.legIndex === 1) ?? item.legs?.[0];
+    const ret = item.legs?.find(l => l.legIndex === 2) ?? item.legs?.[1];
     return {
       airline: item.airline?.name ?? '',
       airlineCode: item.airline?.code ?? '',

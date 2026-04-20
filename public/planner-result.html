@@ -83,21 +83,6 @@
     .sec-name { font-size:17px; font-weight:800; color:var(--ink); letter-spacing:-.03em; }
     .sec-sub  { font-size:11px; color:var(--muted); margin-left:auto; }
 
-    /* ── AI Budget card ────────────────────────── */
-    .budget-alloc {
-      background:var(--card); margin:16px; border-radius:20px;
-      padding:20px; box-shadow:0 2px 12px rgba(28,28,30,.06);
-    }
-    .ba-title { font-size:14px; font-weight:800; color:var(--ink); margin-bottom:14px; display:flex; align-items:center; gap:6px; }
-    .ba-item  { margin-bottom:12px; }
-    .ba-row   { display:flex; align-items:center; justify-content:space-between; margin-bottom:5px; }
-    .ba-lbl   { font-size:13px; font-weight:700; color:var(--ink); }
-    .ba-amt   { font-size:13px; font-weight:800; color:var(--accent); }
-    .ba-bar   { height:6px; background:var(--cream-dark); border-radius:3px; overflow:hidden; }
-    .ba-fill  { height:100%; border-radius:3px; transition:width .8s ease; }
-    .ba-total { margin-top:14px; padding-top:14px; border-top:1px dashed var(--border); display:flex; justify-content:space-between; align-items:center; }
-    .ba-total-lbl { font-size:14px; font-weight:700; color:var(--ink-light); }
-    .ba-total-amt { font-size:20px; font-weight:900; color:var(--accent); }
 
     /* ── Flight cards ──────────────────────────── */
     .flight-card {
@@ -236,9 +221,9 @@
       border-top:1px solid var(--border); padding:10px 0 24px; z-index:100;
       display:flex; justify-content:space-around;
     }
-    .nav-item { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:4px 16px; border-radius:12px; }
+    .nav-item { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:4px 16px; border-radius:12px; transition:all .15s; }
     .nav-item.on { background:var(--accent-pale); }
-    .nav-ico  { font-size:20px; }
+    .nav-icon { font-size:20px; }
     .nav-lbl  { font-size:10px; font-weight:700; color:var(--muted); }
     .nav-item.on .nav-lbl { color:var(--accent); }
     .bottom-space { height:80px; }
@@ -266,8 +251,7 @@
       <button class="edit-btn" onclick="editPlan()">수정하기</button>
     </div>
     <div class="res-tabs">
-      <button class="res-tab on"  onclick="scrollTo('sec-budget')">예산배분</button>
-      <button class="res-tab"     onclick="scrollTo('sec-flight')">항공</button>
+      <button class="res-tab on"  onclick="scrollTo('sec-flight')">항공</button>
       <button class="res-tab"     onclick="scrollTo('sec-hotel')">숙소</button>
       <button class="res-tab"     onclick="scrollTo('sec-tour')">투어</button>
       <button class="res-tab"     onclick="scrollTo('sec-cost')">예상비용</button>
@@ -279,16 +263,6 @@
 
   <!-- ── Page content (rendered after fetch) ──────── -->
   <div id="page-content" style="display:none">
-
-    <!-- AI 예산 배분 -->
-    <div class="sec" id="sec-budget">
-      <div class="sec-hdr">
-        <span class="sec-ico">🤖</span>
-        <span class="sec-name">AI 예산 배분</span>
-        <span class="sec-sub">마이리얼트립 실시간 데이터</span>
-      </div>
-    </div>
-    <div class="budget-alloc" id="budget-alloc-card"></div>
 
     <!-- 항공권 -->
     <div class="sec" id="sec-flight">
@@ -350,16 +324,16 @@
   <!-- Bottom nav -->
   <nav class="bottom-nav">
     <div class="nav-item" onclick="window.location.href='/main-home.html'">
-      <div class="nav-ico">🏠</div><div class="nav-lbl">홈</div>
+      <div class="nav-icon">🏠</div><div class="nav-lbl">홈</div>
     </div>
     <div class="nav-item on">
-      <div class="nav-ico">✦</div><div class="nav-lbl" style="color:var(--accent)">플래너</div>
+      <div class="nav-icon">✦</div><div class="nav-lbl">AI플래너</div>
     </div>
     <div class="nav-item" onclick="window.location.href='/main-home.html'">
-      <div class="nav-ico">🏨</div><div class="nav-lbl">숙소</div>
+      <div class="nav-icon">🏨</div><div class="nav-lbl">숙소</div>
     </div>
     <div class="nav-item" onclick="window.location.href='/main-home.html'">
-      <div class="nav-ico">🎟</div><div class="nav-lbl">투어</div>
+      <div class="nav-icon">🎟</div><div class="nav-lbl">투어</div>
     </div>
   </nav>
 
@@ -420,73 +394,39 @@ const STYLE_NAME  = { healing:'힐링', food:'먹방', shopping:'쇼핑', local:
     chips.map(c=>`<span class="cchip">${c}</span>`).join('');
 })();
 
-// ═══ BUDGET ALLOCATION ════════════════════════
-function calcAlloc(budget, packages){
-  const hasF = packages.includes('flight');
-  const hasH = packages.includes('hotel');
-  const hasT = packages.includes('tour');
-  if(hasF && hasH && hasT) return [
-    {lbl:'✈️ 항공권', pct:35, color:'#7B5EA7'},
-    {lbl:'🏨 숙소',   pct:38, color:'#4A7FA5'},
-    {lbl:'🎟 투어',   pct:15, color:'#3d7a54'},
-    {lbl:'🧾 현지비', pct:12, color:'#B8962E'},
-  ];
-  if(hasF && hasH) return [
-    {lbl:'✈️ 항공권', pct:45, color:'#7B5EA7'},
-    {lbl:'🏨 숙소',   pct:43, color:'#4A7FA5'},
-    {lbl:'🧾 현지비', pct:12, color:'#B8962E'},
-  ];
-  if(hasH && hasT) return [
-    {lbl:'🏨 숙소',   pct:55, color:'#4A7FA5'},
-    {lbl:'🎟 투어',   pct:30, color:'#3d7a54'},
-    {lbl:'🧾 현지비', pct:15, color:'#B8962E'},
-  ];
-  if(hasF) return [{lbl:'✈️ 항공권', pct:88, color:'#7B5EA7'},{lbl:'🧾 현지비', pct:12, color:'#B8962E'}];
-  return [{lbl:'🏨 숙소', pct:88, color:'#4A7FA5'},{lbl:'🧾 현지비', pct:12, color:'#B8962E'}];
-}
-
-function renderBudgetAlloc(){
-  const alloc  = calcAlloc(P.budget, Array.isArray(P.packages)?P.packages:['flight','hotel','tour']);
-  const total  = P.budget;
-  let html = `<div class="ba-title">✦ AI 예산 배분 <span style="font-size:11px;font-weight:500;color:var(--muted)">(총 ${total.toLocaleString()}원 기준)</span></div>`;
-  alloc.forEach(a=>{
-    const amt = Math.round(total * a.pct / 100);
-    html += `<div class="ba-item">
-      <div class="ba-row"><span class="ba-lbl">${a.lbl}</span><span class="ba-amt">${(amt/10000).toFixed(0)}만원 (${a.pct}%)</span></div>
-      <div class="ba-bar"><div class="ba-fill" style="width:${a.pct}%;background:${a.color}"></div></div>
-    </div>`;
-  });
-  html += `<div class="ba-total"><span class="ba-total-lbl">예상 총 지출</span><span class="ba-total-amt">${(total/10000).toFixed(0)}만원</span></div>`;
-  document.getElementById('budget-alloc-card').innerHTML = html;
-}
-
 // ═══ RENDER COST SUMMARY ═════════════════════
-function renderCost(flights, stays, tnas){
-  const alloc = calcAlloc(P.budget, Array.isArray(P.packages)?P.packages:['flight','hotel','tour']);
-  // Try to use real data amounts
-  let flightAmt = flights[0]?.price || Math.round(P.budget * 0.35);
-  let hotelAmt  = stays[0]  ? parsePrice(stays[0].price)  * P.nights : Math.round(P.budget * 0.38);
-  let tourAmt   = tnas.slice(0,2).reduce((s,t)=>s+parsePrice(t.price),0) || Math.round(P.budget * 0.15);
-  let localAmt  = Math.round(P.budget * 0.12);
+function parsePrice(s){
+  // "93,190원/박", "12,000원~" 등에서 숫자만 추출 (원 단위)
+  const m = String(s||'').replace(/,/g,'').match(/\d+/);
+  return m ? +m[0] : 0;
+}
 
-  const rows = alloc.map(a=>{
-    let val = 0;
-    if(a.lbl.includes('항공')) val = flightAmt;
-    else if(a.lbl.includes('숙소')) val = hotelAmt;
-    else if(a.lbl.includes('투어')) val = tourAmt;
-    else val = localAmt;
-    return `<div class="cost-row">
-      <span class="cost-lbl">${a.lbl}</span>
-      <span class="cost-val">약 ${val?Math.round(val/10000)+'만원':'—'}</span>
-    </div>`;
-  });
+function fmtMan(won){ return won ? `약 ${Math.round(won/10000)}만원` : '—'; }
+
+function renderCost(flights, stays, tnas){
+  const pkgs = Array.isArray(P.packages) ? P.packages : ['flight','hotel','tour'];
+  const hasF = pkgs.includes('flight');
+  const hasH = pkgs.includes('hotel');
+  const hasT = pkgs.includes('tour');
+
+  // 실제 데이터 우선, 없으면 예산 비율 추정
+  const flightAmt = hasF ? (flights[0]?.price || Math.round(P.budget * 0.35)) : 0;
+  const hotelAmt  = hasH ? (stays[0] ? parsePrice(stays[0].price) * P.nights : Math.round(P.budget * 0.38)) : 0;
+  const tourAmt   = hasT ? (tnas.slice(0,2).reduce((s,t)=>s+parsePrice(t.price),0) || Math.round(P.budget * 0.15)) : 0;
+  const localAmt  = Math.round(P.budget * 0.12);
+
+  const rows = [
+    hasF ? `<div class="cost-row"><span class="cost-lbl">✈️ 항공권</span><span class="cost-val">${fmtMan(flightAmt)}</span></div>` : '',
+    hasH ? `<div class="cost-row"><span class="cost-lbl">🏨 숙소 (${P.nights}박)</span><span class="cost-val">${fmtMan(hotelAmt)}</span></div>` : '',
+    hasT ? `<div class="cost-row"><span class="cost-lbl">🎟 투어</span><span class="cost-val">${fmtMan(tourAmt)}</span></div>` : '',
+    `<div class="cost-row"><span class="cost-lbl">🧾 현지비</span><span class="cost-val">${fmtMan(localAmt)}</span></div>`,
+  ].filter(Boolean);
+
   const totalEst = flightAmt + hotelAmt + tourAmt + localAmt;
   document.getElementById('cost-card').innerHTML =
     rows.join('') +
     `<div class="cost-total"><span class="cost-total-lbl">예상 총 비용</span><span class="cost-total-val">약 ${Math.round(totalEst/10000)}만원</span></div>`;
 }
-
-function parsePrice(s){ const m=String(s||'').replace(/,/g,'').match(/\d+/); return m?+m[0]*100:0; }
 
 // ═══ RENDER FLIGHTS ═══════════════════════════
 function renderFlights(flights){
@@ -615,7 +555,8 @@ async function fetchAndRender(){
     const params = new URLSearchParams({
       cityCode: P.cityCode,
       date:     P.date,
-      nights:   P.nights,
+      nights:   String(P.nights),
+      origin:   P.origin,
     });
     const res  = await fetch(`/api/planner?${params}`);
     const data = await res.json();
@@ -624,7 +565,6 @@ async function fetchAndRender(){
     const stays   = data.stays   || [];
     const tnas    = data.tnas    || [];
 
-    renderBudgetAlloc();
     renderFlights(flights);
     renderHotels(stays);
     renderTours(tnas);
