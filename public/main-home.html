@@ -314,6 +314,65 @@
   </div>
 
 
+  <!-- ② 개별 검색 ──────────────────────────────── -->
+  <div class="isearch-wrap" id="isearch-wrap">
+    <div class="isearch-desc">직접 검색해보고 싶다면 — 숙소·투어·항공을 따로 찾아볼 수 있어요</div>
+    <div class="isearch-tabs">
+      <button class="is-tab on" data-tab="stays"   onclick="switchTab('stays')">숙소</button>
+      <button class="is-tab"    data-tab="tnas"    onclick="switchTab('tnas')">투어&amp;티켓</button>
+      <button class="is-tab"    data-tab="flights" onclick="switchTab('flights')">항공</button>
+    </div>
+
+    <!-- 숙소 폼 -->
+    <div class="isearch-body" id="form-stays">
+      <div class="is-row">
+        <input class="is-input" id="stays-kw" type="text" placeholder="후쿠오카 · 오사카 숙소 검색" value="오사카">
+        <button class="is-go" onclick="doSearch('stays')">검색</button>
+      </div>
+      <div id="res-stays" class="is-results"></div>
+    </div>
+
+    <!-- 투어&티켓 폼 -->
+    <div class="isearch-body" id="form-tnas" style="display:none">
+      <div class="is-row">
+        <input class="is-input" id="tnas-kw" type="text" placeholder="클룩, 마이리얼트립 투어 검색" value="오사카 관광">
+        <button class="is-go" onclick="doSearch('tnas')">검색</button>
+      </div>
+      <div id="res-tnas" class="is-results"></div>
+    </div>
+
+    <!-- 항공 폼 -->
+    <div class="isearch-body" id="form-flights" style="display:none">
+      <!-- 목적지 카드 -->
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button id="dest-fuk" class="is-chip" style="flex:1;text-align:left;padding:11px 14px;border-radius:14px;height:auto"
+                onclick="pickDestCity('FUK')">
+          <div style="font-size:10px;font-weight:800;letter-spacing:.06em;color:var(--muted);margin-bottom:3px">→ FUK</div>
+          <div style="font-size:13px;font-weight:700;color:var(--ink)">인천 → 후쿠오카</div>
+        </button>
+        <button id="dest-kix" class="is-chip on" style="flex:1;text-align:left;padding:11px 14px;border-radius:14px;height:auto"
+                onclick="pickDestCity('KIX')">
+          <div style="font-size:10px;font-weight:800;letter-spacing:.06em;color:var(--accent);margin-bottom:3px">→ KIX</div>
+          <div style="font-size:13px;font-weight:700;color:var(--ink)">인천 → 오사카</div>
+        </button>
+      </div>
+      <!-- 날짜 -->
+      <div class="is-dates">
+        <div class="is-date-field">
+          <div class="is-date-lbl">출발일</div>
+          <input class="is-date-in" id="fl-depart" type="date" onchange="updateNightCount()">
+        </div>
+        <div class="is-date-field">
+          <div class="is-date-lbl">귀국일</div>
+          <input class="is-date-in" id="fl-return" type="date" onchange="updateNightCount()">
+        </div>
+      </div>
+      <div id="fl-nights-lbl" style="font-size:12px;color:var(--muted);margin:6px 0 14px">날짜를 선택해주세요</div>
+      <button class="is-go" style="width:100%;padding:13px;border-radius:12px" onclick="doSearch('flights')">항공 검색</button>
+      <div id="res-flights" class="is-results"></div>
+    </div>
+  </div>
+
   <!-- ③ 추천 예산 3카드 ──────────────────────── -->
   <div class="sec">
     <div class="sec-title">추천 예산 예시</div>
@@ -489,10 +548,10 @@ const S = {
 
 // ─── Init ─────────────────────────────────────
 (function init(){
-  // Restore saved conditions
-  try {
-    const saved = JSON.parse(sessionStorage.getItem('plannerConditions') || '{}');
-  } catch(e){}
+  // Default flight dates
+  document.getElementById('fl-depart').value = futureDate(45);
+  document.getElementById('fl-return').value  = futureDate(48);
+  updateNightCount();
 
   fetchPopular();
   startBanners();
@@ -617,14 +676,23 @@ function setTnaKw(kw) {
     b.classList.toggle('on', b.getAttribute('onclick')?.includes(kw));
   });
 }
-// Flight origin/dest
-function pickOrigin(code) {
-  S.origin = code;
-  document.querySelectorAll('#origin-chips .is-chip').forEach(b => b.classList.toggle('on', b.dataset.orig === code));
-}
-function pickDest(code) {
+// Flight destination cards
+function pickDestCity(code) {
   S.dest = code;
-  document.querySelectorAll('#dest-chips .is-chip').forEach(b => b.classList.toggle('on', b.dataset.dest === code));
+  document.getElementById('dest-fuk').classList.toggle('on', code === 'FUK');
+  document.getElementById('dest-kix').classList.toggle('on', code === 'KIX');
+  // update FUK label color
+  document.querySelector('#dest-fuk div:first-child').style.color = code === 'FUK' ? 'var(--accent)' : 'var(--muted)';
+  document.querySelector('#dest-kix div:first-child').style.color = code === 'KIX' ? 'var(--accent)' : 'var(--muted)';
+}
+function updateNightCount() {
+  const dep = document.getElementById('fl-depart').value;
+  const ret = document.getElementById('fl-return').value;
+  const lbl = document.getElementById('fl-nights-lbl');
+  if (!dep || !ret) { lbl.textContent = '날짜를 선택해주세요'; return; }
+  const nights = Math.round((new Date(ret) - new Date(dep)) / 86400000);
+  if (nights > 0) lbl.textContent = `왕복 ${nights}박${nights+1}일`;
+  else lbl.textContent = '귀국일이 출발일보다 빠릅니다';
 }
 // Adult stepper
 function stepAdult(d) {
