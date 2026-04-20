@@ -61,15 +61,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: `Partner API ${res.status}: ${errText}` }, { status: res.status, headers: CORS });
     }
 
-    const data: FareEntry[] = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw: any = await res.json();
+
+    // Partner API may wrap array in { data: [...] } or return array directly
+    const items: FareEntry[] = Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw?.data)    ? raw.data
+      : Array.isArray(raw?.result)  ? raw.result
+      : Array.isArray(raw?.results) ? raw.results
+      : Array.isArray(raw?.items)   ? raw.items
+      : [];
 
     return NextResponse.json(
       {
-        fuk: pickCheapest(data, 'FUK'),
-        kix: pickCheapest(data, 'KIX'),
+        fuk: pickCheapest(items, 'FUK'),
+        kix: pickCheapest(items, 'KIX'),
         fetchedAt: new Date().toISOString(),
         origin: depCityCd,
         period,
+        _rawKeys: Object.keys(raw ?? {}), // 디버그용 — 응답 최상위 키 확인
       },
       { headers: CORS }
     );
