@@ -88,10 +88,13 @@ interface FlightItem {
 
 function fixReservationUrl(url: string, airCode: string, outDep?: string, outArr?: string, retDep?: string, retArr?: string): string {
   if (!url) return url;
+  const origAir = decodeURIComponent(url.match(/[?&]air=([^&]+)/)?.[1] ?? '').split(',')[0];
+  const airMismatch = origAir && origAir !== airCode;
   let u = url;
   if (airCode) u = u.replace(/(?<=\?|&)air=[^&]+/, `air=${airCode}%2C${airCode}`);
   if (outDep && retDep) u = u.replace(/(?<=\?|&)dtm=[^&]+/, `dtm=${outDep}%2C${retDep}`);
   if (outArr && retArr) u = u.replace(/(?<=\?|&)atm=[^&]+/, `atm=${outArr}%2C${retArr}`);
+  if (airMismatch) u = u.replace(/(?<=\?|&)fgtno=[^&]+/, 'fgtno=');
   return u;
 }
 
