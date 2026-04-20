@@ -735,39 +735,51 @@ function airlineName(code) {
   return AIRLINE_CODE[code] || code || '';
 }
 
+function clearSkeleton(el) {
+  if (!el) return;
+  el.removeAttribute('style');
+  el.style.animation = 'none';
+}
+
 function renderFareCard(dest, best) {
-  const priceEl = document.getElementById(`${dest.toLowerCase()}-price`);
-  const datesEl = document.getElementById(`${dest.toLowerCase()}-dates`);
+  const key     = dest.toLowerCase();
+  const priceEl = document.getElementById(`${key}-price`);
+  const datesEl = document.getElementById(`${key}-dates`);
+  if (!priceEl || !datesEl) return;
+
+  clearSkeleton(priceEl);
+  clearSkeleton(datesEl);
+
   if (!best || !best.price) {
-    priceEl.style = '';
     priceEl.textContent = '—';
-    datesEl.style = '';
     datesEl.textContent = '정보 없음';
     return;
   }
+
   const nights = best.returnDate
     ? Math.round((new Date(best.returnDate) - new Date(best.departureDate)) / 86400000)
     : 3;
-  priceEl.style = '';
+
   priceEl.textContent = best.price.toLocaleString() + '원';
-  datesEl.style = '';
+
   const dateStr = best.returnDate
     ? `${fmtFareDate(best.departureDate)} ~ ${fmtFareDate(best.returnDate)} · ${nights}박${nights+1}일`
-    : `${fmtFareDate(best.departureDate)}`;
+    : fmtFareDate(best.departureDate);
+
   datesEl.innerHTML = dateStr
-    + (best.airline ? `<br><span style="color:var(--muted)">${airlineName(best.airline)}</span>` : '')
+    + (best.airline ? `<br><span style="color:var(--muted);font-size:10px">${airlineName(best.airline)}</span>` : '')
     + (best.isDirect ? ' <span class="fare-badge">직항</span>' : '');
 }
 
 async function fetchFareCalendar() {
   document.getElementById('fare-updated').textContent = '조회 중...';
   try {
-    const res  = await fetch('/api/fare-calendar?origin=ICN&nights=3');
+    const res  = await fetch('/api/fare-calendar?origin=ICN&period=4');
     const data = await res.json();
     if (data.error) throw new Error(data.error);
 
-    renderFareCard('fuk', data.fuk);
-    renderFareCard('kix', data.kix);
+    try { renderFareCard('fuk', data.fuk); } catch(e) { console.error('FUK render:', e); }
+    try { renderFareCard('kix', data.kix); } catch(e) { console.error('KIX render:', e); }
 
     const now = new Date();
     document.getElementById('fare-updated').textContent =
