@@ -348,7 +348,8 @@
   <div class="fare-section">
     <div class="fare-hdr">
       <div class="fare-title">✈️ 실시간 항공권 최저가</div>
-      <div class="fare-info">ⓘ 인천 출발 · 5~9주 후 출발 기준 최저가 · 가격은 변동될 수 있어요</div>
+      <div class="fare-info" id="fare-info">ⓘ 인천 출발 기준 최저가 · 가격은 변동될 수 있어요</div>
+      <div class="fare-info" id="fare-date-info" style="margin-top:3px;font-size:10px;color:var(--muted)"></div>
     </div>
     <div class="fare-grid" id="fare-grid">
       <!-- FUK -->
@@ -718,6 +719,7 @@ function renderTnasFallback() {
 
 // ─── Fare Calendar ────────────────────────────
 let fareTimer = null;
+const FARE_BEST = { fuk: null, kix: null };
 
 function fmtFareDate(iso) {
   if (!iso) return '';
@@ -778,8 +780,19 @@ async function fetchFareCalendar() {
     const data = await res.json();
     if (data.error) throw new Error(data.error);
 
+    FARE_BEST.fuk = data.fuk;
+    FARE_BEST.kix = data.kix;
+
     try { renderFareCard('fuk', data.fuk); } catch(e) { console.error('FUK render:', e); }
     try { renderFareCard('kix', data.kix); } catch(e) { console.error('KIX render:', e); }
+
+    // 조회 날짜 info 표시
+    const fmt2 = iso => { if(!iso) return ''; const [,m,d] = iso.split('-'); return `${+m}.${+d}`; };
+    const parts = [];
+    if (data.fuk) parts.push(`후쿠오카 ${fmt2(data.fuk.departureDate)}~${fmt2(data.fuk.returnDate)}`);
+    if (data.kix) parts.push(`오사카 ${fmt2(data.kix.departureDate)}~${fmt2(data.kix.returnDate)}`);
+    const infoEl = document.getElementById('fare-date-info');
+    if (infoEl) infoEl.textContent = parts.length ? `조회 기준일 · ${parts.join(' / ')}` : '';
 
     const now = new Date();
     document.getElementById('fare-updated').textContent =
@@ -790,8 +803,9 @@ async function fetchFareCalendar() {
 }
 
 function goFlightTo(dest) {
-  const dep = futureDate(45);
-  const ret = futureDate(48);
+  const best = dest === 'FUK' ? FARE_BEST.fuk : FARE_BEST.kix;
+  const dep  = best?.departureDate || futureDate(45);
+  const ret  = best?.returnDate    || futureDate(48);
   window.location.href = `/flight-results.html?origin=ICN&destination=${dest}&departDate=${dep}&returnDate=${ret}`;
 }
 
