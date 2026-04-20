@@ -158,6 +158,36 @@
     .coupon-desc  { font-size:12px; color:rgba(255,255,255,.72); }
     .coupon-cta   { flex-shrink:0; padding:8px 14px; border-radius:999px; background:#fff; color:#1a3a5c; border:none; font-family:inherit; font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap; }
 
+    /* ── Fare Calendar ────────────────────────── */
+    .fare-section {
+      background:#fff; margin:0 16px 16px; border-radius:20px;
+      padding:18px 18px 14px; box-shadow:0 2px 14px rgba(28,28,30,.08);
+    }
+    .fare-hdr { margin-bottom:14px; }
+    .fare-title { font-size:16px; font-weight:800; color:var(--ink); letter-spacing:-.03em; margin-bottom:3px; }
+    .fare-info  { font-size:11px; color:var(--muted); }
+    .fare-grid  { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+    .fare-card  {
+      border-radius:14px; background:var(--cream); padding:14px 12px;
+      cursor:pointer; transition:all .2s; border:1.5px solid transparent;
+    }
+    .fare-card:hover { border-color:var(--accent); background:var(--accent-pale); }
+    .fare-card-top  { display:flex; align-items:center; gap:7px; margin-bottom:8px; }
+    .fare-flag      { font-size:22px; line-height:1; }
+    .fare-city      { font-size:13px; font-weight:700; color:var(--ink-light); }
+    .fare-price     { font-size:20px; font-weight:900; color:var(--accent); letter-spacing:-.03em; margin-bottom:3px; }
+    .fare-dates     { font-size:10px; color:var(--muted); line-height:1.5; }
+    .fare-badge     { display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px; background:rgba(45,106,79,.1); color:#2d6a4f; margin-top:4px; }
+    .fare-footer    { display:flex; align-items:center; justify-content:space-between; padding-top:10px; border-top:1px solid var(--border); }
+    .fare-updated   { font-size:11px; color:var(--muted); }
+    .fare-refresh   {
+      padding:5px 12px; border-radius:999px; border:1.5px solid var(--border);
+      background:#fff; font-family:inherit; font-size:11px; font-weight:700;
+      color:var(--ink-light); cursor:pointer; transition:all .15s;
+    }
+    .fare-refresh:hover  { border-color:var(--accent); color:var(--accent); }
+    .fare-refresh:active { transform:scale(.95); }
+
     /* ── Individual Search ─────────────────── */
     .isearch-wrap {
       background:#fff; margin:0 16px 24px; border-radius:20px;
@@ -313,6 +343,32 @@
     <div><div class="stat-num">2개 도시</div><div class="stat-lbl">후쿠오카·오사카</div></div>
   </div>
 
+
+  <!-- ① 실시간 항공권 최저가 ───────────────────── -->
+  <div class="fare-section">
+    <div class="fare-hdr">
+      <div class="fare-title">✈️ 실시간 항공권 최저가</div>
+      <div class="fare-info">ⓘ 인천 출발 기준 · 가격은 실시간으로 변동될 수 있어요</div>
+    </div>
+    <div class="fare-grid" id="fare-grid">
+      <!-- FUK -->
+      <div class="fare-card" id="fare-fuk" onclick="goFlightTo('FUK')">
+        <div class="fare-card-top"><span class="fare-flag">🇯🇵</span><span class="fare-city">후쿠오카</span></div>
+        <div class="fare-price" id="fuk-price" style="height:24px;background:var(--cream-dark);border-radius:6px;animation:shimmer 1.5s infinite;background-size:200% 100%"></div>
+        <div class="fare-dates" id="fuk-dates" style="height:28px;margin-top:6px;background:var(--cream-dark);border-radius:6px;animation:shimmer 1.5s infinite;background-size:200% 100%"></div>
+      </div>
+      <!-- KIX -->
+      <div class="fare-card" id="fare-kix" onclick="goFlightTo('KIX')">
+        <div class="fare-card-top"><span class="fare-flag">🇯🇵</span><span class="fare-city">오사카</span></div>
+        <div class="fare-price" id="kix-price" style="height:24px;background:var(--cream-dark);border-radius:6px;animation:shimmer 1.5s infinite;background-size:200% 100%"></div>
+        <div class="fare-dates" id="kix-dates" style="height:28px;margin-top:6px;background:var(--cream-dark);border-radius:6px;animation:shimmer 1.5s infinite;background-size:200% 100%"></div>
+      </div>
+    </div>
+    <div class="fare-footer">
+      <span class="fare-updated" id="fare-updated">조회 중...</span>
+      <button class="fare-refresh" onclick="fetchFareCalendar()">↻ 새로고침</button>
+    </div>
+  </div>
 
   <!-- ② 개별 검색 ──────────────────────────────── -->
   <div class="isearch-wrap" id="isearch-wrap">
@@ -561,6 +617,9 @@ const S = {
   document.getElementById('fl-return').value  = futureDate(48);
   updateNightCount();
 
+  fetchFareCalendar();
+  fareTimer = setInterval(fetchFareCalendar, 7 * 60 * 1000); // 7분마다 갱신
+
   fetchPopular();
   startBanners();
 
@@ -655,6 +714,64 @@ function renderTnasFallback() {
     {name:'유니버설 스튜디오 일일 입장권',   price:'85,000원~', bookUrl:'https://www.myrealtrip.com/offers'},
     {name:'후쿠오카 야타이 음식 체험 투어',  price:'55,000원~', bookUrl:'https://www.myrealtrip.com/offers'},
   ]);
+}
+
+// ─── Fare Calendar ────────────────────────────
+let fareTimer = null;
+
+function fmtFareDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const days = ['일','월','화','수','목','금','토'];
+  return `${d.getMonth()+1}.${d.getDate()}(${days[d.getDay()]})`;
+}
+
+function renderFareCard(dest, items) {
+  const priceEl = document.getElementById(`${dest.toLowerCase()}-price`);
+  const datesEl = document.getElementById(`${dest.toLowerCase()}-dates`);
+  if (!items || items.length === 0) {
+    priceEl.style = '';
+    priceEl.textContent = '—';
+    datesEl.style = '';
+    datesEl.textContent = '정보 없음';
+    return;
+  }
+  const best = items[0];
+  const nights = best.returnDate
+    ? Math.round((new Date(best.returnDate) - new Date(best.departureDate)) / 86400000)
+    : 3;
+  priceEl.style = '';
+  priceEl.textContent = best.price.toLocaleString() + '원';
+  datesEl.style = '';
+  const dateStr = best.returnDate
+    ? `${fmtFareDate(best.departureDate)} ~ ${fmtFareDate(best.returnDate)} · ${nights}박${nights+1}일`
+    : `${fmtFareDate(best.departureDate)}`;
+  datesEl.innerHTML = dateStr
+    + (best.isDirect ? '<br><span class="fare-badge">직항</span>' : '');
+}
+
+async function fetchFareCalendar() {
+  document.getElementById('fare-updated').textContent = '조회 중...';
+  try {
+    const res  = await fetch('/api/fare-calendar?origin=ICN&period=3');
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    renderFareCard('fuk', data.fuk);
+    renderFareCard('kix', data.kix);
+
+    const now = new Date();
+    document.getElementById('fare-updated').textContent =
+      `최근 조회 ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+  } catch(e) {
+    document.getElementById('fare-updated').textContent = '조회 실패 — 새로고침을 눌러주세요';
+  }
+}
+
+function goFlightTo(dest) {
+  const dep = futureDate(45);
+  const ret = futureDate(48);
+  window.location.href = `/flight-results.html?origin=ICN&destination=${dest}&departDate=${dep}&returnDate=${ret}`;
 }
 
 // ─── Individual Search ────────────────────────
