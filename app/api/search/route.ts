@@ -86,20 +86,36 @@ interface FlightItem {
   reservationUrl?: string;
 }
 
+function fixReservationUrl(url: string, airCode: string, outDep?: string, outArr?: string, retDep?: string, retArr?: string): string {
+  if (!url) return url;
+  let u = url;
+  if (airCode) u = u.replace(/(?<=\?|&)air=[^&]+/, `air=${airCode}%2C${airCode}`);
+  if (outDep && retDep) u = u.replace(/(?<=\?|&)dtm=[^&]+/, `dtm=${outDep}%2C${retDep}`);
+  if (outArr && retArr) u = u.replace(/(?<=\?|&)atm=[^&]+/, `atm=${outArr}%2C${retArr}`);
+  return u;
+}
+
 function parseFlights(data: Record<string, unknown> | null) {
   const items: FlightItem[] = (data as { result?: { items?: FlightItem[] } })?.result?.items ?? [];
   const fmt = (t?: string) => t ? `${t.substring(0, 2)}:${t.substring(2)}` : '';
   return items.slice(0, 5).map((item) => {
     const out = item.legs?.find(l => l.legIndex === 1) ?? item.legs?.[0];
     const ret = item.legs?.find(l => l.legIndex === 2) ?? item.legs?.[1];
+    const airCode = item.airline?.code ?? '';
+    const fixedUrl = fixReservationUrl(
+      item.reservationUrl ?? '',
+      airCode,
+      out?.departTime, out?.arriveTime,
+      ret?.departTime, ret?.arriveTime,
+    );
     return {
       airline: item.airline?.name ?? '',
-      airlineCode: item.airline?.code ?? '',
+      airlineCode: airCode,
       logoUrl: item.airline?.logoUrl ?? '',
       isDirect: out?.isDirect ?? true,
       isCheapest: item.isCheapest ?? false,
       price: item.price?.total ?? 0,
-      reservationUrl: item.reservationUrl ?? '',
+      reservationUrl: fixedUrl,
       outbound: {
         date: out?.departDate ?? '',
         departTime: fmt(out?.departTime),
