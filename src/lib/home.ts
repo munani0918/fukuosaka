@@ -438,7 +438,7 @@ async function getLiveTourCards() {
           item.reviewCount ? item.reviewCount.toLocaleString("ko-KR") : "",
         ),
         priceLabel: formatTourPrice(item.priceDisplay),
-        metaLabel: `${config.city} · ${item.category || "인기 투어"}`,
+        metaLabel: `${config.city} · ${item.category || "추천 투어"}`,
         href: buildTourDetailHref(item, {
           keyword: `${config.keyword} 관광`,
           city: config.keyword,
@@ -504,6 +504,27 @@ function mergeProductCards(
     ...(liveCards[index] ?? {}),
     artVariant: liveCards[index]?.artVariant ?? fallback.artVariant,
   }));
+}
+
+function pickDailyRecommendations(
+  items: ProductCardData[],
+  count: number,
+  namespace: string,
+) {
+  if (items.length <= count) return items;
+
+  const todayKey = Math.floor(Date.now() / 86_400_000);
+  const seed = [...namespace].reduce(
+    (sum, char) => sum + char.charCodeAt(0),
+    todayKey,
+  );
+  const startIndex = seed % items.length;
+
+  // TODO: 실제 클릭/예약 데이터가 연결되면 날짜 순환 대신 추천 점수 기반 정렬로 교체합니다.
+  return Array.from(
+    { length: count },
+    (_, index) => items[(startIndex + index) % items.length],
+  );
 }
 
 function buildSearchTabs(
@@ -578,8 +599,16 @@ export async function getHomePageData(): Promise<HomePageData> {
     liveTourCardsResult.status === "fulfilled" ? liveTourCardsResult.value : [];
 
   const flightDeals = await mergeFlightDeals(liveFareDeals);
-  const stayCards = mergeProductCards(liveStayCards, homeMockData.stayCards);
-  const tourCards = mergeProductCards(liveTourCards, homeMockData.tourCards);
+  const stayCards = pickDailyRecommendations(
+    mergeProductCards(liveStayCards, homeMockData.stayCards),
+    2,
+    "home-stays",
+  );
+  const tourCards = pickDailyRecommendations(
+    mergeProductCards(liveTourCards, homeMockData.tourCards),
+    2,
+    "home-tours",
+  );
   const searchTabs = buildSearchTabs(stayCards, tourCards, flightDeals);
 
   return {

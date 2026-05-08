@@ -248,7 +248,7 @@ export const homeMockData: HomePageData = {
       id: "stay",
       label: "숙소",
       icon: "stay",
-      helper: "하카타, 난바, 우메다 인기 숙소부터 빠르게 탐색할 수 있어요.",
+      helper: "하카타, 난바, 우메다 추천 숙소부터 빠르게 탐색할 수 있어요.",
       href: "/stays",
       keywords: ["하카타", "난바", "료칸"],
       defaultQuery: "오사카",

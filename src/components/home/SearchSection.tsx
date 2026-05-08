@@ -583,7 +583,7 @@ export function SearchSection({
         {activeTab.id === "tour" && query.trim().length >= 2 ? (
           <div className="mt-3 space-y-2">
             <div className="flex items-center justify-between px-1">
-              <p className="text-[12px] font-bold text-[#6f5f5a]">인기 투어</p>
+              <p className="text-[12px] font-bold text-[#6f5f5a]">추천 투어</p>
               <p className="text-[11px] font-semibold text-[#a18f87]">상위 3개</p>
             </div>
 
