@@ -2,6 +2,8 @@ import Link from "next/link";
 import { hotels, type Hotel, type PartnerLinks } from "@/src/data/hotels";
 import { buildMylinkUrl } from "@/src/lib/myrealtrip";
 
+export const dynamic = "force-dynamic";
+
 const guideItems = [
   {
     condition: "공항에서 제일 안 헤매고 싶다면",

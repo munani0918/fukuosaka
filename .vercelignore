@@ -1,0 +1,17 @@
+.git
+.next
+node_modules
+.claude
+.mcp.json
+.env.local
+.env.partner-check
+.env.partner-check-prod
+local-home.html
+mobile-home.png
+mobile-home-after.png
+mobile-home-final-tweak.png
+mobile-home-last-pass.png
+mobile-home-no-stats.png
+mobile-home-order-fixed.png
+mobile-home-premium-pass.png
+*.log

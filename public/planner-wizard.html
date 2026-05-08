@@ -3,780 +3,2116 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>FUKUOSAKA — AI 플래너</title>
+  <title>후쿠오사카 AI 플래너</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:          #F5F0E8;
-      --card:        #FFFFFF;
-      --ink:         #1C1C1E;
-      --ink-light:   #48484A;
-      --muted:       #8E8E93;
-      --border:      #E8E3DA;
-      --cream-dark:  #EDE6D8;
-      --primary:     #2d5040;
-      --primary-hov: #1e3a2c;
-      --sel:         #5B3FA6;
-      --sel-pale:    rgba(91,63,166,.10);
-      --green:       #3d7a54;
-      --green-pale:  rgba(61,122,84,.10);
-      --green-border:rgba(61,122,84,.35);
-      --accent-pale: rgba(123,94,167,.08);
+      --bg: #F7F1EB;
+      --primary: #F46C67;
+      --primary-strong: #D9524A;
+      --text: #2C221D;
+      --sub: #7E7067;
+      --tertiary: #A2958B;
+      --card: #FFFFFF;
+      --card-warm: #FFF9F5;
+      --border: #E8DDD2;
+      --divider: #EEE4DA;
+      --disabled: #E9E1D8;
+      --selected: #FFF5F3;
+      --shadow: 0 10px 24px rgba(62, 39, 24, 0.06);
     }
 
-    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    html, body { font-family:'Noto Sans KR',-apple-system,sans-serif; background:var(--bg); color:var(--ink); min-height:100vh; }
-    #app { max-width:430px; margin:0 auto; min-height:100vh; background:var(--bg); position:relative; overflow:hidden; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    #app {
+      width: 100%;
+      max-width: 430px;
+      min-height: 100vh;
+      min-height: 100dvh;
+      margin: 0 auto;
+      background: var(--bg);
+      position: relative;
+      overflow-x: hidden;
+    }
 
-    /* ── Header ─────────────────────────────── */
     .wiz-header {
-      position:sticky; top:0; z-index:10; background:var(--bg);
-      padding:20px 20px 16px; display:flex; align-items:center; gap:14px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: calc(env(safe-area-inset-top) + 12px) 20px 14px;
+      background: rgba(247, 241, 235, 0.96);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(232, 221, 210, 0.72);
     }
     .back-btn {
-      width:36px; height:36px; border-radius:50%;
-      border:1.5px solid var(--border); background:var(--card);
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer; font-size:18px; flex-shrink:0; transition:all .15s;
-      color:var(--ink);
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--card);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      line-height: 1;
+      box-shadow: 0 4px 14px rgba(62, 39, 24, 0.04);
+      transition: border-color .16s ease, color .16s ease, transform .16s ease;
     }
-    .back-btn:hover { border-color:var(--sel); color:var(--sel); }
+    .back-btn:active { transform: scale(.96); }
+    .prog-wrap { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .prog-dots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+    .p-seg {
+      height: 4px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: var(--border);
+    }
+    .p-seg-fill {
+      height: 100%;
+      width: 0;
+      border-radius: 999px;
+      background: var(--primary);
+      transition: width .24s ease;
+    }
+    .prog-label {
+      color: var(--tertiary);
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 700;
+    }
 
-    /* ── Progress ────────────────────────────── */
-    .prog-wrap  { flex:1; display:flex; flex-direction:column; gap:7px; }
-    .prog-dots  { display:flex; align-items:center; gap:0; }
-    .p-seg      { flex:1; height:4px; background:var(--border); border-radius:2px; overflow:hidden; position:relative; }
-    .p-seg-fill { height:100%; background:var(--sel); border-radius:2px; transition:width .35s ease; }
-    .prog-label { font-size:12px; font-weight:700; color:var(--muted); }
+    .step-wrap { padding: 30px 20px 132px; }
+    .step-in { animation: stepIn .2s ease; }
+    .step-in-rev { animation: stepInRev .2s ease; }
+    @keyframes stepIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes stepInRev { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
 
-    /* ── Step container ──────────────────────── */
-    .step-wrap { padding:8px 20px 120px; }
-    .step-in  { animation:sIn  .25s ease; }
-    .step-out { animation:sOut .25s ease forwards; }
-    .step-in-rev  { animation:sInR  .25s ease; }
-    @keyframes sIn  { from{opacity:0;transform:translateX(28px)} to{opacity:1;transform:translateX(0)} }
-    @keyframes sInR { from{opacity:0;transform:translateX(-28px)} to{opacity:1;transform:translateX(0)} }
+    .step-title {
+      color: var(--text);
+      font-size: 28px;
+      line-height: 34px;
+      font-weight: 800;
+      letter-spacing: 0;
+      margin-bottom: 8px;
+    }
+    .step-sub {
+      color: var(--sub);
+      font-size: 15px;
+      line-height: 22px;
+      font-weight: 500;
+      margin-bottom: 28px;
+    }
+    .sec-lbl {
+      margin: 28px 0 10px;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 20px;
+      font-weight: 700;
+    }
+    .small-label {
+      margin: 10px 0 8px;
+      color: var(--tertiary);
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 700;
+    }
+    .preset-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin: -12px 0 20px;
+      padding: 7px 11px;
+      border: 1px solid #F3D4CF;
+      border-radius: 999px;
+      background: #FFF5F3;
+      color: var(--primary-strong);
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 800;
+    }
+    .preset-note {
+      margin: 0 0 24px;
+      padding: 11px 12px;
+      border-radius: 16px;
+      background: #FFF8F5;
+      color: var(--sub);
+      font-size: 13px;
+      line-height: 19px;
+      font-weight: 600;
+    }
+    .preset-note-title {
+      margin-bottom: 3px;
+      color: var(--sub);
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 800;
+    }
+    .preset-note strong {
+      color: var(--text);
+      font-weight: 800;
+    }
 
-    .step-title { font-size:26px; font-weight:900; color:var(--ink); letter-spacing:-.04em; line-height:1.25; margin-bottom:8px; }
-    .step-sub   { font-size:14px; color:var(--muted); line-height:1.55; margin-bottom:28px; }
-
-    /* ── City cards ──────────────────────────── */
+    .city-card,
+    .stepper-card,
+    .pkg-card,
+    .info-box,
+    .date-summary,
+    .assist-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
     .city-card {
-      background:var(--card); border-radius:16px; padding:20px;
-      display:flex; gap:16px; align-items:flex-start;
-      margin-bottom:12px; border:2px solid transparent;
-      cursor:pointer; transition:all .2s;
+      position: relative;
+      display: grid;
+      width: 100%;
+      grid-template-columns: 58px minmax(0, 1fr);
+      align-items: start;
+      gap: 13px;
+      min-height: 124px;
+      margin-bottom: 12px;
+      padding: 16px 44px 16px 16px;
+      border-radius: 24px;
+      text-align: left;
+      transition: background .16s ease, border-color .16s ease, transform .16s ease;
     }
-    .city-card:hover    { border-color:var(--border); transform:translateY(-1px); }
-    .city-card.selected { border-color:var(--sel); box-shadow:0 0 0 4px var(--sel-pale); }
-    .city-ico { width:52px; height:52px; border-radius:14px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:26px; }
-    .city-name { font-size:20px; font-weight:800; color:var(--ink); letter-spacing:-.03em; margin-bottom:2px; }
-    .city-sub  { font-size:12px; color:var(--muted); margin-bottom:10px; }
-    .city-tags { display:flex; flex-wrap:wrap; gap:5px; }
-    .city-tag  { font-size:11px; color:var(--muted); background:var(--cream-dark); padding:3px 9px; border-radius:999px; }
+    .city-card.selected {
+      border-color: var(--primary);
+      background: var(--selected);
+    }
+    .city-ico,
+    .option-ico {
+      width: 56px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 72% 20%, rgba(255, 255, 255, .78) 0 18%, transparent 19%),
+        linear-gradient(145deg, #FFF1ED 0%, #FFE1DA 100%);
+      color: var(--primary-strong);
+      font-size: 24px;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(217, 82, 74, .06);
+    }
+    .city-ico {
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at 76% 18%, rgba(255, 255, 255, .86) 0 16%, transparent 17%),
+        linear-gradient(145deg, #FFF6F2 0%, #FFE2DC 100%);
+    }
+    .selected .city-ico,
+    .pkg-card.selected .option-ico {
+      background:
+        radial-gradient(circle at 74% 18%, rgba(255, 255, 255, .86) 0 16%, transparent 17%),
+        linear-gradient(145deg, #FFE8E2 0%, #FFD4CB 100%);
+      box-shadow: inset 0 0 0 1px rgba(217, 82, 74, .12);
+    }
+    .icon-svg {
+      width: 36px;
+      height: 36px;
+      display: block;
+    }
+    .city-ico .icon-svg {
+      width: 42px;
+      height: 42px;
+    }
+    .city-name {
+      padding-top: 2px;
+      margin-bottom: 5px;
+      color: var(--text);
+      font-size: 18px;
+      line-height: 24px;
+      font-weight: 700;
+    }
+    .city-sub {
+      margin-bottom: 11px;
+      color: var(--sub);
+      font-size: 13px;
+      line-height: 19px;
+      font-weight: 500;
+    }
+    .city-tags {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      gap: 6px;
+    }
+    .city-tag {
+      min-height: 25px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #FBF2EA;
+      color: var(--sub);
+      font-size: 12px;
+      line-height: 15px;
+      font-weight: 700;
+    }
+    .check {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      opacity: 0;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: #FFE6DF;
+      color: var(--primary);
+      font-size: 14px;
+      font-weight: 900;
+      line-height: 1;
+      text-align: right;
+    }
+    .selected .check { opacity: 1; }
 
-    /* ── Info banner ─────────────────────────── */
-    .info-banner {
-      background:var(--accent-pale); border-radius:12px;
-      padding:12px 14px; margin-bottom:20px;
-      font-size:12px; color:#6a4fa0; line-height:1.55; font-weight:600;
+    .assist-card {
+      display: flex;
+      width: 100%;
+      align-items: flex-start;
+      gap: 9px;
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-color: #F3D4CF;
+      border-radius: 20px;
+      background: #FFF5F3;
+      color: var(--sub);
+      font-size: 13px;
+      line-height: 19px;
+      font-weight: 500;
+      box-shadow: none;
+    }
+    .assist-card span {
+      color: var(--primary-strong);
+      font-weight: 700;
     }
 
-    /* ── Date pickers ────────────────────────── */
-    .date-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
-    .date-lbl  { font-size:11px; font-weight:700; color:var(--muted); margin-bottom:5px; }
-    .date-sub  { font-size:11px; color:var(--muted); margin-top:4px; }
-    .date-in {
-      width:100%; padding:12px 10px; border-radius:12px;
-      border:1.5px solid var(--border); background:var(--card);
-      font-family:inherit; font-size:13px; font-weight:600; color:var(--ink); outline:none;
-      transition:border-color .15s;
+    .summary-chip {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      min-height: 30px;
+      margin: -12px 0 26px;
+      padding: 6px 11px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--card);
+      color: var(--sub);
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 700;
+      white-space: nowrap;
     }
-    .date-in:focus { border-color:var(--sel); }
-    .date-summary {
-      text-align:center; font-size:12px; font-weight:600; color:var(--muted);
-      background:var(--card); border-radius:10px; padding:10px;
-      margin-bottom:16px;
-    }
-    .date-summary strong { color:var(--sel); }
 
-    /* ── Night quick-select ──────────────────── */
-    .sec-lbl  { font-size:13px; font-weight:700; color:var(--ink); margin-bottom:10px; }
-    .night-row { display:flex; gap:8px; margin-bottom:20px; }
-    .nq {
-      flex:1; padding:10px 4px; border-radius:10px;
-      border:1.5px solid var(--border); background:var(--card);
-      font-family:inherit; font-size:12px; font-weight:700; color:var(--muted);
-      cursor:pointer; transition:all .15s; text-align:center; line-height:1.35;
+    .info-box {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      gap: 9px;
+      padding: 13px 14px;
+      border-radius: 20px;
+      border-color: #F3D4CF;
+      background: #FFF5F3;
+      color: var(--primary-strong);
+      font-size: 13px;
+      line-height: 19px;
+      font-weight: 700;
+      box-shadow: none;
     }
-    .nq.on { background:var(--primary); color:#fff; border-color:var(--primary); }
-
-    /* ── Airport chips ───────────────────────── */
-    .airport-row { display:flex; gap:8px; flex-wrap:wrap; }
-    .apchip {
-      padding:8px 18px; border-radius:999px;
-      border:1.5px solid var(--border); background:var(--card);
-      font-family:inherit; font-size:14px; font-weight:700; color:var(--ink);
-      cursor:pointer; transition:all .15s;
+    .date-grid,
+    .people-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
     }
-    .apchip.on { background:var(--sel); color:#fff; border-color:var(--sel); }
-
-    /* ── Stepper (people) ────────────────────── */
-    .people-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:24px; }
-    .stepper-card { background:var(--card); border-radius:14px; padding:16px; }
-    .stpr-lbl { font-size:12px; color:var(--muted); margin-bottom:14px; }
-    .stpr-row { display:flex; align-items:center; gap:10px; }
-    .stpr-btn {
-      width:30px; height:30px; border-radius:50%;
-      border:1.5px solid var(--border); background:var(--card);
-      font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;
-      transition:all .15s; color:var(--ink);
+    .people-grid { margin-bottom: 16px; }
+    .date-lbl,
+    .stpr-lbl {
+      margin-bottom: 7px;
+      color: var(--sub);
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 700;
     }
-    .stpr-btn.plus { background:var(--sel); color:#fff; border-color:var(--sel); }
-    .stpr-val { font-size:22px; font-weight:800; flex:1; text-align:center; }
-
-    /* ── Budget input ────────────────────────── */
-    .budget-wrap { position:relative; margin-bottom:12px; }
+    .date-in,
     .budget-in {
-      width:100%; padding:16px 48px 16px 16px; border-radius:14px;
-      border:1.5px solid var(--border); background:var(--card);
-      font-family:inherit; font-size:18px; font-weight:700; color:var(--ink); outline:none;
-      transition:border-color .15s;
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--card);
+      color: var(--text);
+      outline: none;
+      transition: border-color .16s ease, box-shadow .16s ease;
     }
-    .budget-in:focus { border-color:var(--sel); }
-    .budget-unit { position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:14px; font-weight:700; color:var(--muted); }
-    .budget-presets { display:flex; gap:6px; flex-wrap:wrap; }
-    .bp {
-      padding:7px 14px; border-radius:999px;
-      border:1.5px solid var(--border); background:var(--card);
-      font-family:inherit; font-size:12px; font-weight:700; color:var(--muted);
-      cursor:pointer; transition:all .15s;
+    .date-in {
+      height: 54px;
+      padding: 0 12px;
+      font-size: 15px;
+      font-weight: 700;
     }
-    .bp:hover { border-color:var(--sel); color:var(--sel); }
-    .bp.on    { border-color:var(--sel); background:var(--sel-pale); color:var(--sel); }
-    .budget-note { font-size:11px; color:var(--muted); margin-bottom:10px; line-height:1.5; }
+    .date-in:focus,
+    .budget-in:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(244, 108, 103, .12);
+    }
+    .date-sub {
+      min-height: 16px;
+      margin-top: 5px;
+      color: var(--tertiary);
+      font-size: 11px;
+      line-height: 16px;
+      font-weight: 600;
+    }
+    .date-summary {
+      margin-top: 12px;
+      padding: 13px 14px;
+      border-radius: 20px;
+      color: var(--sub);
+      font-size: 13px;
+      line-height: 19px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .date-summary strong { color: var(--primary-strong); }
+    .date-summary.invalid {
+      background: #FFF5F3;
+      border-color: #F3D4CF;
+      color: #D9524A;
+    }
+    .date-error {
+      display: none;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px solid #F3D4CF;
+      border-radius: 15px;
+      background: #FFF5F3;
+      color: #D9524A;
+      font-size: 13px;
+      line-height: 18px;
+      font-weight: 700;
+    }
+    .date-error.show { display: block; }
+    .date-guide {
+      margin-top: 8px;
+      color: var(--sub);
+      font-size: 12px;
+      line-height: 17px;
+      font-weight: 600;
+    }
 
-    /* ── Visit + Style chips ─────────────────── */
-    .visit-row { display:flex; gap:8px; margin-bottom:24px; }
-    .vchip {
-      flex:1; padding:10px 8px; border-radius:999px;
-      border:1.5px solid var(--border); background:var(--card);
-      font-family:inherit; font-size:13px; font-weight:700; color:var(--ink);
-      cursor:pointer; transition:all .15s; text-align:center;
+    .night-row,
+    .visit-row,
+    .airport-row,
+    .budget-presets,
+    .style-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
     }
-    .vchip.on { background:var(--sel); color:#fff; border-color:var(--sel); }
-
-    .style-grid { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+    .night-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .visit-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .nq,
+    .apchip,
+    .bp,
+    .vchip,
     .schip {
-      padding:8px 16px; border-radius:999px;
-      border:1.5px solid var(--border); background:var(--card);
-      font-family:inherit; font-size:13px; font-weight:700; color:var(--ink);
-      cursor:pointer; transition:all .15s;
+      min-height: 44px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--card);
+      color: var(--sub);
+      font-size: 13px;
+      line-height: 18px;
+      font-weight: 700;
+      transition: background .16s ease, color .16s ease, border-color .16s ease, transform .16s ease;
     }
-    .schip.on { background:var(--sel); color:#fff; border-color:var(--sel); }
+    .nq {
+      position: relative;
+      min-height: 52px;
+      padding: 7px 4px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 18px;
+    }
+    .nq-rec {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 4px;
+      padding: 2px 5px;
+      border-radius: 999px;
+      background: #FFF5F3;
+      color: var(--primary-strong);
+      font-size: 10px;
+      line-height: 12px;
+      font-weight: 800;
+      vertical-align: 1px;
+    }
+    .nq.on .nq-rec {
+      background: rgba(255,255,255,.22);
+      color: #fff;
+    }
+    .apchip, .bp, .schip { padding: 0 15px; }
+    .vchip { padding: 0 10px; }
+    .nq.on,
+    .apchip.on,
+    .bp.on,
+    .vchip.on,
+    .schip.on {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .schip:disabled {
+      opacity: .42;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .nq:active,
+    .apchip:active,
+    .bp:active,
+    .vchip:active,
+    .schip:active,
+    .city-card:active,
+    .pkg-card:active { transform: scale(.985); }
 
+    .stepper-card {
+      min-height: 96px;
+      padding: 16px;
+      border-radius: 22px;
+    }
+    .stpr-row {
+      display: grid;
+      grid-template-columns: 34px 1fr 34px;
+      align-items: center;
+      gap: 8px;
+    }
+    .stpr-btn {
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #FBF6F1;
+      color: var(--sub);
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .stpr-btn.plus {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: #fff;
+    }
+    .stpr-val {
+      color: var(--text);
+      font-size: 22px;
+      line-height: 28px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .budget-wrap { position: relative; margin-bottom: 9px; }
+    .budget-in {
+      height: 58px;
+      padding: 0 46px 0 16px;
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .budget-in::placeholder { color: #C6BAB2; }
+    .budget-unit {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--sub);
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .budget-note {
+      margin-bottom: 12px;
+      color: var(--sub);
+      font-size: 13px;
+      line-height: 19px;
+      font-weight: 500;
+    }
+    .per-person {
+      display: none;
+      margin: 8px 0 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--card);
+      color: var(--sub);
+      font-size: 13px;
+      line-height: 18px;
+      font-weight: 500;
+    }
+    .per-person.show { display: block; }
+    .per-person strong { color: var(--primary-strong); font-weight: 800; }
+
+    .feas-card {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 20px;
+      border: 1px solid #F1D6CF;
+      background: #FFF8F5;
+      box-shadow: 0 8px 18px rgba(62, 39, 24, .04);
+    }
+    .feas-card.realistic { background: #F7FBF3; border-color: #D9E8D0; }
+    .feas-card.tight { background: #FFF8F1; border-color: #F1D7BB; }
+    .feas-card.unrealistic,
+    .feas-card.impossible { background: #FFF8F5; border-color: #F1D6CF; }
+    .feas-kicker {
+      color: var(--primary-strong);
+      font-size: 11px;
+      line-height: 15px;
+      font-weight: 900;
+      letter-spacing: .02em;
+      margin-bottom: 5px;
+    }
+    .feas-title {
+      color: var(--text);
+      font-size: 15px;
+      line-height: 21px;
+      font-weight: 900;
+      letter-spacing: -.03em;
+    }
+    .feas-copy {
+      margin-top: 6px;
+      color: var(--sub);
+      font-size: 13px;
+      line-height: 19px;
+      font-weight: 600;
+    }
+    .feas-basis {
+      margin-top: 10px;
+      color: var(--tertiary);
+      font-size: 12px;
+      line-height: 18px;
+      font-weight: 600;
+    }
+    .feas-suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .feas-action {
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid #F46C67;
+      background: #FFFFFF;
+      color: var(--primary-strong);
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 900;
+    }
+    .feas-foot {
+      margin-top: 10px;
+      color: var(--tertiary);
+      font-size: 12px;
+      line-height: 17px;
+      font-weight: 600;
+    }
+
+    .ai-hint,
+    .style-limit {
+      border-radius: 20px;
+      border: 1px solid #F3D4CF;
+      background: #FFF5F3;
+      color: var(--primary-strong);
+      font-size: 13px;
+      line-height: 20px;
+      font-weight: 700;
+    }
     .ai-hint {
-      background:var(--green-pale); border:1.5px solid var(--green-border); border-radius:14px;
-      padding:14px 16px; display:flex; gap:10px; align-items:flex-start;
-      transition:all .3s;
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      margin-top: 14px;
+      padding: 14px;
+      min-height: 72px;
+      box-shadow: none;
     }
-    .ai-hint-icon { font-size:14px; flex-shrink:0; color:var(--green); margin-top:1px; }
-    .ai-hint-text { font-size:13px; color:var(--green); line-height:1.55; font-weight:600; }
+    .style-limit {
+      display: none;
+      margin-top: 10px;
+      padding: 11px 13px;
+    }
+    .style-limit.show { display: block; }
 
-    /* ── Package cards ───────────────────────── */
     .pkg-card {
-      background:var(--card); border-radius:14px; padding:16px;
-      margin-bottom:10px; border:2px solid transparent;
-      cursor:pointer; transition:all .2s; display:flex; align-items:center; gap:12px;
+      display: grid;
+      width: 100%;
+      grid-template-columns: 56px minmax(0, 1fr) 22px;
+      column-gap: 16px;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 18px;
+      border-radius: 24px;
+      transition: background .16s ease, border-color .16s ease, transform .16s ease;
     }
-    .pkg-card:hover    { border-color:var(--border); }
-    .pkg-card.selected { border-color:var(--green); box-shadow:0 0 0 3px var(--green-pale); }
-    .pkg-body  { flex:1; }
-    .pkg-title { font-size:15px; font-weight:800; color:var(--ink); margin-bottom:3px; display:flex; align-items:center; gap:6px; }
-    .pkg-sub   { font-size:12px; color:var(--muted); }
-    .pkg-badge { font-size:10px; font-weight:800; padding:2px 8px; border-radius:999px; white-space:nowrap; }
-    .pkg-check { font-size:22px; color:var(--green); font-weight:900; opacity:0; transition:opacity .15s; }
-    .pkg-card.selected .pkg-check { opacity:1; }
+    .pkg-card.selected {
+      background: var(--selected);
+      border-color: var(--primary);
+    }
+    .info-box + .pkg-card { margin-top: 14px; }
+    .pkg-body {
+      min-width: 0;
+      text-align: left;
+    }
+    .pkg-title {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 4px;
+      justify-content: flex-start;
+      color: var(--text);
+      font-size: 18px;
+      line-height: 24px;
+      font-weight: 700;
+      text-align: left;
+    }
+    .pkg-sub {
+      color: var(--sub);
+      font-size: 13px;
+      line-height: 19px;
+      font-weight: 500;
+      text-align: left;
+    }
+    .pkg-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: #FFE6DF;
+      color: var(--primary-strong);
+      font-size: 11px;
+      line-height: 16px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .pkg-check {
+      color: var(--primary);
+      font-size: 18px;
+      font-weight: 900;
+      opacity: 0;
+      text-align: right;
+    }
+    .pkg-card.selected .pkg-check { opacity: 1; }
 
-    /* ── Fixed footer ────────────────────────── */
     .wiz-footer {
-      position:fixed; bottom:0; left:50%; transform:translateX(-50%);
-      width:100%; max-width:430px; background:var(--bg);
-      padding:14px 20px 32px; border-top:1px solid var(--border); z-index:20;
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      z-index: 30;
+      width: 100%;
+      max-width: 430px;
+      transform: translateX(-50%);
+      min-height: calc(90px + env(safe-area-inset-bottom));
+      padding: 14px 20px calc(env(safe-area-inset-bottom) + 20px);
+      background: rgba(247, 241, 235, .96);
+      border-top: 1px solid var(--divider);
+      backdrop-filter: blur(12px);
     }
     .wiz-cta {
-      width:100%; padding:16px; border-radius:14px;
-      background:var(--primary); color:#fff; border:none;
-      font-family:inherit; font-size:16px; font-weight:800;
-      cursor:pointer; transition:all .15s; letter-spacing:-.01em;
+      width: 100%;
+      height: 56px;
+      border: none;
+      border-radius: 18px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 17px;
+      line-height: 22px;
+      font-weight: 700;
+      box-shadow: 0 8px 20px rgba(244, 108, 103, .22);
+      transition: background .16s ease, color .16s ease, transform .16s ease, box-shadow .16s ease;
     }
-    .wiz-cta:hover   { background:var(--primary-hov); }
-    .wiz-cta:active  { transform:scale(.97); }
-    .wiz-cta:disabled { background:var(--border); color:var(--muted); cursor:not-allowed; }
+    .wiz-cta:active { transform: scale(.985); }
+    .wiz-cta:disabled {
+      background: var(--disabled);
+      color: var(--tertiary);
+      box-shadow: none;
+      cursor: not-allowed;
+    }
 
-    /* ═══════════════════════════════════════════
-       LOADING SCREEN
-    ═══════════════════════════════════════════ */
     #loading-screen {
-      position:fixed; inset:0; z-index:1000; background:#1C1C1E;
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      padding:32px; opacity:0; pointer-events:none; transition:opacity .3s;
-      max-width:430px; margin:0 auto;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      padding: 32px;
+      width: 100%;
+      max-width: 430px;
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: #2B1E19;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .24s ease;
+      overflow: hidden;
     }
-    #loading-screen.show { opacity:1; pointer-events:all; }
-
-    /* Spinning rings */
-    .rings { position:relative; width:130px; height:130px; margin-bottom:40px; flex-shrink:0; }
-    .ring {
-      position:absolute; border-radius:50%;
-      border:2.5px solid rgba(123,94,167,.25); border-top-color:#7B5EA7;
+    #loading-screen.show {
+      opacity: 1;
+      pointer-events: auto;
     }
-    .ring-1 { inset:0;    animation:spin 2.0s linear infinite; }
-    .ring-2 { inset:14px; animation:spin 2.6s linear infinite reverse; border-top-color:#a89fcc; border-color:rgba(168,159,204,.2); }
-    .ring-3 { inset:28px; animation:spin 3.3s linear infinite; border-top-color:#c5b8e8; border-color:rgba(197,184,232,.15); }
-    .ring-center {
-      position:absolute; inset:44px; border-radius:50%;
-      background:#7B5EA7; display:flex; align-items:center; justify-content:center;
-      font-size:20px; color:#fff; animation:pulse 2s ease-in-out infinite;
+    .loader-ring {
+      width: 84px;
+      height: 84px;
+      border-radius: 999px;
+      border: 4px solid rgba(244, 108, 103, .22);
+      border-top-color: var(--primary);
+      animation: spin 1s linear infinite;
     }
-    @keyframes spin  { to { transform:rotate(360deg); } }
-    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
-
-    .ld-eyebrow { font-size:11px; font-weight:800; letter-spacing:.16em; color:#7B5EA7; margin-bottom:12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .ld-title {
-      font-size:22px; font-weight:900; color:#fff;
-      text-align:center; letter-spacing:-.04em; margin-bottom:6px; line-height:1.3;
+      color: #fff;
+      font-size: 22px;
+      line-height: 30px;
+      font-weight: 800;
+      text-align: center;
     }
-    .ld-sub { font-size:13px; color:#EDE6D8; text-align:center; margin-bottom:36px; line-height:1.6; }
-
-    /* Phase list */
-    .phases { width:100%; max-width:280px; }
-    .phase {
-      display:flex; align-items:center; gap:12px; margin-bottom:12px;
-      opacity:.3; transition:opacity .35s;
+    .ld-sub {
+      max-width: 290px;
+      color: rgba(255, 255, 255, .72);
+      font-size: 14px;
+      line-height: 22px;
+      font-weight: 500;
+      text-align: center;
+      white-space: pre-line;
     }
-    .phase.active { opacity:1; }
-    .phase.done   { opacity:.75; }
-    .phase-dot {
-      width:20px; height:20px; border-radius:50%; flex-shrink:0;
-      background:rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center;
-      font-size:11px; transition:all .3s;
-    }
-    .phase.active .phase-dot { background:rgba(123,94,167,.4); border:2px solid #7B5EA7; animation:pulseDot 1s ease-in-out infinite; }
-    .phase.done .phase-dot   { background:#7B5EA7; color:#fff; }
-    @keyframes pulseDot { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
-    .phase-text { font-size:13px; color:#EDE6D8; font-weight:600; }
-    .phase.active .phase-text { color:#fff; }
-
-    /* Progress bar */
-    .ld-progress-wrap { width:100%; max-width:280px; margin-top:28px; }
-    .ld-progress-bg { width:100%; height:4px; background:rgba(255,255,255,.12); border-radius:2px; overflow:hidden; }
-    .ld-progress-fill {
-      height:100%; background:linear-gradient(90deg,#7B5EA7,#a89fcc);
-      border-radius:2px; width:0%;
-      transition:width .5s ease;
-    }
-    .ld-progress-label { font-size:11px; color:rgba(255,255,255,.5); text-align:right; margin-top:6px; }
   </style>
 </head>
 <body>
-<div id="app">
+  <div id="app">
+    <div id="loading-screen">
+      <div class="loader-ring"></div>
+      <div class="ld-title" id="ld-title">AI 플랜 생성 중</div>
+      <div class="ld-sub" id="ld-sub">입력한 조건에 맞춰 예산과 동선을 정리하고 있어요.
+잠시 후 가장 현실적인 후보부터 보여드릴게요.</div>
+    </div>
 
-  <!-- ═══ LOADING SCREEN ═══ -->
-  <div id="loading-screen">
-    <div class="rings">
-      <div class="ring ring-1"></div>
-      <div class="ring ring-2"></div>
-      <div class="ring ring-3"></div>
-      <div class="ring-center">✦</div>
-    </div>
-    <div class="ld-eyebrow">AI PLANNING</div>
-    <div class="ld-title" id="ld-title">후쿠오카 3박4일<br>플랜 생성 중</div>
-    <div class="ld-sub" id="ld-sub">예산 0원 기준<br>최적 구성을 찾고 있어요</div>
-    <div class="phases" id="phase-list">
-      <div class="phase" data-phase="0"><div class="phase-dot"></div><div class="phase-text">✈️ 항공권 실시간 가격 조회 중...</div></div>
-      <div class="phase" data-phase="1"><div class="phase-dot"></div><div class="phase-text">🏨 숙소 옵션 분석 중...</div></div>
-      <div class="phase" data-phase="2"><div class="phase-dot"></div><div class="phase-text">🎟 투어·입장권 데이터 수집 중...</div></div>
-      <div class="phase" data-phase="3"><div class="phase-dot"></div><div class="phase-text">🤖 예산 배분 최적화 중...</div></div>
-      <div class="phase" data-phase="4"><div class="phase-dot"></div><div class="phase-text">✍️ 여행 작가 큐레이션 적용 중...</div></div>
-    </div>
-    <div class="ld-progress-wrap">
-      <div class="ld-progress-bg"><div class="ld-progress-fill" id="ld-bar"></div></div>
-      <div class="ld-progress-label" id="ld-pct">0%</div>
+    <div id="wizard">
+      <header class="wiz-header">
+        <button class="back-btn" id="back-btn" type="button" onclick="goBack()" aria-label="이전">‹</button>
+        <div class="prog-wrap">
+          <div class="prog-dots" id="prog-dots"></div>
+          <div class="prog-label" id="prog-label">1/5 도시 선택</div>
+        </div>
+      </header>
+
+      <main id="step-area"></main>
+
+      <footer class="wiz-footer">
+        <button class="wiz-cta" id="wiz-cta" type="button" onclick="goNext()">다음 단계</button>
+      </footer>
     </div>
   </div>
 
-  <!-- ═══ WIZARD ═══ -->
-  <div id="wizard">
+  <script>
+    const F = {
+      city: "",
+      departDate: "",
+      returnDate: "",
+      nights: 3,
+      origin: "ICN",
+      adults: 2,
+      children: 0,
+      budget: 0,
+      budgetPreset: "",
+      budgetPerPerson: 0,
+      budgetInputMode: "custom",
+      nearbyMode: "",
+      feasibilityPackageType: "",
+      isBudgetManuallyEdited: false,
+      styles: [],
+      packages: ["flight", "hotel", "tour"],
+    };
 
-    <!-- Header -->
-    <div class="wiz-header">
-      <button class="back-btn" id="back-btn" onclick="goBack()">←</button>
-      <div class="prog-wrap">
-        <div class="prog-dots" id="prog-dots">
-          <!-- 5 segments injected by JS -->
-        </div>
-        <div class="prog-label" id="prog-label">1/5 도시 선택</div>
-      </div>
-    </div>
+    let step = 1;
+    const TOTAL = 5;
+    const STEP_LABELS = ["도시 선택", "일정·출발지", "인원·예산", "여행 스타일", "추천 구성"];
+    const PRESET_STEP_LABELS = ["여행 조건 확인", "여행 스타일", "결과 보기"];
+    const ORIGINS = [["ICN", "인천"], ["GMP", "김포"], ["PUS", "부산/김해"], ["CJU", "제주"]];
+    const MAX_NIGHTS = 4;
+    const STYLE_OPTIONS = [["food", "맛집"], ["shopping", "쇼핑"], ["sightseeing", "관광"], ["family", "가족"], ["onsen", "온천"], ["couple", "커플"], ["solo", "혼자"]];
+    const STYLE_LABELS = Object.fromEntries(STYLE_OPTIONS);
+    const LEGACY_STYLE_MAP = { healing: "onsen", local: "sightseeing", night: "couple", photo: "sightseeing" };
+    const PKG_MAP = {
+      all: ["flight", "hotel", "tour"],
+      fh: ["flight", "hotel"],
+      ht: ["hotel", "tour"],
+      fo: ["flight"],
+      ho: ["hotel"],
+    };
+    const PACKAGE_PRESET_MAP = {
+      flight_hotel_tour: ["flight", "hotel", "tour"],
+      flight_hotel: ["flight", "hotel"],
+      hotel_tour: ["hotel", "tour"],
+      flight_only: ["flight"],
+      hotel_only: ["hotel"],
+    };
+    const BUDGET_PRESETS = {
+      budget: {
+        id: "budget",
+        label: "가성비",
+        range: "1인 50~70만원",
+        defaultBudgetPerPerson: 600000,
+        defaultNights: 2,
+        defaultPackageType: "flight_hotel",
+        nearbyMode: "light",
+        note: "2박3일 추천",
+      },
+      standard: {
+        id: "standard",
+        label: "표준",
+        range: "1인 80~120만원",
+        defaultBudgetPerPerson: 1000000,
+        defaultNights: 3,
+        defaultPackageType: "flight_hotel_tour",
+        nearbyMode: "standard",
+        note: "3박4일 추천",
+      },
+      premium: {
+        id: "premium",
+        label: "프리미엄",
+        range: "1인 150만원+",
+        defaultBudgetPerPerson: 1500000,
+        defaultNights: 4,
+        defaultPackageType: "flight_hotel_tour",
+        nearbyMode: "comfort",
+        note: "4박5일 추천",
+      },
+    };
+    const KO_DAY = ["일", "월", "화", "수", "목", "금", "토"];
 
-    <!-- Step area -->
-    <div id="step-area"></div>
+    const FEASIBILITY_MIN = {
+      flightRoundTrip: { FUK: 250000, KIX: 280000 },
+      hotelNight: { FUK: 85000, KIX: 95000 },
+      adultLocalDay: { FUK: 45000, KIX: 50000 },
+      tourStyle: {
+        sightseeing: 50000,
+        family: 40000,
+        couple: 40000,
+        food: 30000,
+        shopping: 25000,
+        solo: 25000,
+        default: 40000,
+      },
+    };
 
-    <!-- Footer -->
-    <div class="wiz-footer">
-      <button class="wiz-cta" id="wiz-cta" onclick="goNext()">다음 단계 →</button>
-    </div>
+    document.addEventListener("DOMContentLoaded", init);
 
-  </div><!-- #wizard -->
-</div><!-- #app -->
-
-<script>
-// ═══ STATE ═══════════════════════════════════
-const F = {
-  city: '', departDate: '', returnDate: '', nights: 3,
-  origin: 'ICN', adults: 2, children: 0, budget: 0,
-  visitCount: 'first', styles: [], packages: ['flight','hotel','tour'],
-};
-let step = 1;
-const TOTAL = 5;
-const STEP_LABELS = ['도시 선택','날짜·출발지','인원·예산','성향·방문','구성 선택'];
-
-// ═══ INIT ════════════════════════════════════
-function init(){
-  // Build progress bar segments
-  const dots = document.getElementById('prog-dots');
-  for(let i=0;i<TOTAL;i++){
-    const seg = document.createElement('div');
-    seg.className = 'p-seg'; seg.id = 'seg-'+i;
-    const fill = document.createElement('div');
-    fill.className = 'p-seg-fill'; fill.style.width = '0%';
-    seg.appendChild(fill);
-    dots.appendChild(seg);
-    if(i<TOTAL-1){ const sp = document.createElement('div'); sp.style.width='4px'; dots.appendChild(sp); }
-  }
-  // Default dates
-  const d1 = new Date(); d1.setDate(d1.getDate()+45);
-  const d2 = new Date(); d2.setDate(d2.getDate()+48);
-  F.departDate = d1.toISOString().slice(0,10);
-  F.returnDate = d2.toISOString().slice(0,10);
-  F.nights = 3;
-
-  // Pre-fill from saved conditions (수정하기 flow)
-  try {
-    const saved = JSON.parse(sessionStorage.getItem('plannerConditions') || '{}');
-    if (saved.cityCode)   F.city       = saved.cityCode;
-    if (saved.date)       F.departDate = saved.date;
-    if (saved.returnDate) F.returnDate = saved.returnDate;
-    if (saved.nights)     F.nights     = +saved.nights;
-    if (saved.origin)     F.origin     = saved.origin;
-    if (saved.adults)     F.adults     = +saved.adults;
-    if (saved.children)   F.children   = +saved.children;
-    if (saved.budget)     F.budget     = +saved.budget;
-    if (saved.visitCount) F.visitCount = saved.visitCount;
-    if (Array.isArray(saved.styles))   F.styles   = saved.styles;
-    if (Array.isArray(saved.packages)) F.packages = saved.packages;
-  } catch(e){}
-
-  // Pre-fill from budget preset (home → wizard shortcut)
-  try {
-    const pb = sessionStorage.getItem('plannerBudget');
-    const pn = sessionStorage.getItem('plannerNights');
-    if (pb) { F.budget = +pb; sessionStorage.removeItem('plannerBudget'); }
-    if (pn) { F.nights = +pn; sessionStorage.removeItem('plannerNights'); }
-  } catch(e){}
-
-  renderStep(1, 'forward');
-  updateProgress();
-}
-
-// ═══ PROGRESS ════════════════════════════════
-function updateProgress(){
-  document.getElementById('prog-label').textContent = `${step}/${TOTAL} ${STEP_LABELS[step-1]}`;
-  for(let i=0;i<TOTAL;i++){
-    const fill = document.querySelector('#seg-'+i+' .p-seg-fill');
-    if(fill) fill.style.width = i < step ? '100%' : i === step-1 ? '60%' : '0%';
-  }
-  document.getElementById('back-btn').style.opacity = step===1 ? '0.4' : '1';
-}
-
-// ═══ NAVIGATION ══════════════════════════════
-function goNext(){
-  if(!canProceed()) return;
-  if(step < TOTAL){ step++; renderStep(step,'forward'); updateProgress(); }
-  else { startLoading(); }
-}
-function goBack(){
-  if(step===1){ window.location.href='/main-home.html'; return; }
-  step--; renderStep(step,'back'); updateProgress();
-}
-
-function canProceed(){
-  if(step===1) return !!F.city;
-  if(step===2) return !!F.departDate && !!F.returnDate;
-  if(step===3) return F.budget > 0;
-  if(step===4) return !!F.visitCount;
-  if(step===5) return F.packages.length > 0;
-  return true;
-}
-
-function refreshCta(){
-  const btn = document.getElementById('wiz-cta');
-  const ok = canProceed();
-  btn.disabled = !ok;
-  if(step===TOTAL) btn.textContent = '✦ AI 플랜 생성하기';
-  else btn.textContent = '다음 단계 →';
-}
-
-// ═══ STEP RENDERER ═══════════════════════════
-function renderStep(n, dir){
-  const area = document.getElementById('step-area');
-  const cls = dir==='back' ? 'step-in-rev' : 'step-in';
-  area.innerHTML = `<div class="step-wrap ${cls}">${STEP_TEMPLATES[n]()}</div>`;
-  refreshCta();
-  if(n===2) syncDateUI();
-}
-
-// ═══ STEP TEMPLATES ══════════════════════════
-const STEP_TEMPLATES = {
-  1: () => `
-    <div class="step-title">어느 도시로<br>가시나요?</div>
-    <div class="step-sub">도시 성격에 따라 추천 구성이 달라집니다</div>
-
-    <div class="city-card ${F.city==='FUK'?'selected':''}" onclick="pickCity('FUK',this)">
-      <div class="city-ico" style="background:#FFF0E8">🔥</div>
-      <div>
-        <div class="city-name">후쿠오카</div>
-        <div class="city-sub">규슈의 관문</div>
-        <div class="city-tags">
-          <span class="city-tag">힐링</span>
-          <span class="city-tag">근교 온천</span>
-          <span class="city-tag">야타이</span>
-          <span class="city-tag">가족</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="city-card ${F.city==='KIX'?'selected':''}" onclick="pickCity('KIX',this)">
-      <div class="city-ico" style="background:#EFF3FF">🏯</div>
-      <div>
-        <div class="city-name">오사카</div>
-        <div class="city-sub">서일본 최대 도시</div>
-        <div class="city-tags">
-          <span class="city-tag">쇼핑</span>
-          <span class="city-tag">미식</span>
-          <span class="city-tag">도시형</span>
-          <span class="city-tag">재방문</span>
-        </div>
-      </div>
-    </div>`,
-
-  2: () => `
-    <div class="step-title">출발일·귀국일·<br>출발지</div>
-    <div class="step-sub">날짜가 있어야 실시간 항공 가격을 조회할 수 있어요</div>
-
-    <div class="info-banner">실시간 항공 가격 조회를 위해 정확한 날짜를 입력해주세요</div>
-
-    <div class="date-grid">
-      <div>
-        <div class="date-lbl">출발일</div>
-        <input class="date-in" type="date" id="d-dep" value="${F.departDate}" oninput="onDepartChange()">
-        <div class="date-sub" id="dep-sub"></div>
-      </div>
-      <div>
-        <div class="date-lbl">귀국일</div>
-        <input class="date-in" type="date" id="d-ret" value="${F.returnDate}" oninput="onReturnChange()">
-        <div class="date-sub" id="ret-sub"></div>
-      </div>
-    </div>
-
-    <div class="date-summary" id="date-summary">—</div>
-
-    <div class="sec-lbl">빠른 선택</div>
-    <div class="night-row">
-      ${[2,3,4,5].map(n=>`<button class="nq${F.nights===n?' on':''}" onclick="pickNights(${n})">${n}박<br>${n+1}일</button>`).join('')}
-    </div>
-
-    <div class="sec-lbl">출발 공항</div>
-    <div class="airport-row">
-      ${[['ICN','인천'],['GMP','김포'],['PUS','부산'],['CJU','제주']].map(([c,l])=>`
-        <button class="apchip${F.origin===c?' on':''}" onclick="pickOrigin('${c}',this)">${l}</button>`).join('')}
-    </div>`,
-
-  3: () => `
-    <div class="step-title">인원과 총 예산</div>
-    <div class="step-sub">예산이 AI 배분의 기준이 됩니다</div>
-
-    <div class="people-grid">
-      <div class="stepper-card">
-        <div class="stpr-lbl">성인</div>
-        <div class="stpr-row">
-          <button class="stpr-btn" onclick="stepPeople('adults',-1)">−</button>
-          <div class="stpr-val" id="v-adults">${F.adults}</div>
-          <button class="stpr-btn plus" onclick="stepPeople('adults',1)">+</button>
-        </div>
-      </div>
-      <div class="stepper-card">
-        <div class="stpr-lbl">아동</div>
-        <div class="stpr-row">
-          <button class="stpr-btn" onclick="stepPeople('children',-1)">−</button>
-          <div class="stpr-val" id="v-children">${F.children}</div>
-          <button class="stpr-btn plus" onclick="stepPeople('children',1)">+</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="sec-lbl" style="margin-bottom:4px">총 여행 예산</div>
-    <div class="budget-note">항공 + 숙소 + 투어 + 현지 사용 포함 총액<br>AI가 입력한 예산을 바탕으로 추천 비중을 자동 계산합니다</div>
-    <div class="budget-wrap">
-      <input class="budget-in" type="text" id="budget-in"
-        placeholder="예: 1,600,000" value="${F.budget?F.budget.toLocaleString():''}"
-        oninput="onBudgetInput(this)">
-      <div class="budget-unit">원</div>
-    </div>
-    <div class="budget-presets">
-      ${[[500000,'50만'],[800000,'80만'],[1200000,'120만'],[1600000,'160만'],[2000000,'200만']].map(([v,l])=>`
-        <button class="bp${F.budget===v?' on':''}" onclick="pickBudget(${v})">${l}</button>`).join('')}
-    </div>`,
-
-  4: () => `
-    <div class="step-title">방문 횟수·<br>여행 성향</div>
-    <div class="step-sub">선택에 따라 추천 코스와 숙소 위치가 달라집니다</div>
-
-    <div class="sec-lbl">방문 횟수</div>
-    <div class="visit-row">
-      ${[['first','처음이에요'],['second','재방문'],['many','3회 이상']].map(([v,l])=>`
-        <button class="vchip${F.visitCount===v?' on':''}" onclick="pickVisit('${v}',this)">${l}</button>`).join('')}
-    </div>
-
-    <div class="sec-lbl">여행 성향 <span style="font-weight:400;color:var(--muted);font-size:12px">(복수 선택 가능)</span></div>
-    <div class="style-sub" style="font-size:12px;color:var(--muted);margin-bottom:10px">성향에 따라 작가 추천 코스와 숙소 위치가 달라져요</div>
-    <div class="style-grid">
-      ${[['healing','힐링'],['food','먹방'],['shopping','쇼핑'],['local','로컬 탐방'],['family','가족'],['night','야경']].map(([v,l])=>`
-        <button class="schip${F.styles.includes(v)?' on':''}" onclick="toggleStyle('${v}',this)">${l}</button>`).join('')}
-    </div>
-    <div class="ai-hint" id="ai-hint">
-      <div class="ai-hint-icon">✦</div>
-      <div class="ai-hint-text" id="ai-hint-text">${getAiHint()}</div>
-    </div>`,
-
-  5: () => `
-    <div class="step-title">어떤 구성이<br>필요하세요?</div>
-    <div class="step-sub">선택한 구성에 맞게 추천 상품이 달라집니다</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:20px;background:var(--card);padding:10px 14px;border-radius:10px">
-      이 선택이 이후 CPA 추천 상품의 우선순위를 결정합니다
-    </div>
-
-    ${[
-      {key:'all',    title:'항공 + 숙소 + 투어', sub:'AI가 전체 구성을 자동 최적화합니다', badge:'가장 인기', badgeColor:'rgba(123,94,167,.15)', badgeTextColor:'#5B3FA6'},
-      {key:'fh',     title:'항공 + 숙소',         sub:'투어는 현지에서 직접 결정하실 분'},
-      {key:'ht',     title:'숙소 + 투어',          sub:'이미 항공을 예약하신 분 추천', badge2:'항공 예약 완료', badge2Color:'rgba(74,127,165,.12)', badge2TextColor:'#4A7FA5'},
-      {key:'fo',     title:'항공만',               sub:'숙소와 투어는 직접 계획하실 분'},
-      {key:'ho',     title:'숙소만',               sub:'항공·투어는 이미 준비된 분'},
-    ].map(p=>{
-      const sel = F.packages.join('+')==={all:'flight+hotel+tour',fh:'flight+hotel',ht:'hotel+tour',fo:'flight',ho:'hotel'}[p.key];
-      return `<div class="pkg-card${sel?' selected':''}" onclick="pickPackage('${p.key}',this)">
-        <div class="pkg-body">
-          <div class="pkg-title">
-            ${p.title}
-            ${p.badge?`<span class="pkg-badge" style="background:${p.badgeColor};color:${p.badgeTextColor}">${p.badge}</span>`:''}
-            ${p.badge2?`<span class="pkg-badge" style="background:${p.badge2Color};color:${p.badge2TextColor}">${p.badge2}</span>`:''}
-          </div>
-          <div class="pkg-sub">${p.sub}</div>
-        </div>
-        <div class="pkg-check">✓</div>
-      </div>`;
-    }).join('')}`,
-};
-
-// ═══ STEP 1 — City ═══════════════════════════
-function pickCity(code, el){
-  F.city = code;
-  document.querySelectorAll('.city-card').forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
-  refreshCta();
-}
-
-// ═══ STEP 2 — Dates ══════════════════════════
-function onDepartChange(){
-  F.departDate = document.getElementById('d-dep').value;
-  if(F.departDate && F.returnDate){ recalcNights(); }
-  syncDateUI();
-  refreshCta();
-}
-function onReturnChange(){
-  F.returnDate = document.getElementById('d-ret').value;
-  if(F.departDate && F.returnDate){ recalcNights(); }
-  syncDateUI();
-  refreshCta();
-}
-function pickNights(n){
-  F.nights = n;
-  if(F.departDate){
-    const d = new Date(F.departDate); d.setDate(d.getDate()+n);
-    F.returnDate = d.toISOString().slice(0,10);
-    document.getElementById('d-ret').value = F.returnDate;
-  }
-  document.querySelectorAll('.nq').forEach(b=>b.classList.toggle('on',+b.textContent.trim()[0]===n));
-  syncDateUI(); refreshCta();
-}
-function pickOrigin(code, el){
-  F.origin = code;
-  document.querySelectorAll('.apchip').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');
-}
-function recalcNights(){
-  const d1=new Date(F.departDate), d2=new Date(F.returnDate);
-  F.nights = Math.max(1, Math.round((d2-d1)/(1000*60*60*24)));
-  document.querySelectorAll('.nq').forEach(b=>b.classList.toggle('on',+b.textContent.trim()[0]===F.nights));
-}
-const KO_DAY=['일','월','화','수','목','금','토'];
-function fmtDate(s){ if(!s)return ''; const d=new Date(s+'T00:00:00'); return `${s.slice(5).replace('-','/')}(${KO_DAY[d.getDay()]})`; }
-function syncDateUI(){
-  const el = document.getElementById('date-summary');
-  const depEl = document.getElementById('dep-sub');
-  const retEl = document.getElementById('ret-sub');
-  if(depEl) depEl.textContent = fmtDate(F.departDate);
-  if(retEl) retEl.textContent = fmtDate(F.returnDate);
-  if(el && F.departDate && F.returnDate){
-    el.innerHTML = `${fmtDate(F.departDate)} → ${fmtDate(F.returnDate)} &nbsp;<strong>${F.nights}박${F.nights+1}일</strong> ✓`;
-  }
-}
-
-// ═══ STEP 3 — People & Budget ════════════════
-function stepPeople(key, delta){
-  const min = key==='adults'?1:0;
-  F[key] = Math.max(min, Math.min(8, F[key]+delta));
-  const el = document.getElementById('v-'+key);
-  if(el) el.textContent = F[key];
-}
-function onBudgetInput(inp){
-  const raw = inp.value.replace(/[^0-9]/g,'');
-  F.budget = parseInt(raw)||0;
-  inp.value = F.budget ? F.budget.toLocaleString() : '';
-  document.querySelectorAll('.bp').forEach(b=>b.classList.remove('on'));
-  refreshCta();
-}
-function pickBudget(v){
-  F.budget = v;
-  const inp = document.getElementById('budget-in');
-  if(inp) inp.value = v.toLocaleString();
-  document.querySelectorAll('.bp').forEach(b=>b.classList.toggle('on', +b.getAttribute('onclick').match(/\d+/)[0]===v));
-  refreshCta();
-}
-
-// ═══ STEP 4 — Visit & Style ══════════════════
-function pickVisit(v, el){
-  F.visitCount = v;
-  document.querySelectorAll('.vchip').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');
-  document.getElementById('ai-hint-text').textContent = getAiHint();
-  refreshCta();
-}
-function toggleStyle(v, el){
-  const idx = F.styles.indexOf(v);
-  if(idx>=0) F.styles.splice(idx,1); else F.styles.push(v);
-  el.classList.toggle('on', F.styles.includes(v));
-  document.getElementById('ai-hint-text').textContent = getAiHint();
-}
-function getAiHint(){
-  const visit = F.visitCount;
-  const styles = F.styles;
-  if(!visit) return 'AI 추천 방향이 여기 표시돼요';
-  let base = {
-    first:  '처음 방문자를 위한 핵심 코스 중심 추천',
-    second: '재방문자를 위한 숨은 명소 & 심층 투어 추천',
-    many:   '마니아를 위한 근교 여행 & 특별 체험 추천',
-  }[visit] || '';
-  if(styles.includes('food'))     base += ' · 현지 맛집 루트 우선';
-  if(styles.includes('healing'))  base += ' · 온천 & 힐링 숙소 포함';
-  if(styles.includes('shopping')) base += ' · 쇼핑몰 & 드럭스토어 일정';
-  if(styles.includes('night'))    base += ' · 야경 명소 저녁 루트';
-  if(styles.includes('family'))   base += ' · 가족 친화 액티비티';
-  return base;
-}
-
-// ═══ STEP 5 — Package ════════════════════════
-const PKG_MAP = {all:['flight','hotel','tour'],fh:['flight','hotel'],ht:['hotel','tour'],fo:['flight'],ho:['hotel']};
-function pickPackage(key, el){
-  F.packages = PKG_MAP[key];
-  document.querySelectorAll('.pkg-card').forEach(c=>c.classList.remove('selected'));
-  el.classList.add('selected');
-  refreshCta();
-}
-
-// ═══ LOADING SCREEN ═══════════════════════════
-function startLoading(){
-  // Update loading title
-  const cityName = F.city==='FUK'?'후쿠오카':'오사카';
-  document.getElementById('ld-title').innerHTML = `${cityName} ${F.nights}박${F.nights+1}일<br>플랜 생성 중`;
-  document.getElementById('ld-sub').innerHTML = `예산 ${F.budget.toLocaleString()}원 기준<br>최적 구성을 찾고 있어요`;
-
-  // Save to sessionStorage
-  const cond = {
-    cityCode: F.city, date: F.departDate, returnDate: F.returnDate,
-    nights: F.nights, origin: F.origin, adults: F.adults, children: F.children,
-    budget: F.budget, visitCount: F.visitCount, styles: F.styles, packages: F.packages,
-  };
-  sessionStorage.setItem('plannerConditions', JSON.stringify(cond));
-  sessionStorage.setItem('plannerBudget', String(F.budget));
-
-  // Show loading overlay
-  const ld = document.getElementById('loading-screen');
-  ld.classList.add('show');
-
-  // Animate phases
-  const phases = document.querySelectorAll('.phase');
-  let phaseIdx = 0;
-  const bar = document.getElementById('ld-bar');
-  const pct = document.getElementById('ld-pct');
-  const totalTime = 4200;
-  const phaseInterval = totalTime / (phases.length + 1);
-
-  // Progress bar smooth animation
-  let elapsed = 0;
-  const barTimer = setInterval(()=>{
-    elapsed += 50;
-    const p = Math.min(95, Math.round(elapsed/totalTime*100));
-    bar.style.width = p + '%';
-    pct.textContent = p + '%';
-  }, 50);
-
-  // Phase stepping
-  const phaseTimer = setInterval(()=>{
-    if(phaseIdx < phases.length){
-      // Mark previous as done
-      if(phaseIdx > 0) {
-        phases[phaseIdx-1].classList.remove('active');
-        phases[phaseIdx-1].classList.add('done');
-        phases[phaseIdx-1].querySelector('.phase-dot').textContent = '✓';
-      }
-      phases[phaseIdx].classList.add('active');
-      phaseIdx++;
+    function normalizeBudgetPresetId(value) {
+      return BUDGET_PRESETS[value] ? value : "";
     }
-  }, phaseInterval);
 
-  // Navigate when done
-  setTimeout(()=>{
-    clearInterval(barTimer);
-    clearInterval(phaseTimer);
-    bar.style.width = '100%';
-    pct.textContent = '100%';
-    // Mark last phase done
-    phases.forEach(p=>{ p.classList.remove('active'); p.classList.add('done'); p.querySelector('.phase-dot').textContent='✓'; });
-    setTimeout(()=>{
-      const params = new URLSearchParams({
-        cityCode: F.city, date: F.departDate, nights: F.nights,
+    function travelerWeight() {
+      return Math.max(1, F.adults + F.children * 0.65);
+    }
+
+    function totalBudgetFromPreset(preset) {
+      return Math.round((preset?.defaultBudgetPerPerson || 0) * travelerWeight());
+    }
+
+    function roundManwon(value) {
+      return Math.round((Number(value) || 0) / 10000) * 10000;
+    }
+
+    function formatManwon(value) {
+      const amount = Math.max(0, Math.round(Number(value) || 0));
+      if (amount >= 10000) return `약 ${Math.round(amount / 10000).toLocaleString("ko-KR")}만원`;
+      return `약 ${amount.toLocaleString("ko-KR")}원`;
+    }
+
+    function packageTypeFromPackages(packages = F.packages) {
+      const key = (packages || []).slice().sort().join("+");
+      if (key === "flight+hotel+tour") return "flight_hotel_tour";
+      if (key === "flight+hotel") return "flight_hotel";
+      if (key === "hotel+tour") return "hotel_tour";
+      if (key === "flight") return "flight_only";
+      if (key === "hotel") return "hotel_only";
+      return "flight_hotel_tour";
+    }
+
+    function packagesFromType(packageType) {
+      return (PACKAGE_PRESET_MAP[packageType] || PACKAGE_PRESET_MAP.flight_hotel_tour).slice();
+    }
+
+    function isPresetFlow() {
+      return F.budgetInputMode === "preset" && Boolean(activePreset());
+    }
+
+    function totalSteps() {
+      return isPresetFlow() ? 3 : TOTAL;
+    }
+
+    function packageKeyFromPackages(packages = F.packages) {
+      const type = packageTypeFromPackages(packages);
+      if (type === "flight_hotel_tour") return "all";
+      if (type === "flight_hotel") return "fh";
+      if (type === "hotel_tour") return "ht";
+      if (type === "flight_only") return "fo";
+      if (type === "hotel_only") return "ho";
+      return "all";
+    }
+
+    function packageTypeIncludes(packageType, kind) {
+      return (PACKAGE_PRESET_MAP[packageType] || PACKAGE_PRESET_MAP.flight_hotel_tour).includes(kind);
+    }
+
+    function feasibilityPackageType(scope = "current") {
+      if (F.feasibilityPackageType) return F.feasibilityPackageType;
+      if (scope === "step3") {
+        const preset = activePreset();
+        if (preset?.defaultPackageType) return preset.defaultPackageType;
+      }
+      return packageTypeFromPackages(F.packages);
+    }
+
+    function checkBudgetFeasibility(options = {}) {
+      const packageType = options.packageType || feasibilityPackageType(options.scope);
+      const city = F.city || "KIX";
+      const nights = Math.max(1, Number(F.nights) || 1);
+      const days = nights + 1;
+      const adults = Math.max(1, Number(F.adults) || 1);
+      const children = Math.max(0, Number(F.children) || 0);
+      const totalTravelers = adults + children;
+      const weight = Math.max(1, adults + children * 0.65);
+      const rooms = totalTravelers <= 3 ? 1 : Math.ceil(totalTravelers / 2);
+      const styles = normalizeStyles(F.styles);
+      let subtotal = 0;
+
+      if (packageTypeIncludes(packageType, "flight")) {
+        subtotal += (FEASIBILITY_MIN.flightRoundTrip[city] || FEASIBILITY_MIN.flightRoundTrip.KIX) * totalTravelers;
+      }
+      if (packageTypeIncludes(packageType, "hotel")) {
+        subtotal += (FEASIBILITY_MIN.hotelNight[city] || FEASIBILITY_MIN.hotelNight.KIX) * rooms * nights;
+      }
+
+      if (packageTypeIncludes(packageType, "tour")) {
+        const tourPerPerson = Math.max(...(styles.length ? styles : ["default"]).map((style) => {
+          if (style === "onsen") return city === "FUK" ? 80000 : 40000;
+          return FEASIBILITY_MIN.tourStyle[style] || FEASIBILITY_MIN.tourStyle.default;
+        }));
+        subtotal += tourPerPerson * totalTravelers;
+      }
+
+      const minimumBudget = roundManwon(subtotal);
+      const recommendedBudget = roundManwon(minimumBudget * 1.15);
+      const totalBudget = Math.max(0, Number(F.budget) || 0);
+      const ratio = minimumBudget > 0 ? totalBudget / minimumBudget : 1;
+      const shortage = Math.max(0, minimumBudget - totalBudget);
+      let status = "realistic";
+      if (ratio < 0.75) status = "impossible";
+      else if (ratio < 0.95) status = "unrealistic";
+      else if (ratio < 1.1) status = "tight";
+
+      const messages = {
+        realistic: ["좋은 예산이에요", "현재 조건으로 무리 없이 플랜을 만들기 좋은 예산이에요."],
+        tight: ["조금 빠듯하지만 가능해요", "특가 항공권이나 실속 숙소를 활용하면 예산에 맞출 수 있어요."],
+        unrealistic: ["이 예산은 조금 낮아요", "현재 조건으로는 예산 초과 가능성이 높아요. 일정이나 추천 구성을 조정하면 더 현실적인 플랜을 만들 수 있어요."],
+        impossible: ["현실적인 플랜을 만들기엔 예산이 많이 부족해요", "현재 일정과 구성으로는 입력 예산을 크게 초과할 수 있어요. 예산을 올리거나 일정·구성을 조정하는 것을 추천해요."],
+      };
+
+      const suggestions = [];
+      if ((status === "unrealistic" || status === "impossible") && nights >= 3) {
+        suggestions.push({
+          id: "reduce_nights",
+          label: "1박 줄이기",
+          description: "일정을 1박 줄이면 숙소와 현지 사용 예산을 함께 낮출 수 있어요.",
+          actionLabel: "1박 줄이기",
+          patchInput: { nights: nights - 1 },
+        });
+      }
+      if ((status === "unrealistic" || status === "impossible") && packageType === "flight_hotel_tour") {
+        suggestions.push({
+          id: "flight_hotel",
+          label: "항공+숙소만 보기",
+          description: "투어를 제외하면 예산 부담을 줄이고 현지에서 자유롭게 움직일 수 있어요.",
+          actionLabel: "항공+숙소만 보기",
+          patchInput: { packageType: "flight_hotel" },
+        });
+        suggestions.push({
+          id: "hotel_tour",
+          label: "숙소+투어만 보기",
+          description: "항공권을 이미 준비했다면 숙소와 투어 중심으로 예산을 다시 볼 수 있어요.",
+          actionLabel: "숙소+투어만 보기",
+          patchInput: { packageType: "hotel_tour" },
+        });
+      }
+      if (status === "unrealistic" || status === "impossible") {
+        suggestions.push({
+          id: "apply_budget",
+          label: "추천 예산 적용",
+          description: "현재 조건에 맞는 현실 예산으로 다시 계산해요.",
+          actionLabel: "추천 예산 적용",
+          patchInput: { totalBudget: status === "impossible" ? recommendedBudget : minimumBudget },
+        });
+      }
+      if ((status === "unrealistic" || status === "impossible") && F.budgetPreset !== "budget") {
+        suggestions.push({
+          id: "budget_mode",
+          label: "가성비 모드로 보기",
+          description: "가까운 근교와 실속 숙소 중심으로 플랜을 다시 세팅해요.",
+          actionLabel: "가성비 모드로 보기",
+          patchInput: { budgetPreset: "budget", packageType: "flight_hotel", nearbyMode: "light" },
+        });
+      }
+
+      return {
+        status,
+        minimumBudget,
+        recommendedBudget,
+        totalBudget,
+        perPersonBudget: Math.round(totalBudget / weight),
+        shortage,
+        ratio,
+        basisText: `현재 조건에서는 최소 ${formatManwon(minimumBudget)}부터 현실적인 플랜을 만들기 좋아요. 조금 여유롭게 보려면 ${formatManwon(recommendedBudget)} 정도를 추천해요.`,
+        title: messages[status][0],
+        message: messages[status][1],
+        suggestions: suggestions.slice(0, 3),
+      };
+    }
+
+    function renderBudgetFeasibility(scope = "current") {
+      if (!F.budget || !F.city) return "";
+      const result = checkBudgetFeasibility({ scope });
+      const showActions = result.status === "unrealistic" || result.status === "impossible";
+      const scopeText = scope === "step3"
+        ? "현재 기본 추천 구성 기준으로 예산을 확인했어요."
+        : "최종 추천 구성 기준으로 예산을 다시 확인했어요.";
+      return `<div class="feas-card ${result.status}">
+        <div class="feas-kicker">예산 현실성 체크</div>
+        <div class="feas-title">${result.title}</div>
+        <div class="feas-copy">${result.message}</div>
+        <div class="feas-basis">${scopeText}<br>${result.basisText}</div>
+        ${showActions && result.suggestions.length ? `<div class="feas-suggestions">${result.suggestions.map((item) => `<button class="feas-action" type="button" onclick="applyFeasibilitySuggestion('${item.id}', '${scope}')">${item.actionLabel}</button>`).join("")}</div>` : ""}
+        ${showActions ? `<div class="feas-foot">그래도 원하시면 그대로 진행할 수 있어요.</div>` : ""}
+      </div>`;
+    }
+
+    function refreshFeasibility(scope = step === 3 ? "step3" : "current") {
+      const target = document.getElementById(step === 3 ? "budget-feasibility" : "final-feasibility");
+      if (target) target.innerHTML = renderBudgetFeasibility(scope);
+    }
+
+    function applyFeasibilitySuggestion(id, scope) {
+      const suggestion = checkBudgetFeasibility({ scope }).suggestions.find((item) => item.id === id);
+      if (!suggestion) return;
+      const patch = suggestion.patchInput || {};
+      if (patch.nights) {
+        F.nights = Math.max(1, Math.min(MAX_NIGHTS, Number(patch.nights)));
+        syncReturnFromNights();
+      }
+      if (patch.packageType) {
+        F.packages = packagesFromType(patch.packageType);
+        F.feasibilityPackageType = patch.packageType;
+      }
+      if (patch.totalBudget) {
+        F.budget = Number(patch.totalBudget);
+        F.isBudgetManuallyEdited = true;
+      }
+      if (patch.budgetPreset) {
+        F.budgetPreset = patch.budgetPreset;
+        F.budgetPerPerson = BUDGET_PRESETS[patch.budgetPreset]?.defaultBudgetPerPerson || F.budgetPerPerson;
+      }
+      if (patch.nearbyMode) F.nearbyMode = patch.nearbyMode;
+      if (step === 3) {
+        const input = document.getElementById("budget-in");
+        if (input) input.value = F.budget ? F.budget.toLocaleString("ko-KR") : "";
+        updateBudgetUI();
+      } else {
+        renderStep(step, "forward");
+      }
+      updateSummaryChip();
+      refreshCta();
+    }
+
+    function applyBudgetPreset(presetId) {
+      const preset = BUDGET_PRESETS[normalizeBudgetPresetId(presetId)];
+      if (!preset) return;
+      F.budgetPreset = preset.id;
+      F.budgetPerPerson = preset.defaultBudgetPerPerson;
+      F.nearbyMode = preset.nearbyMode;
+      F.nights = Math.min(MAX_NIGHTS, preset.defaultNights);
+      F.packages = PACKAGE_PRESET_MAP[preset.defaultPackageType].slice();
+      F.feasibilityPackageType = preset.defaultPackageType;
+      F.isBudgetManuallyEdited = false;
+      F.budget = totalBudgetFromPreset(preset);
+      syncReturnFromNights();
+    }
+
+    function activePreset() {
+      return BUDGET_PRESETS[normalizeBudgetPresetId(F.budgetPreset)] || null;
+    }
+
+    function presetBanner() {
+      const preset = activePreset();
+      if (!preset) return "";
+      return `<div class="preset-badge">${preset.label} 예산으로 시작 중 · ${preset.range} · ${preset.note}</div>`;
+    }
+
+    function presetBudgetNote() {
+      const preset = activePreset();
+      if (!preset) return "";
+      const total = totalBudgetFromPreset(preset);
+      const adultText = `성인 ${F.adults}명`;
+      const childText = F.children > 0 ? ` + 아동 ${F.children}명(0.65명 기준)` : "";
+      return `
+        <div class="preset-note" id="preset-budget-note">
+          <div class="preset-note-title">${preset.label} 예산 참고 기준</div>
+          <div>1인 <strong>${formatManwon(preset.defaultBudgetPerPerson)}</strong> × ${adultText}${childText} 기준 = 추천 총예산 <strong>${formatManwon(total)}</strong></div>
+        </div>
+      `;
+    }
+
+    function recommendedNightBadge(nights) {
+      const preset = activePreset();
+      return preset && preset.defaultNights === nights ? `<span class="nq-rec">추천</span>` : "";
+    }
+
+    function init() {
+      const dots = document.getElementById("prog-dots");
+      for (let i = 0; i < TOTAL; i += 1) {
+        const seg = document.createElement("div");
+        seg.className = "p-seg";
+        seg.id = `seg-${i}`;
+        const fill = document.createElement("div");
+        fill.className = "p-seg-fill";
+        seg.appendChild(fill);
+        dots.appendChild(seg);
+      }
+
+      const dep = new Date();
+      dep.setDate(dep.getDate() + 45);
+      const ret = new Date();
+      ret.setDate(ret.getDate() + 48);
+      F.departDate = dep.toISOString().slice(0, 10);
+      F.returnDate = ret.toISOString().slice(0, 10);
+
+      try {
+        const saved = JSON.parse(sessionStorage.getItem("plannerConditions") || "{}");
+        if (saved.cityCode) F.city = saved.cityCode;
+        if (saved.date) F.departDate = saved.date;
+        if (saved.returnDate) F.returnDate = saved.returnDate;
+        if (saved.nights) F.nights = Number(saved.nights);
+        if (saved.origin) F.origin = saved.origin;
+        if (saved.adults) F.adults = Number(saved.adults);
+        if (saved.children) F.children = Number(saved.children);
+        if (saved.budget) F.budget = Number(saved.budget);
+        if (saved.budgetPreset) F.budgetPreset = normalizeBudgetPresetId(saved.budgetPreset);
+        if (saved.budgetPerPerson) F.budgetPerPerson = Number(saved.budgetPerPerson);
+        if (saved.budgetInputMode === "preset" || saved.budgetInputMode === "custom") F.budgetInputMode = saved.budgetInputMode;
+        if (saved.nearbyMode) F.nearbyMode = saved.nearbyMode;
+        if (saved.feasibilityPackageType) F.feasibilityPackageType = saved.feasibilityPackageType;
+        if (typeof saved.isBudgetManuallyEdited === "boolean") F.isBudgetManuallyEdited = saved.isBudgetManuallyEdited;
+        if (Array.isArray(saved.styles)) F.styles = normalizeStyles(saved.styles);
+        if (Array.isArray(saved.packages)) F.packages = saved.packages;
+      } catch (error) {}
+
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const queryPreset = normalizeBudgetPresetId(params.get("budgetPreset"));
+        const sessionPreset = normalizeBudgetPresetId(sessionStorage.getItem("plannerBudgetPreset"));
+        const queryMode = params.get("budgetInputMode");
+        const sessionMode = sessionStorage.getItem("plannerBudgetInputMode");
+        if (queryMode === "preset" || sessionMode === "preset") F.budgetInputMode = "preset";
+        if (queryMode === "custom" || sessionMode === "custom") F.budgetInputMode = "custom";
+        const presetId = queryPreset || sessionPreset;
+        if (presetId) {
+          applyBudgetPreset(presetId);
+          F.budgetInputMode = "preset";
+          sessionStorage.removeItem("plannerBudgetPreset");
+          sessionStorage.removeItem("plannerBudgetInputMode");
+          sessionStorage.removeItem("plannerPackageType");
+          sessionStorage.removeItem("plannerNearbyMode");
+          sessionStorage.removeItem("plannerBudget");
+          sessionStorage.removeItem("plannerNights");
+        }
+        const presetBudget = sessionStorage.getItem("plannerBudget");
+        const presetNights = sessionStorage.getItem("plannerNights");
+        if (!presetId && presetBudget) {
+          F.budget = Number(presetBudget);
+          sessionStorage.removeItem("plannerBudget");
+        }
+        if (!presetId && presetNights) {
+          F.nights = Math.min(MAX_NIGHTS, Number(presetNights));
+          sessionStorage.removeItem("plannerNights");
+          syncReturnFromNights();
+        }
+      } catch (error) {}
+
+      if (F.nights > MAX_NIGHTS) {
+        F.nights = MAX_NIGHTS;
+        syncReturnFromNights();
+      }
+      F.styles = normalizeStyles(F.styles);
+
+      renderStep(1, "forward");
+      updateProgress();
+    }
+
+    function renderStep(nextStep, dir) {
+      if ((isPresetFlow() && nextStep === 2) || nextStep === 4) syncSoloStyleForAdults();
+      const area = document.getElementById("step-area");
+      const cls = dir === "back" ? "step-in-rev" : "step-in";
+      const templates = isPresetFlow() ? PRESET_STEP_TEMPLATES : STEP_TEMPLATES;
+      area.innerHTML = `<div class="step-wrap ${cls}">${templates[nextStep]()}</div>`;
+      injectPresetUi(nextStep);
+      if ((!isPresetFlow() && nextStep === 2) || (isPresetFlow() && nextStep === 1)) {
+        recalcNights();
+        syncDateUI();
+      }
+      if (!isPresetFlow() && nextStep === 3) updateBudgetUI();
+      refreshCta();
+    }
+
+    function injectPresetUi(nextStep) {
+      const preset = activePreset();
+      if (!preset) return;
+      const sub = document.querySelector(".step-wrap .step-sub");
+      if (sub) sub.insertAdjacentHTML("afterend", presetBanner());
+      if ((!isPresetFlow() && nextStep === 2) || (isPresetFlow() && nextStep === 1)) {
+        const rec = document.querySelector(`.nq[data-nights="${preset.defaultNights}"]`);
+        if (rec && !rec.querySelector(".nq-rec")) {
+          rec.insertAdjacentHTML("afterbegin", `<span class="nq-rec">추천</span>`);
+        }
+      }
+      if (!isPresetFlow() && nextStep === 3) {
+        const budgetLabel = document.querySelector(".step-wrap .sec-lbl");
+        if (budgetLabel) budgetLabel.insertAdjacentHTML("beforebegin", presetBudgetNote());
+      }
+    }
+
+    function updateProgress() {
+      const count = totalSteps();
+      const labels = isPresetFlow() ? PRESET_STEP_LABELS : STEP_LABELS;
+      document.getElementById("prog-label").textContent = `${step}/${count} ${labels[step - 1]}`;
+      for (let i = 0; i < TOTAL; i += 1) {
+        const seg = document.getElementById(`seg-${i}`);
+        if (seg) seg.style.display = i < count ? "" : "none";
+        const fill = document.querySelector(`#seg-${i} .p-seg-fill`);
+        if (fill) fill.style.width = i < step ? "100%" : "0";
+      }
+      document.getElementById("back-btn").style.opacity = step === 1 ? ".72" : "1";
+    }
+
+    function goNext() {
+      if (!canProceed()) return;
+      if (step < totalSteps()) {
+        step += 1;
+        renderStep(step, "forward");
+        updateProgress();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        startLoading();
+      }
+    }
+
+    function goBack() {
+      if (step === 1) {
+        window.location.href = "/main-home.html";
+        return;
+      }
+      step -= 1;
+      renderStep(step, "back");
+      updateProgress();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function canProceed() {
+      if (isPresetFlow()) {
+        if (step === 1) return Boolean(F.city && F.departDate && F.returnDate && getDateValidation().valid && F.budget > 0 && F.packages.length);
+        if (step === 2) return F.styles.length > 0;
+        return true;
+      }
+      if (step === 1) return Boolean(F.city);
+      if (step === 2) return Boolean(F.departDate && F.returnDate) && getDateValidation().valid;
+      if (step === 3) return F.budget > 0;
+      if (step === 4) return F.styles.length > 0;
+      if (step === 5) return F.packages.length > 0;
+      return true;
+    }
+
+    function refreshCta() {
+      const btn = document.getElementById("wiz-cta");
+      btn.disabled = !canProceed();
+      btn.textContent = step === totalSteps() ? "AI 플랜 생성하기" : "다음 단계";
+    }
+
+    function cityLabel() {
+      if (F.city === "FUK") return "후쿠오카";
+      if (F.city === "KIX") return "오사카";
+      return "도시 선택";
+    }
+
+    function peopleLabel() {
+      const parts = [`성인 ${F.adults}명`];
+      if (F.children > 0) parts.push(`아동 ${F.children}명`);
+      return parts.join(" · ");
+    }
+
+    function summaryText() {
+      return `${cityLabel()} · ${F.nights}박 ${F.nights + 1}일 · ${peopleLabel()}`;
+    }
+
+    function summaryChip() {
+      return `<div class="summary-chip" id="summary-chip">${summaryText()}</div>`;
+    }
+
+    function normalizeStyles(styles) {
+      const allowed = new Set(STYLE_OPTIONS.map(([value]) => value));
+      return [...new Set((styles || []).map((style) => LEGACY_STYLE_MAP[style] || style).filter((style) => allowed.has(style)))].slice(0, 2);
+    }
+
+    function syncSoloStyleForAdults() {
+      F.styles = normalizeStyles(F.styles);
+      if (F.adults === 1) {
+        if (!F.styles.includes("solo")) {
+          F.styles = ["solo", ...F.styles.filter((style) => !["solo", "family", "couple"].includes(style))].slice(0, 2);
+        }
+      } else {
+        F.styles = F.styles.filter((style) => style !== "solo");
+      }
+    }
+
+    function updateStyleButtons() {
+      document.querySelectorAll(".schip").forEach((btn) => {
+        const value = btn.dataset.style;
+        const isSolo = btn.dataset.style === "solo";
+        const isCompanionStyle = value === "family" || value === "couple";
+        btn.disabled = (isSolo && (F.adults >= 2 || F.styles.includes("family") || F.styles.includes("couple")))
+          || (isCompanionStyle && F.styles.includes("solo"));
+        btn.classList.toggle("on", F.styles.includes(btn.dataset.style));
       });
-      window.location.href = '/planner-result.html?' + params;
-    }, 400);
-  }, totalTime);
-}
+      const hint = document.getElementById("ai-hint-text");
+      if (hint) hint.textContent = getAiHint();
+    }
 
-// ═══ BOOTSTRAP (반드시 STEP_TEMPLATES 정의 후 호출) ═══
-document.addEventListener('DOMContentLoaded', init);
-</script>
+    function updateSummaryChip() {
+      const chip = document.getElementById("summary-chip");
+      if (chip) chip.textContent = summaryText();
+    }
+
+    function FukuokaCityBadgeIcon() {
+      return `<svg class="icon-svg" viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M8 38c2.4-2 5.8-2 8.2 0s5.8 2 8.2 0 5.8-2 8.2 0" fill="none" stroke="#F46C67" stroke-width="2" stroke-linecap="round"/>
+        <path d="M11 32c2.2-1.7 5.2-1.7 7.4 0s5.2 1.7 7.4 0 5.2-1.7 7.4 0" fill="none" stroke="#D9524A" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M23 8h4l3 26H20l3-26Z" fill="#F46C67"/>
+        <path d="M24.8 8v26" stroke="#C94944" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M20.5 15h9M19.5 22h11M18.5 29h13" stroke="#FFF5F3" stroke-width="1.7" stroke-linecap="round"/>
+        <path d="M17 35h16" stroke="#D9524A" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="35" cy="13" r="6.5" fill="#FFD8D0"/>
+        <path d="M13 15c-2 2.2-2 4.3 0 6.5M16 13c-2.4 3.2-2.4 6.4 0 9.6" fill="none" stroke="#D9524A" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>`;
+    }
+
+    function OsakaCityBadgeIcon() {
+      return `<svg class="icon-svg" viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M11 24h26v16H11V24Z" fill="#FFF7F4" stroke="#D9524A" stroke-width="1.8"/>
+        <path d="M14 20h20l4 5H10l4-5Z" fill="#F46C67" stroke="#D9524A" stroke-width="1.7" stroke-linejoin="round"/>
+        <path d="M18 15h12l4 5H14l4-5Z" fill="#FFD8D0" stroke="#D9524A" stroke-width="1.7" stroke-linejoin="round"/>
+        <path d="M21 9h6l3 6H18l3-6Z" fill="#FFF7F4" stroke="#D9524A" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M18 29h4M26 29h4M18 34h4M26 34h4" stroke="#D9524A" stroke-width="1.7" stroke-linecap="round"/>
+        <path d="M10 40h28" stroke="#D9524A" stroke-width="2" stroke-linecap="round"/>
+        <path d="M35 12c2.2 0 4 1.8 4 4s-1.8 4-4 4" fill="none" stroke="#F46C67" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>`;
+    }
+
+    function FlightShape() {
+      return `<path d="M7 18l17 5 11-8c2-1.3 4.2.8 2.8 2.7l-8 10.5 4.1 8.2-3.8 1.9-6.5-7.1-9.2 5.5-3-2.6 7-8-12.3-5L7 18Z" fill="#F46C67"/>`;
+    }
+
+    function HotelShape(x = 12, y = 31) {
+      return `<path d="M${x} ${y + 2}h17v8H${x}v-8Z" fill="#FFF7F4" stroke="#D9524A" stroke-width="1.7" stroke-linejoin="round"/>
+        <path d="M${x + 4} ${y + 2}l4.5-4 4.5 4" fill="#FFD8D0" stroke="#D9524A" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M${x + 4} ${y + 6}h9" stroke="#D9524A" stroke-width="1.5" stroke-linecap="round"/>`;
+    }
+
+    function TicketShape(x = 31, y = 29) {
+      return `<path d="M${x} ${y}h9v11h-9z" fill="#FFE8E3" stroke="#D9524A" stroke-width="1.6"/>
+        <path d="M${x + 2} ${y + 4}h5M${x + 2} ${y + 7}h3" stroke="#D9524A" stroke-width="1.3" stroke-linecap="round"/>`;
+    }
+
+    function BundleFlightHotelTourIcon() {
+      return `<svg class="icon-svg" viewBox="0 0 48 48" aria-hidden="true">
+        ${FlightShape()}
+        ${HotelShape(10, 31)}
+        ${TicketShape(32, 29)}
+      </svg>`;
+    }
+
+    function FlightHotelIcon() {
+      return `<svg class="icon-svg" viewBox="0 0 48 48" aria-hidden="true">
+        ${FlightShape()}
+        ${HotelShape(12, 31)}
+      </svg>`;
+    }
+
+    function HotelTourIcon() {
+      return `<svg class="icon-svg" viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M9 24l13-10 13 10v16H9V24Z" fill="#FFF7F4" stroke="#D9524A" stroke-width="1.9" stroke-linejoin="round"/>
+        <path d="M18 40V29h8v11" fill="#FFD8D0" stroke="#D9524A" stroke-width="1.7"/>
+        <path d="M33 11h8v12h-8z" fill="#FFE8E3" stroke="#D9524A" stroke-width="1.6"/>
+        <path d="M35 15h4M35 19h2.5" stroke="#D9524A" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>`;
+    }
+
+    function FlightOnlyIcon() {
+      return `<svg class="icon-svg" viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M9 31l25-17c2.5-1.7 5.2 1 3.5 3.5L20 40l-2.2-10-8.8 1Z" fill="#F46C67"/>
+        <path d="M21 27l8.5 8.5" stroke="#FFF7F4" stroke-width="2" stroke-linecap="round"/>
+        <path d="M13 39h20" stroke="#D9524A" stroke-width="2" stroke-linecap="round"/>
+        <path d="M32 10c3.4 0 6 2.6 6 6" fill="none" stroke="#FFD8D0" stroke-width="2" stroke-linecap="round"/>
+      </svg>`;
+    }
+
+    function HotelOnlyIcon() {
+      return `<svg class="icon-svg" viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M10 24l14-10 14 10v16H10V24Z" fill="#FFF7F4" stroke="#D9524A" stroke-width="1.9" stroke-linejoin="round"/>
+        <path d="M18 40V29h12v11" fill="#FFD8D0" stroke="#D9524A" stroke-width="1.7"/>
+        <path d="M16 25h16M16 34h16" stroke="#F46C67" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M35 18h5" stroke="#D9524A" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>`;
+    }
+
+    function cityIcon(code) {
+      return code === "FUK" ? FukuokaCityBadgeIcon() : OsakaCityBadgeIcon();
+    }
+
+    function optionIcon(kind) {
+      const icons = {
+        all: BundleFlightHotelTourIcon,
+        fh: FlightHotelIcon,
+        ht: HotelTourIcon,
+        fo: FlightOnlyIcon,
+        ho: HotelOnlyIcon,
+      };
+      return (icons[kind] || icons.all)();
+    }
+
+    const STEP_TEMPLATES = {
+      1: () => `
+        <h1 class="step-title">어디로 떠나시나요?</h1>
+        <p class="step-sub">도시에 따라 예산 배분과 추천 일정이 달라져요</p>
+
+        <button class="city-card ${F.city === "FUK" ? "selected" : ""}" type="button" data-city="FUK" onclick="pickCity('FUK')">
+          <div class="city-ico">${cityIcon("FUK")}</div>
+          <div>
+            <div class="city-name">후쿠오카</div>
+            <div class="city-sub">온천·맛집·근교 여행에 강한 도시</div>
+            <div class="city-tags">
+              <span class="city-tag">힐링</span>
+              <span class="city-tag">근교 온천</span>
+              <span class="city-tag">맛집</span>
+              <span class="city-tag">가족</span>
+            </div>
+          </div>
+          <div class="check">✓</div>
+        </button>
+
+        <button class="city-card ${F.city === "KIX" ? "selected" : ""}" type="button" data-city="KIX" onclick="pickCity('KIX')">
+          <div class="city-ico">${cityIcon("KIX")}</div>
+          <div>
+            <div class="city-name">오사카</div>
+            <div class="city-sub">쇼핑·맛집·도시 여행에 강한 도시</div>
+            <div class="city-tags">
+              <span class="city-tag">쇼핑</span>
+              <span class="city-tag">맛집</span>
+              <span class="city-tag">도시여행</span>
+              <span class="city-tag">도시여행</span>
+            </div>
+          </div>
+          <div class="check">✓</div>
+        </button>
+
+        <div class="assist-card">
+          <span>✦</span>
+          <div>선택한 도시에 따라 숙소 지역, 투어 카테고리, 예산 배분이 달라져요.</div>
+        </div>
+      `,
+
+      2: () => `
+        <h1 class="step-title">일정과 출발지를 알려주세요</h1>
+        <p class="step-sub">항공권과 숙박비를 반영해 예산을 계산할게요</p>
+
+        <div class="info-box">✈ 항공권 최저가 계산에 사용돼요</div>
+
+        <div class="sec-lbl">여행 일정</div>
+        <div class="date-grid">
+          <label>
+            <div class="date-lbl">출발일</div>
+            <input class="date-in" id="d-dep" type="date" value="${F.departDate}" oninput="onDepartChange()">
+            <div class="date-sub" id="dep-sub"></div>
+          </label>
+          <label>
+            <div class="date-lbl">복귀일</div>
+            <input class="date-in" id="d-ret" type="date" value="${F.returnDate}" min="${minReturnDate()}" oninput="onReturnChange()">
+            <div class="date-sub" id="ret-sub"></div>
+          </label>
+        </div>
+        <div class="date-summary" id="date-summary"></div>
+        <div class="date-error" id="date-error"></div>
+        <div class="date-guide">AI 일정은 최대 4박 5일까지 제공돼요.</div>
+
+        <div class="sec-lbl">빠른 선택</div>
+        <div class="night-row">
+          ${[2, 3, 4].map((n) => `<button class="nq ${F.nights === n ? "on" : ""}" type="button" data-nights="${n}" onclick="pickNights(${n})">${n}박<br>${n + 1}일</button>`).join("")}
+        </div>
+
+        <div class="sec-lbl">출발 공항</div>
+        <div class="airport-row">
+          ${ORIGINS.map(([code, label]) => `<button class="apchip ${F.origin === code ? "on" : ""}" type="button" data-origin="${code}" onclick="pickOrigin('${code}')">${label}</button>`).join("")}
+        </div>
+      `,
+
+      3: () => `
+        <h1 class="step-title">여행 예약 예산을 알려주세요</h1>
+        <p class="step-sub">항공·숙소·투어/티켓 예약 기준 예산이에요. 현지 사용비는 결과에서 별도로 안내돼요.</p>
+        ${summaryChip()}
+
+        <div class="people-grid">
+          <div class="stepper-card">
+            <div class="stpr-lbl">성인</div>
+            <div class="stpr-row">
+              <button class="stpr-btn" type="button" onclick="stepPeople('adults', -1)">−</button>
+              <div class="stpr-val" id="v-adults">${F.adults}</div>
+              <button class="stpr-btn plus" type="button" onclick="stepPeople('adults', 1)">+</button>
+            </div>
+          </div>
+          <div class="stepper-card">
+            <div class="stpr-lbl">아동</div>
+            <div class="stpr-row">
+              <button class="stpr-btn" type="button" onclick="stepPeople('children', -1)">−</button>
+              <div class="stpr-val" id="v-children">${F.children}</div>
+              <button class="stpr-btn plus" type="button" onclick="stepPeople('children', 1)">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec-lbl">여행 예약 예산</div>
+        <p class="budget-note">항공·숙소·투어/티켓 예약 예산을 입력해주세요. 식비·교통·간식 등 현지 사용비는 별도로 안내해드려요.</p>
+        <div class="budget-wrap">
+          <input class="budget-in" id="budget-in" type="text" inputmode="numeric" placeholder="예: 1,600,000" value="${F.budget ? F.budget.toLocaleString("ko-KR") : ""}" oninput="onBudgetInput(this)">
+          <div class="budget-unit">원</div>
+        </div>
+        <div class="per-person" id="per-person-note"></div>
+
+        <div class="small-label">예약 예산 빠른 선택</div>
+        <div class="budget-presets">
+          ${[[500000, "50만"], [800000, "80만"], [1200000, "120만"], [1600000, "160만"], [2000000, "200만"]].map(([value, label]) => `<button class="bp ${F.budget === value ? "on" : ""}" type="button" onclick="pickBudget(${value})">${label}</button>`).join("")}
+        </div>
+        <div id="budget-feasibility">${renderBudgetFeasibility("step3")}</div>
+      `,
+
+      4: () => `
+        <h1 class="step-title">어떤 여행을 원하세요?</h1>
+        <p class="step-sub">선택한 스타일에 따라 숙소 위치와 투어 추천이 달라져요</p>
+        ${summaryChip()}
+
+        <div class="sec-lbl">여행 성향 <span style="color:var(--tertiary);font-size:12px;font-weight:600">최대 2개</span></div>
+        <div class="style-grid">
+          ${STYLE_OPTIONS.map(([value, label]) => `<button class="schip ${F.styles.includes(value) ? "on" : ""}" type="button" data-style="${value}" onclick="toggleStyle('${value}')" ${value === "solo" && F.adults >= 2 ? "disabled" : ""}>${label}</button>`).join("")}
+        </div>
+        <div class="style-limit" id="style-limit">여행 성향은 최대 2개까지 선택할 수 있어요.</div>
+
+        <div class="ai-hint">
+          <div>✦</div>
+          <div id="ai-hint-text">${getAiHint()}</div>
+        </div>
+      `,
+
+      5: () => `
+        <h1 class="step-title">어떤 구성이 필요하세요?</h1>
+        <p class="step-sub">필요한 항목만 골라 예산을 배분해드려요</p>
+        ${summaryChip()}
+        <div class="info-box">선택한 항목에 맞춰 추천 비중과 예산 배분이 달라져요</div>
+
+        ${[
+          { key: "all", title: "항공 + 숙소 + 투어", sub: "처음부터 끝까지 한 번에 추천받고 싶을 때", badge: "추천" },
+          { key: "fh", title: "항공 + 숙소", sub: "숙소까지 먼저 정하고 투어는 나중에 볼 때" },
+          { key: "ht", title: "숙소 + 투어", sub: "항공권은 이미 준비되어 있을 때", badge: "항공 예약 완료" },
+          { key: "fo", title: "항공만", sub: "일단 항공권 가격만 확인하고 싶을 때" },
+          { key: "ho", title: "숙소만", sub: "숙소 위치와 가격만 비교하고 싶을 때" },
+        ].map((item) => {
+          const selected = F.packages.join("+") === PKG_MAP[item.key].join("+");
+          return `<button class="pkg-card ${selected ? "selected" : ""}" type="button" data-package="${item.key}" onclick="pickPackage('${item.key}')">
+            <div class="option-ico">${optionIcon(item.key)}</div>
+            <div class="pkg-body">
+              <div class="pkg-title">${item.title}${item.badge ? `<span class="pkg-badge">${item.badge}</span>` : ""}</div>
+              <div class="pkg-sub">${item.sub}</div>
+            </div>
+            <div class="pkg-check">✓</div>
+          </button>`;
+        }).join("")}
+        <div id="final-feasibility">${renderBudgetFeasibility("current")}</div>
+      `,
+    };
+
+    const PRESET_STEP_TEMPLATES = {
+      1: () => `
+        <h1 class="step-title">여행 조건을 빠르게 확인해주세요</h1>
+        <p class="step-sub">예산은 이미 선택한 프리셋으로 설정했어요. 도시, 일정, 인원과 추천 구성만 확인하면 돼요.</p>
+        ${summaryChip()}
+
+        <div class="sec-lbl">도시</div>
+        <button class="city-card ${F.city === "FUK" ? "selected" : ""}" type="button" data-city="FUK" onclick="pickCity('FUK')">
+          <div class="city-ico">${cityIcon("FUK")}</div>
+          <div>
+            <div class="city-name">후쿠오카</div>
+            <div class="city-sub">하카타·텐진·근교 온천까지 가볍게 연결되는 도시</div>
+            <div class="city-tags"><span class="city-tag">맛집</span><span class="city-tag">쇼핑</span><span class="city-tag">온천</span></div>
+          </div>
+          <div class="check">✓</div>
+        </button>
+        <button class="city-card ${F.city === "KIX" ? "selected" : ""}" type="button" data-city="KIX" onclick="pickCity('KIX')">
+          <div class="city-ico">${cityIcon("KIX")}</div>
+          <div>
+            <div class="city-name">오사카</div>
+            <div class="city-sub">난바·우메다·교토/나라까지 선택지가 넓은 도시</div>
+            <div class="city-tags"><span class="city-tag">관광</span><span class="city-tag">쇼핑</span><span class="city-tag">투어</span></div>
+          </div>
+          <div class="check">✓</div>
+        </button>
+
+        <div class="sec-lbl">여행 일정</div>
+        <div class="date-grid">
+          <label>
+            <div class="date-lbl">출발일</div>
+            <input class="date-in" id="d-dep" type="date" value="${F.departDate}" oninput="onDepartChange()">
+            <div class="date-sub" id="dep-sub"></div>
+          </label>
+          <label>
+            <div class="date-lbl">복귀일</div>
+            <input class="date-in" id="d-ret" type="date" value="${F.returnDate}" min="${minReturnDate()}" oninput="onReturnChange()">
+            <div class="date-sub" id="ret-sub"></div>
+          </label>
+        </div>
+        <div class="date-summary" id="date-summary"></div>
+        <div class="date-error" id="date-error"></div>
+        <div class="date-guide">AI 일정은 최대 4박5일까지 제공해요.</div>
+
+        <div class="sec-lbl">빠른 일정 선택</div>
+        <div class="night-row">
+          ${[2, 3, 4].map((n) => `<button class="nq ${F.nights === n ? "on" : ""}" type="button" data-nights="${n}" onclick="pickNights(${n})">${n}박<br>${n + 1}일</button>`).join("")}
+        </div>
+
+        <div class="sec-lbl">출발 공항</div>
+        <div class="airport-row">
+          ${ORIGINS.map(([code, label]) => `<button class="apchip ${F.origin === code ? "on" : ""}" type="button" data-origin="${code}" onclick="pickOrigin('${code}')">${label}</button>`).join("")}
+        </div>
+
+        <div class="sec-lbl">인원</div>
+        <div class="people-grid">
+          <div class="stepper-card">
+            <div class="stpr-lbl">성인</div>
+            <div class="stpr-row">
+              <button class="stpr-btn" type="button" onclick="stepPeople('adults', -1)">−</button>
+              <div class="stpr-val" id="v-adults">${F.adults}</div>
+              <button class="stpr-btn plus" type="button" onclick="stepPeople('adults', 1)">+</button>
+            </div>
+          </div>
+          <div class="stepper-card">
+            <div class="stpr-lbl">아동</div>
+            <div class="stpr-row">
+              <button class="stpr-btn" type="button" onclick="stepPeople('children', -1)">−</button>
+              <div class="stpr-val" id="v-children">${F.children}</div>
+              <button class="stpr-btn plus" type="button" onclick="stepPeople('children', 1)">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec-lbl">추천 구성</div>
+        ${[
+          { key: "all", title: "항공 + 숙소 + 투어", sub: "처음부터 끝까지 한 번에 추천받고 싶을 때", badge: "추천" },
+          { key: "fh", title: "항공 + 숙소", sub: "숙소와 항공권을 먼저 정하고 싶을 때" },
+          { key: "ht", title: "숙소 + 투어", sub: "항공권을 이미 준비했을 때", badge: "항공 제외" },
+          { key: "fo", title: "항공만", sub: "항공권 가격만 빠르게 확인할 때" },
+          { key: "ho", title: "숙소만", sub: "숙소 위치와 가격만 비교할 때" },
+        ].map((item) => {
+          const selected = packageKeyFromPackages() === item.key;
+          return `<button class="pkg-card ${selected ? "selected" : ""}" type="button" data-package="${item.key}" onclick="pickPackage('${item.key}')">
+            <div class="option-ico">${optionIcon(item.key)}</div>
+            <div class="pkg-body">
+              <div class="pkg-title">${item.title}${item.badge ? `<span class="pkg-badge">${item.badge}</span>` : ""}</div>
+              <div class="pkg-sub">${item.sub}</div>
+            </div>
+            <div class="pkg-check">✓</div>
+          </button>`;
+        }).join("")}
+      `,
+
+      2: () => `
+        <h1 class="step-title">어떤 여행을 원하세요?</h1>
+        <p class="step-sub">선택한 스타일에 따라 일정과 숙소·투어 추천이 달라져요.</p>
+        ${summaryChip()}
+
+        <div class="sec-lbl">여행 성향 <span style="color:var(--tertiary);font-size:12px;font-weight:600">최대 2개</span></div>
+        <div class="style-grid">
+          ${STYLE_OPTIONS.map(([value, label]) => `<button class="schip ${F.styles.includes(value) ? "on" : ""}" type="button" data-style="${value}" onclick="toggleStyle('${value}')" ${value === "solo" && F.adults >= 2 ? "disabled" : ""}>${label}</button>`).join("")}
+        </div>
+        <div class="style-limit" id="style-limit">여행 성향은 최대 2개까지 선택할 수 있어요.</div>
+
+        <div class="ai-hint">
+          <div>✦</div>
+          <div id="ai-hint-text">${getAiHint()}</div>
+        </div>
+      `,
+
+      3: () => `
+        <h1 class="step-title">빠른 플랜 준비가 끝났어요</h1>
+        <p class="step-sub">선택한 예산 프리셋과 여행 조건으로 기존 AI 플래너 결과를 생성해요.</p>
+        ${summaryChip()}
+        <div class="assist-card">
+          <span>✓</span>
+          <div>${activePreset()?.label || "선택한"} 예산 기준으로 총 ${formatManwon(F.budget)}을 자동 적용했어요. 결과 화면에서 항공·숙소·투어 후보와 일정 뼈대를 함께 확인할 수 있어요.</div>
+        </div>
+        <div class="info-box">예산을 직접 입력하고 싶다면 홈의 “여행 예산 입력하기”로 정밀 플래너를 시작할 수 있어요.</div>
+      `,
+    };
+
+    function pickCity(code) {
+      F.city = code;
+      document.querySelectorAll(".city-card").forEach((card) => {
+        card.classList.toggle("selected", card.dataset.city === code);
+      });
+      refreshCta();
+    }
+
+    function onDepartChange() {
+      F.departDate = document.getElementById("d-dep").value;
+      if (F.departDate && F.returnDate) recalcNights();
+      syncDateUI();
+      refreshCta();
+    }
+
+    function onReturnChange() {
+      F.returnDate = document.getElementById("d-ret").value;
+      if (F.departDate && F.returnDate) recalcNights();
+      syncDateUI();
+      refreshCta();
+    }
+
+    function pickNights(nights) {
+      F.nights = nights;
+      syncReturnFromNights();
+      const returnInput = document.getElementById("d-ret");
+      if (returnInput) returnInput.value = F.returnDate;
+      document.querySelectorAll(".nq").forEach((btn) => {
+        btn.classList.toggle("on", Number(btn.dataset.nights) === nights);
+      });
+      syncDateUI();
+      refreshCta();
+    }
+
+    function pickOrigin(code) {
+      F.origin = code;
+      document.querySelectorAll(".apchip").forEach((btn) => {
+        btn.classList.toggle("on", btn.dataset.origin === code);
+      });
+    }
+
+    function syncReturnFromNights() {
+      if (!F.departDate) return;
+      const [year, month, day] = F.departDate.split("-").map(Number);
+      const date = new Date(Date.UTC(year, month - 1, day + F.nights));
+      F.returnDate = date.toISOString().slice(0, 10);
+    }
+
+    function addDaysToDate(value, days) {
+      if (!value) return "";
+      const [year, month, day] = value.split("-").map(Number);
+      if (!year || !month || !day) return "";
+      const date = new Date(Date.UTC(year, month - 1, day + days));
+      return date.toISOString().slice(0, 10);
+    }
+
+    function minReturnDate() {
+      return addDaysToDate(F.departDate, 1);
+    }
+
+    function dateToUtc(value) {
+      if (!value) return null;
+      const [year, month, day] = value.split("-").map(Number);
+      if (!year || !month || !day) return null;
+      return Date.UTC(year, month - 1, day);
+    }
+
+    function getDateValidation() {
+      const depart = dateToUtc(F.departDate);
+      const ret = dateToUtc(F.returnDate);
+      if (depart === null || ret === null) return { valid: false, diff: 0, message: "" };
+      const diff = Math.round((ret - depart) / 86400000);
+      if (diff < 0) {
+        return { valid: false, diff, message: "복귀일은 출발일보다 이후 날짜로 선택해주세요." };
+      }
+      if (diff === 0) {
+        return { valid: false, diff, message: "당일치기 일정은 아직 지원하지 않아요. 최소 1박 2일부터 선택해주세요." };
+      }
+      if (diff > MAX_NIGHTS) {
+        return { valid: false, diff, message: "현재 AI 일정은 최대 4박 5일까지 제공돼요. 날짜를 줄여 다시 선택해주세요." };
+      }
+      return { valid: true, diff, message: "" };
+    }
+
+    function recalcNights(options = {}) {
+      const depart = dateToUtc(F.departDate);
+      const ret = dateToUtc(F.returnDate);
+      if (depart === null || ret === null) return;
+      const diff = Math.round((ret - depart) / 86400000);
+      if (diff > 0 && diff <= MAX_NIGHTS) {
+        F.nights = diff;
+      }
+      if (options.updateButtons === false) return;
+      document.querySelectorAll(".nq").forEach((btn) => {
+        btn.classList.toggle("on", Number(btn.dataset.nights) === F.nights);
+      });
+    }
+
+    function fmtDate(value) {
+      if (!value) return "";
+      const date = new Date(`${value}T00:00:00`);
+      return `${value.slice(5).replace("-", "/")}(${KO_DAY[date.getDay()]})`;
+    }
+
+    function syncDateUI() {
+      const depSub = document.getElementById("dep-sub");
+      const retSub = document.getElementById("ret-sub");
+      const summary = document.getElementById("date-summary");
+      const error = document.getElementById("date-error");
+      const returnInput = document.getElementById("d-ret");
+      const validation = getDateValidation();
+      if (returnInput) returnInput.min = minReturnDate();
+      if (depSub) depSub.textContent = fmtDate(F.departDate);
+      if (retSub) retSub.textContent = fmtDate(F.returnDate);
+      if (summary) {
+        summary.classList.toggle("invalid", !validation.valid);
+        summary.innerHTML = validation.valid
+          ? `${fmtDate(F.departDate)} → ${fmtDate(F.returnDate)} · <strong>${validation.diff}박 ${validation.diff + 1}일</strong>`
+          : "날짜를 다시 선택해주세요";
+      }
+      if (error) {
+        error.textContent = validation.message;
+        error.classList.toggle("show", Boolean(validation.message));
+      }
+    }
+
+    function stepPeople(key, delta) {
+      const min = key === "adults" ? 1 : 0;
+      F[key] = Math.max(min, Math.min(8, F[key] + delta));
+      const preset = activePreset();
+      if (preset && !F.isBudgetManuallyEdited) {
+        F.budget = totalBudgetFromPreset(preset);
+      }
+      const value = document.getElementById(`v-${key}`);
+      if (value) value.textContent = F[key];
+      const budgetInput = document.getElementById("budget-in");
+      if (budgetInput && preset && !F.isBudgetManuallyEdited) {
+        budgetInput.value = F.budget ? F.budget.toLocaleString("ko-KR") : "";
+      }
+      const presetNote = document.getElementById("preset-budget-note");
+      if (presetNote) presetNote.outerHTML = presetBudgetNote();
+      syncSoloStyleForAdults();
+      updateStyleButtons();
+      updateBudgetUI();
+      updateSummaryChip();
+    }
+
+    function onBudgetInput(input) {
+      const raw = input.value.replace(/[^0-9]/g, "");
+      F.budget = Number(raw) || 0;
+      F.isBudgetManuallyEdited = true;
+      input.value = F.budget ? F.budget.toLocaleString("ko-KR") : "";
+      document.querySelectorAll(".bp").forEach((btn) => btn.classList.remove("on"));
+      updateBudgetUI();
+      refreshCta();
+    }
+
+    function pickBudget(value) {
+      F.budget = value;
+      F.isBudgetManuallyEdited = true;
+      const input = document.getElementById("budget-in");
+      if (input) input.value = value.toLocaleString("ko-KR");
+      document.querySelectorAll(".bp").forEach((btn) => btn.classList.toggle("on", btn.textContent.replace(/[^0-9]/g, "") === String(value / 10000)));
+      updateBudgetUI();
+      refreshCta();
+    }
+
+    function updateBudgetUI() {
+      const note = document.getElementById("per-person-note");
+      if (!note) return;
+      const weight = travelerWeight();
+      if (!F.budget) {
+        note.classList.remove("show");
+        note.textContent = "";
+        refreshFeasibility("step3");
+        return;
+      }
+      const perPerson = Math.round(F.budget / weight).toLocaleString("ko-KR");
+      note.classList.add("show");
+      note.innerHTML = `현재 입력 예산 기준, 1인 약 <strong>${perPerson}원</strong>이에요`;
+      refreshFeasibility("step3");
+    }
+
+    function toggleStyle(value) {
+      if ((value === "solo" && (F.adults >= 2 || F.styles.includes("family") || F.styles.includes("couple")))
+        || ((value === "family" || value === "couple") && F.styles.includes("solo"))) {
+        const notice = document.getElementById("style-limit");
+        if (notice) {
+          notice.textContent = value === "solo"
+            ? "가족/커플 여행과 '혼자' 성향은 함께 선택할 수 없어요."
+            : "'혼자' 성향이 선택된 상태에서는 가족/커플을 선택할 수 없어요.";
+          notice.classList.add("show");
+          window.setTimeout(() => {
+            notice.textContent = "여행 성향은 최대 2개까지 선택할 수 있어요.";
+            notice.classList.remove("show");
+          }, 1800);
+        }
+        return;
+      }
+      const index = F.styles.indexOf(value);
+      const notice = document.getElementById("style-limit");
+      if (index >= 0) {
+        F.styles.splice(index, 1);
+      } else if (F.styles.length >= 2) {
+        if (notice) {
+          notice.classList.add("show");
+          window.setTimeout(() => notice.classList.remove("show"), 1800);
+        }
+        return;
+      } else {
+        F.styles.push(value);
+      }
+      syncSoloStyleForAdults();
+      updateStyleButtons();
+      refreshCta();
+    }
+
+    function getAiHint() {
+      const pair = [...F.styles].sort().join("+");
+      if (pair === "food+shopping") return "중심 상권 접근성이 좋은 숙소와 자유시간을 고려해 추천해요.";
+      if (pair === "family+onsen") return "이동 부담이 적은 숙소와 온천/휴식 코스를 우선 추천해요.";
+      if (pair === "couple+sightseeing") return "대표 관광지와 분위기 좋은 야간 동선을 함께 고려해요.";
+      if (pair === "food+sightseeing") return "대표 관광지와 맛집 동선을 함께 반영해요.";
+      if (pair === "family+shopping") return "이동이 편한 중심 지역 숙소와 쇼핑 동선을 우선 고려해요.";
+      if (pair === "shopping+solo") return "혼자 이동하기 쉬운 중심 상권과 자유시간을 고려해요.";
+      if (F.styles.length === 1) {
+        const single = F.styles[0];
+        const singleHints = {
+          food: "맛집 접근성이 좋은 숙소 위치와 자유시간을 고려해요.",
+          shopping: "쇼핑 동선이 편한 중심 지역 숙소를 우선 추천해요.",
+          sightseeing: "대표 관광지와 이동 효율이 좋은 동선을 우선 추천해요.",
+          family: "이동 부담이 적고 편의성이 좋은 구성을 우선 추천해요.",
+          onsen: "근교 온천과 휴식 시간을 고려해 예산을 배분해요.",
+          couple: "분위기 좋은 야경과 여유로운 자유시간을 반영해요.",
+          solo: "혼자 이동하기 쉬운 중심 동선과 자유시간을 고려해요.",
+        };
+        return singleHints[single] || "선택한 취향을 중심으로 숙소와 투어를 추천해요.";
+      }
+      return "선택한 여행 성향을 중심으로 숙소와 투어를 추천해요.";
+    }
+
+    function pickPackage(key) {
+      F.packages = PKG_MAP[key];
+      F.feasibilityPackageType = packageTypeFromPackages(F.packages);
+      document.querySelectorAll(".pkg-card").forEach((card) => {
+        card.classList.toggle("selected", card.dataset.package === key);
+      });
+      refreshFeasibility("current");
+      refreshCta();
+    }
+
+    async function startLoading() {
+      if (!F.styles.length) F.styles = ["sightseeing"];
+      const feasibility = checkBudgetFeasibility({ scope: "current" });
+      if (feasibility.status === "impossible") {
+        const proceed = window.confirm("현재 조건은 예산 초과 가능성이 높아요. 그래도 플랜을 생성할까요?");
+        if (!proceed) return;
+      }
+      const loadingMessages = [
+        "입력한 조건에 맞춰 예산과 동선을 정리하고 있어요.\n잠시 후 가장 현실적인 후보부터 보여드릴게요.",
+      ];
+      let loadingIndex = 0;
+      const loadingTitle = document.getElementById("ld-title");
+      const loadingSub = document.getElementById("ld-sub");
+      loadingTitle.textContent = "AI 플랜 생성 중";
+      loadingSub.textContent = loadingMessages[loadingIndex];
+
+      const conditions = {
+        cityCode: F.city,
+        date: F.departDate,
+        returnDate: F.returnDate,
+        nights: F.nights,
+        origin: F.origin,
+        adults: F.adults,
+        children: F.children,
+        budget: F.budget,
+        budgetPreset: F.budgetPreset,
+        budgetPerPerson: F.budgetPerPerson,
+        budgetInputMode: F.budgetInputMode,
+        nearbyMode: F.nearbyMode,
+        feasibilityPackageType: F.feasibilityPackageType,
+        isBudgetManuallyEdited: F.isBudgetManuallyEdited,
+        styles: F.styles,
+        packages: F.packages,
+      };
+      sessionStorage.setItem("plannerConditions", JSON.stringify(conditions));
+      sessionStorage.setItem("plannerBudget", String(F.budget));
+
+      document.getElementById("loading-screen").classList.add("show");
+      const loadingTimer = window.setInterval(() => {
+        loadingIndex = Math.min(loadingIndex + 1, loadingMessages.length - 1);
+        loadingSub.textContent = loadingMessages[loadingIndex];
+      }, 650);
+      try {
+        const summaryRes = await fetch("/api/planner/summary", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(conditions),
+        });
+        if (summaryRes.ok) {
+          const summaryData = await summaryRes.json();
+          sessionStorage.setItem("plannerPlanInput", JSON.stringify(summaryData.planInput));
+          sessionStorage.setItem("plannerPlanSummary", JSON.stringify(summaryData.planSummary));
+        }
+      } catch (error) {}
+      window.setTimeout(() => {
+        window.clearInterval(loadingTimer);
+        const params = new URLSearchParams({
+          cityCode: F.city,
+          date: F.departDate,
+          nights: String(F.nights),
+        });
+        window.location.href = `/planner-result.html?${params.toString()}`;
+      }, 900);
+    }
+  </script>
 </body>
 </html>

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { hotels, type Hotel, type PartnerLinks } from "@/src/data/hotels";
 import { buildMylinkUrl } from "@/src/lib/myrealtrip";
 
+export const dynamic = "force-dynamic";
+
 const guideItems = [
   {
     condition: "도톤보리 쇼핑을 가장 진하게 즐기고 싶다면",

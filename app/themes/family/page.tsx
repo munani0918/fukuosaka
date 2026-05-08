@@ -2,6 +2,8 @@ import Link from "next/link";
 import { hotels, type Hotel, type PartnerLinks } from "@/src/data/hotels";
 import { buildMylinkUrl } from "@/src/lib/myrealtrip";
 
+export const dynamic = "force-dynamic";
+
 const guideItems = [
   {
     condition: "부모님이 대접받는 느낌을 원한다면",

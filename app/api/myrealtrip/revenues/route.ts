@@ -7,7 +7,7 @@ import { MYREALTRIP_API_BASE } from "@/src/lib/myrealtrip";
 // 공식 기준:
 //   GET https://partner-ext-api.myrealtrip.com/v1/revenues
 //       ?dateSearchType=SETTLEMENT&startDate=2025-01-01&endDate=2025-01-07
-//   Authorization: Bearer MYREALTRIP_API_KEY
+//   Authorization: Bearer MRT_PARTNER_API_KEY
 //
 // 공통 응답 구조:
 //   { data, meta: { totalCount, result: { status, message, code } } }
@@ -50,14 +50,14 @@ function isMrtResponse(v: unknown): v is MrtResponse {
 
 export async function GET(): Promise<NextResponse> {
   // 1. API 키 로드 (서버 전용 — 절대 응답·로그에 포함하지 않는다)
-  const apiKey = process.env.MYREALTRIP_API_KEY;
+  const apiKey = process.env.MRT_PARTNER_API_KEY;
 
   if (!apiKey) {
     return NextResponse.json(
       {
         ok: false,
         status: 500,
-        message: "MYREALTRIP_API_KEY 환경 변수가 설정되어 있지 않습니다.",
+        message: "MRT_PARTNER_API_KEY 환경 변수가 설정되어 있지 않습니다.",
         detail: null,
       },
       { status: 500 },
