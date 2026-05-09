@@ -13,6 +13,11 @@ type PlannerEntryButtonProps = {
   nearbyMode?: "light" | "standard" | "comfort";
   cityCode?: "KIX" | "FUK";
   styles?: string[];
+  templateTitle?: string;
+  routeStyle?: string;
+  planType?: string;
+  recommendedExtras?: string;
+  nearbyTrip?: string;
   source: string;
 };
 
@@ -27,6 +32,11 @@ export function PlannerEntryButton({
   nearbyMode,
   cityCode,
   styles,
+  templateTitle,
+  routeStyle,
+  planType,
+  recommendedExtras,
+  nearbyTrip,
   source,
 }: PlannerEntryButtonProps) {
   function handleClick() {
@@ -74,6 +84,19 @@ export function PlannerEntryButton({
       window.sessionStorage.removeItem("plannerStyles");
     }
 
+    const sampleMeta = {
+      templateTitle,
+      routeStyle,
+      planType,
+      recommendedExtras,
+      nearbyTrip,
+    };
+    Object.entries(sampleMeta).forEach(([key, value]) => {
+      const storageKey = `planner${key[0].toUpperCase()}${key.slice(1)}`;
+      if (value) window.sessionStorage.setItem(storageKey, value);
+      else window.sessionStorage.removeItem(storageKey);
+    });
+
     window.sessionStorage.setItem("plannerEntrySource", source);
     const target = new URL(href, window.location.origin);
     if (budgetPresetId) target.searchParams.set("budgetPreset", budgetPresetId);
@@ -81,6 +104,9 @@ export function PlannerEntryButton({
     if (nights) target.searchParams.set("nights", String(nights));
     if (packageType) target.searchParams.set("packageType", packageType);
     if (styles?.length) target.searchParams.set("styles", styles.join(","));
+    if (routeStyle) target.searchParams.set("routeStyle", routeStyle);
+    if (templateTitle) target.searchParams.set("templateTitle", templateTitle);
+    if (recommendedExtras) target.searchParams.set("recommendedExtras", recommendedExtras);
     target.searchParams.set("budgetInputMode", budgetPresetId ? "preset" : "custom");
     window.location.assign(`${target.pathname}${target.search}`);
   }

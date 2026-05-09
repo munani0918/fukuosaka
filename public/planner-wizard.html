@@ -165,6 +165,61 @@
       color: var(--text);
       font-weight: 800;
     }
+    .preset-plan-card {
+      margin: -8px 0 20px;
+      padding: 15px 16px;
+      border: 1px solid #F3D4CF;
+      border-radius: 22px;
+      background: #FFF7F4;
+      box-shadow: 0 10px 22px rgba(91, 48, 34, .05);
+    }
+    .preset-plan-kicker {
+      color: var(--primary-strong);
+      font-size: 11px;
+      line-height: 15px;
+      font-weight: 900;
+      letter-spacing: -.01em;
+    }
+    .preset-plan-title {
+      margin-top: 4px;
+      color: var(--text);
+      font-size: 18px;
+      line-height: 24px;
+      font-weight: 900;
+      letter-spacing: -.05em;
+    }
+    .preset-plan-meta {
+      margin-top: 5px;
+      color: var(--sub);
+      font-size: 12px;
+      line-height: 18px;
+      font-weight: 700;
+    }
+    .preset-plan-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+      margin-top: 12px;
+    }
+    .preset-plan-pill {
+      border-radius: 14px;
+      background: #fff;
+      padding: 9px 8px;
+      color: var(--sub);
+      font-size: 11px;
+      line-height: 15px;
+      font-weight: 800;
+      text-align: center;
+    }
+    .preset-plan-link {
+      display: inline-flex;
+      margin-top: 12px;
+      color: var(--primary-strong);
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 900;
+      text-decoration: none;
+    }
 
     .city-card,
     .stepper-card,
@@ -853,12 +908,19 @@
       isBudgetManuallyEdited: false,
       styles: [],
       packages: ["flight", "hotel", "tour"],
+      entrySource: "",
+      templateTitle: "",
+      routeStyle: "",
+      planType: "",
+      recommendedExtras: "",
+      nearbyTrip: "",
     };
 
     let step = 1;
     const TOTAL = 5;
     const STEP_LABELS = ["도시 선택", "일정·출발지", "인원·예산", "여행 스타일", "추천 구성"];
     const PRESET_STEP_LABELS = ["여행 조건 확인", "여행 스타일", "결과 보기"];
+    const SAMPLE_PRESET_STEP_LABELS = ["조건 확인", "결과 보기"];
     const ORIGINS = [["ICN", "인천"], ["GMP", "김포"], ["PUS", "부산/김해"], ["CJU", "제주"]];
     const MAX_NIGHTS = 4;
     const STYLE_OPTIONS = [["food", "맛집"], ["shopping", "쇼핑"], ["sightseeing", "관광"], ["family", "가족"], ["onsen", "온천"], ["couple", "커플"], ["solo", "혼자"]];
@@ -966,7 +1028,12 @@
       return F.budgetInputMode === "preset" && Boolean(activePreset());
     }
 
+    function isSamplePresetFlow() {
+      return isPresetFlow() && String(F.entrySource || "").startsWith("sample-");
+    }
+
     function totalSteps() {
+      if (isSamplePresetFlow()) return 2;
       return isPresetFlow() ? 3 : TOTAL;
     }
 
@@ -1171,7 +1238,8 @@
     function presetBanner() {
       const preset = activePreset();
       if (!preset) return "";
-      return `<div class="preset-badge">${preset.label} 예산으로 시작 중 · ${preset.range} · ${preset.note}</div>`;
+      const routeStyle = F.routeStyle ? ` · ${F.routeStyle}` : "";
+      return `<div class="preset-badge">${preset.label} 예산으로 시작 중 · ${preset.range}${routeStyle || ` · ${preset.note}`}</div>`;
     }
 
     function presetBudgetNote() {
@@ -1230,6 +1298,12 @@
         if (typeof saved.isBudgetManuallyEdited === "boolean") F.isBudgetManuallyEdited = saved.isBudgetManuallyEdited;
         if (Array.isArray(saved.styles)) F.styles = normalizeStyles(saved.styles);
         if (Array.isArray(saved.packages)) F.packages = saved.packages;
+        if (saved.entrySource) F.entrySource = saved.entrySource;
+        if (saved.templateTitle) F.templateTitle = saved.templateTitle;
+        if (saved.routeStyle) F.routeStyle = saved.routeStyle;
+        if (saved.planType) F.planType = saved.planType;
+        if (saved.recommendedExtras) F.recommendedExtras = saved.recommendedExtras;
+        if (saved.nearbyTrip) F.nearbyTrip = saved.nearbyTrip;
       } catch (error) {}
 
       try {
@@ -1247,6 +1321,12 @@
         const queryStyles = params.get("styles");
         const sessionStyles = sessionStorage.getItem("plannerStyles");
         const presetBudget = sessionStorage.getItem("plannerBudget");
+        F.entrySource = sessionStorage.getItem("plannerEntrySource") || "";
+        F.templateTitle = params.get("templateTitle") || sessionStorage.getItem("plannerTemplateTitle") || "";
+        F.routeStyle = params.get("routeStyle") || sessionStorage.getItem("plannerRouteStyle") || "";
+        F.planType = sessionStorage.getItem("plannerPlanType") || "";
+        F.recommendedExtras = params.get("recommendedExtras") || sessionStorage.getItem("plannerRecommendedExtras") || "";
+        F.nearbyTrip = sessionStorage.getItem("plannerNearbyTrip") || "";
         if (queryMode === "preset" || sessionMode === "preset") F.budgetInputMode = "preset";
         if (queryMode === "custom" || sessionMode === "custom") F.budgetInputMode = "custom";
         const presetId = queryPreset || sessionPreset;
@@ -1283,6 +1363,11 @@
         sessionStorage.removeItem("plannerNights");
         sessionStorage.removeItem("plannerCity");
         sessionStorage.removeItem("plannerStyles");
+        sessionStorage.removeItem("plannerTemplateTitle");
+        sessionStorage.removeItem("plannerRouteStyle");
+        sessionStorage.removeItem("plannerPlanType");
+        sessionStorage.removeItem("plannerRecommendedExtras");
+        sessionStorage.removeItem("plannerNearbyTrip");
       } catch (error) {}
 
       if (F.nights > MAX_NIGHTS) {
@@ -1314,7 +1399,7 @@
       const preset = activePreset();
       if (!preset) return;
       const sub = document.querySelector(".step-wrap .step-sub");
-      if (sub) sub.insertAdjacentHTML("afterend", presetBanner());
+      if (sub && !isSamplePresetFlow()) sub.insertAdjacentHTML("afterend", presetBanner());
       if ((!isPresetFlow() && nextStep === 2) || (isPresetFlow() && nextStep === 1)) {
         const rec = document.querySelector(`.nq[data-nights="${preset.defaultNights}"]`);
         if (rec && !rec.querySelector(".nq-rec")) {
@@ -1329,7 +1414,7 @@
 
     function updateProgress() {
       const count = totalSteps();
-      const labels = isPresetFlow() ? PRESET_STEP_LABELS : STEP_LABELS;
+      const labels = isSamplePresetFlow() ? SAMPLE_PRESET_STEP_LABELS : isPresetFlow() ? PRESET_STEP_LABELS : STEP_LABELS;
       document.getElementById("prog-label").textContent = `${step}/${count} ${labels[step - 1]}`;
       for (let i = 0; i < TOTAL; i += 1) {
         const seg = document.getElementById(`seg-${i}`);
@@ -1364,6 +1449,10 @@
     }
 
     function canProceed() {
+      if (isSamplePresetFlow()) {
+        if (step === 1) return Boolean(F.city && F.departDate && F.returnDate && getDateValidation().valid && F.budget > 0 && F.packages.length);
+        return true;
+      }
       if (isPresetFlow()) {
         if (step === 1) return Boolean(F.city && F.departDate && F.returnDate && getDateValidation().valid && F.budget > 0 && F.packages.length);
         if (step === 2) return F.styles.length > 0;
@@ -1690,8 +1779,102 @@
       `,
     };
 
+    function samplePlanCard() {
+      const title = F.templateTitle || `${cityLabel()} ${activePreset()?.label || ""} ${F.nights}박${F.nights + 1}일`;
+      const budget = activePreset()?.range || "";
+      const route = F.routeStyle || (F.budgetPreset === "budget" ? "시내 실속형" : "대표 코스형");
+      return `
+        <div class="preset-plan-card">
+          <div class="preset-plan-kicker">선택한 플랜</div>
+          <div class="preset-plan-title">${title}</div>
+          <div class="preset-plan-meta">${budget} · ${route}</div>
+          <div class="preset-plan-grid">
+            <div class="preset-plan-pill">도시<br>${cityLabel()}</div>
+            <div class="preset-plan-pill">일정<br>${F.nights}박 ${F.nights + 1}일</div>
+            <div class="preset-plan-pill">구성<br>${packageTypeLabel(packageTypeFromPackages())}</div>
+          </div>
+          <a class="preset-plan-link" href="/">다른 샘플 플랜 보기</a>
+        </div>
+      `;
+    }
+
+    function packageTypeLabel(packageType) {
+      return {
+        flight_hotel_tour: "항공 + 숙소 + 투어",
+        flight_hotel: "항공 + 숙소",
+        hotel_tour: "숙소 + 투어",
+      }[packageType] || "항공 + 숙소 + 투어";
+    }
+
+    function samplePresetStepOne() {
+      const fixedReturnCopy = `${F.nights}박 ${F.nights + 1}일 기준으로 귀국일이 자동 계산돼요.`;
+      return `
+        <h1 class="step-title">출발 정보만 확인해주세요</h1>
+        <p class="step-sub">도시와 일정, 예산은 선택한 샘플 플랜 기준으로 설정했어요.</p>
+        ${samplePlanCard()}
+
+        <div class="sec-lbl">출발일</div>
+        <div class="date-grid">
+          <label>
+            <div class="date-lbl">출발일</div>
+            <input class="date-in" id="d-dep" type="date" value="${F.departDate}" oninput="onDepartChange()">
+            <div class="date-sub" id="dep-sub"></div>
+          </label>
+          <label>
+            <div class="date-lbl">복귀일</div>
+            <input class="date-in" id="d-ret" type="date" value="${F.returnDate}" readonly tabindex="-1">
+            <div class="date-sub" id="ret-sub"></div>
+          </label>
+        </div>
+        <div class="date-summary" id="date-summary"></div>
+        <div class="date-error" id="date-error"></div>
+        <div class="date-guide">${fixedReturnCopy}</div>
+
+        <div class="sec-lbl">출발 공항</div>
+        <div class="airport-row">
+          ${ORIGINS.map(([code, label]) => `<button class="apchip ${F.origin === code ? "on" : ""}" type="button" data-origin="${code}" onclick="pickOrigin('${code}')">${label}</button>`).join("")}
+        </div>
+
+        <div class="sec-lbl">인원</div>
+        <div class="people-grid">
+          <div class="stepper-card">
+            <div class="stpr-lbl">성인</div>
+            <div class="stpr-row">
+              <button class="stpr-btn" type="button" onclick="stepPeople('adults', -1)">−</button>
+              <div class="stpr-val" id="v-adults">${F.adults}</div>
+              <button class="stpr-btn plus" type="button" onclick="stepPeople('adults', 1)">+</button>
+            </div>
+          </div>
+          <div class="stepper-card">
+            <div class="stpr-lbl">아동</div>
+            <div class="stpr-row">
+              <button class="stpr-btn" type="button" onclick="stepPeople('children', -1)">−</button>
+              <div class="stpr-val" id="v-children">${F.children}</div>
+              <button class="stpr-btn plus" type="button" onclick="stepPeople('children', 1)">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec-lbl">포함 항목</div>
+        <div class="info-box">${packageTypeLabel(packageTypeFromPackages())} 기준으로 계산해요. ${F.recommendedExtras === "ticketPassOnly" ? "근교 투어보다 공항 이동권·교통패스·eSIM 같은 준비 티켓을 우선 추천해요." : "대표 티켓과 선택형 투어 후보를 함께 확인할 수 있어요."}</div>
+      `;
+    }
+
+    function samplePresetFinalStep() {
+      return `
+        <h1 class="step-title">빠른 플랜 준비가 끝났어요</h1>
+        <p class="step-sub">선택한 샘플 플랜과 출발 조건으로 예산플래너 결과를 생성해요.</p>
+        ${samplePlanCard()}
+        <div class="assist-card">
+          <span>✓</span>
+          <div>${cityLabel()} ${F.nights}박 ${F.nights + 1}일 · ${F.routeStyle || "선택한"} 기준으로 총 ${formatManwon(F.budget)}을 자동 적용했어요.</div>
+        </div>
+      `;
+    }
+
     const PRESET_STEP_TEMPLATES = {
       1: () => `
+        ${isSamplePresetFlow() ? samplePresetStepOne() : `
         <h1 class="step-title">여행 조건을 빠르게 확인해주세요</h1>
         <p class="step-sub">예산은 이미 선택한 프리셋으로 설정했어요. 도시, 일정, 인원과 추천 구성만 확인하면 돼요.</p>
         ${summaryChip()}
@@ -1779,9 +1962,11 @@
             <div class="pkg-check">✓</div>
           </button>`;
         }).join("")}
+        `}
       `,
 
       2: () => `
+        ${isSamplePresetFlow() ? samplePresetFinalStep() : `
         <h1 class="step-title">어떤 여행을 원하세요?</h1>
         <p class="step-sub">선택한 스타일에 따라 일정과 숙소·투어 추천이 달라져요.</p>
         ${summaryChip()}
@@ -1796,6 +1981,7 @@
           <div>✦</div>
           <div id="ai-hint-text">${getAiHint()}</div>
         </div>
+        `}
       `,
 
       3: () => `
@@ -1820,6 +2006,7 @@
 
     function onDepartChange() {
       F.departDate = document.getElementById("d-dep").value;
+      if (isSamplePresetFlow()) syncReturnFromNights();
       if (F.departDate && F.returnDate) recalcNights();
       syncDateUI();
       refreshCta();
@@ -2096,6 +2283,12 @@
         isBudgetManuallyEdited: F.isBudgetManuallyEdited,
         styles: F.styles,
         packages: F.packages,
+        entrySource: F.entrySource,
+        templateTitle: F.templateTitle,
+        routeStyle: F.routeStyle,
+        planType: F.planType,
+        recommendedExtras: F.recommendedExtras,
+        nearbyTrip: F.nearbyTrip,
       };
       sessionStorage.setItem("plannerConditions", JSON.stringify(conditions));
       sessionStorage.setItem("plannerBudget", String(F.budget));

@@ -20,6 +20,12 @@ export type PlanInput = {
   travelStyles: string[];
   budgetPreset?: BudgetPresetId;
   nearbyMode?: NearbyMode;
+  entrySource?: string;
+  templateTitle?: string;
+  routeStyle?: string;
+  planType?: string;
+  recommendedExtras?: string;
+  nearbyTrip?: string;
   localBudgetMode?: "estimated" | "custom";
   customLocalBudget?: number;
   packageType:
@@ -92,6 +98,12 @@ type RawPlanInput = Partial<{
   styles: string[];
   budgetPreset: string;
   nearbyMode: string;
+  entrySource: string;
+  templateTitle: string;
+  routeStyle: string;
+  planType: string;
+  recommendedExtras: string;
+  nearbyTrip: string;
   localBudgetMode: string;
   customLocalBudget: number | string;
   packageType: string;
@@ -255,6 +267,12 @@ export function normalizePlanInput(raw: RawPlanInput = {}): PlanInput {
     travelStyles: normalizeTravelStyles(raw.travelStyles ?? raw.styles ?? []),
     budgetPreset: normalizeBudgetPreset(raw.budgetPreset),
     nearbyMode: normalizeNearbyMode(raw.nearbyMode),
+    entrySource: typeof raw.entrySource === "string" ? raw.entrySource : "",
+    templateTitle: typeof raw.templateTitle === "string" ? raw.templateTitle : "",
+    routeStyle: typeof raw.routeStyle === "string" ? raw.routeStyle : "",
+    planType: typeof raw.planType === "string" ? raw.planType : "",
+    recommendedExtras: typeof raw.recommendedExtras === "string" ? raw.recommendedExtras : "",
+    nearbyTrip: typeof raw.nearbyTrip === "string" ? raw.nearbyTrip : "",
     localBudgetMode: raw.localBudgetMode === "custom" ? "custom" : "estimated",
     customLocalBudget: Math.max(0, toNumber(raw.customLocalBudget, 0)),
     packageType: normalizePackageType(raw.packageType, raw.packages),
@@ -485,13 +503,16 @@ function createBudgetAdvice(status: PlanSummary["budget"]["status"], styles: str
 }
 
 function presetRecommendationCopy(input: PlanInput) {
+  if (input.routeStyle) {
+    return `${input.routeStyle} 플랜에 맞춰 예산과 이동 동선을 구성했어요.`;
+  }
   if (input.budgetPreset === "budget" || input.nearbyMode === "light") {
-    return "가성비 예산에 맞춰 시내 중심 동선과 가까운 근교 선택지를 중심으로 구성했어요.";
+    return "가성비 예산에 맞춰 시내 중심의 짧고 알찬 동선으로 구성했어요.";
   }
   if (input.budgetPreset === "premium" || input.nearbyMode === "comfort") {
     return "프리미엄 예산에 맞춰 숙소 만족도와 근교/테마 경험을 여유롭게 고려했어요.";
   }
-  return "표준 예산에 맞춰 시내 핵심 동선과 대표 근교 1곳을 균형 있게 구성했어요.";
+  return "표준 예산에 맞춰 시내 핵심 동선과 선택형 대표 코스를 균형 있게 구성했어요.";
 }
 
 function styleRecommendationCopy(input: PlanInput) {
@@ -516,6 +537,9 @@ function styleRecommendationCopy(input: PlanInput) {
     return "혼자 여행에 맞춰 이동이 쉽고 자유도가 높은 시내 동선을 우선 배치했어요.";
   }
   if (styles.has("sightseeing")) {
+    if (input.nearbyMode === "light" || input.budgetPreset === "budget" || input.days <= 3) {
+      return `${city}의 시내 대표 명소와 핵심 동선을 일정 강도에 맞춰 반영했어요.`;
+    }
     return `${city}의 대표 관광지와 근교 선택지를 일정 강도에 맞춰 반영했어요.`;
   }
   return "선택한 여행 성향을 바탕으로 무리 없는 이동 흐름을 우선했어요.";

@@ -130,6 +130,11 @@ export default async function BudgetPlanPage({
             nearbyMode={template.nearbyMode}
             cityCode={template.cityCode}
             styles={template.styles}
+            templateTitle={template.title}
+            routeStyle={template.routeStyle}
+            planType={template.planType}
+            recommendedExtras={template.recommendedExtras}
+            nearbyTrip={template.nearbyTrip}
             className="flex h-[54px] w-full items-center justify-center rounded-full bg-[linear-gradient(180deg,#ff6e65_0%,#f4514f_100%)] text-[15px] font-black text-white shadow-[0_14px_24px_rgba(244,89,85,0.22)]"
           >
             이 플랜으로 내 날짜에 맞춰보기

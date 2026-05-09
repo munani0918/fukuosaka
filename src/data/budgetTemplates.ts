@@ -18,6 +18,10 @@ export type BudgetTemplate = {
   nearbyMode: "light" | "standard" | "comfort";
   styles: string[];
   note?: string;
+  planType: "cityBudget" | "standard" | "onsen";
+  routeStyle: string;
+  nearbyTrip: "false" | "optional" | "lightOptional" | "true";
+  recommendedExtras: "ticketPassOnly" | "ticketPassAndOptionalTour" | "onsenTourAndPass";
   budgetBreakdown: { label: string; amount: string }[];
   itinerarySummary: string[];
 };
@@ -42,6 +46,10 @@ export const budgetTemplates: BudgetTemplate[] = [
     packageType: "flight_hotel",
     nearbyMode: "light",
     styles: ["sightseeing", "food"],
+    planType: "cityBudget",
+    routeStyle: "시내 실속형",
+    nearbyTrip: "false",
+    recommendedExtras: "ticketPassOnly",
     budgetBreakdown: [
       { label: "항공권", amount: "25~32만 원" },
       { label: "숙소", amount: "20~30만 원" },
@@ -61,28 +69,32 @@ export const budgetTemplates: BudgetTemplate[] = [
     miniTitle: "오사카 표준",
     budgetLabel: "1인 80~120만 원 기준",
     miniBudgetLabel: "3박4일 · 80~120만",
-    shortDescription: "오사카 시내와 유니버설 스튜디오 재팬을 함께 고려한 표준 샘플 플랜이에요.",
-    miniDescription: "시내+USJ",
+    shortDescription: "처음 가는 여행자에게 무난한 대표 코스형 샘플 플랜이에요.",
+    miniDescription: "대표 코스형",
     duration: "3박4일",
     nights: 3,
-    tags: ["표준", "시내+USJ", "처음 여행"],
+    tags: ["표준", "대표 코스형", "처음 여행"],
     icon: "sparkles",
     budgetPreset: "standard",
     defaultBudgetPerPerson: 1000000,
     packageType: "flight_hotel_tour",
     nearbyMode: "standard",
     styles: ["sightseeing", "shopping"],
-    note: "시내+USJ 중심",
+    note: "USJ·교토/나라 선택 가능",
+    planType: "standard",
+    routeStyle: "대표 코스형",
+    nearbyTrip: "optional",
+    recommendedExtras: "ticketPassAndOptionalTour",
     budgetBreakdown: [
       { label: "항공권", amount: "28~38만 원" },
       { label: "숙소", amount: "36~55만 원" },
       { label: "투어·티켓", amount: "8~18만 원" },
     ],
     itinerarySummary: [
-      "1일차: 난바 체크인과 도톤보리 야경",
-      "2일차: 유니버설 스튜디오 재팬 또는 대표 테마 일정",
-      "3일차: 오사카성·우메다·신사이바시 동선",
-      "4일차: 마지막 쇼핑 후 공항 이동",
+      "1일차: 난바·도톤보리 대표 야경 동선",
+      "2일차: 오사카성·우메다·쇼핑 중심 코스",
+      "3일차: USJ 또는 교토/나라 당일치기 중 선택",
+      "4일차: 구로몬시장·마지막 쇼핑 후 공항 이동",
     ],
   },
   {
@@ -104,6 +116,10 @@ export const budgetTemplates: BudgetTemplate[] = [
     packageType: "flight_hotel",
     nearbyMode: "light",
     styles: ["food", "sightseeing"],
+    planType: "cityBudget",
+    routeStyle: "도심 실속형",
+    nearbyTrip: "lightOptional",
+    recommendedExtras: "ticketPassOnly",
     budgetBreakdown: [
       { label: "항공권", amount: "24~32만 원" },
       { label: "숙소", amount: "20~30만 원" },
@@ -135,6 +151,10 @@ export const budgetTemplates: BudgetTemplate[] = [
     nearbyMode: "standard",
     styles: ["onsen", "sightseeing"],
     note: "근교 온천 포함",
+    planType: "onsen",
+    routeStyle: "근교 온천",
+    nearbyTrip: "true",
+    recommendedExtras: "onsenTourAndPass",
     budgetBreakdown: [
       { label: "항공권", amount: "25~35만 원" },
       { label: "숙소", amount: "35~55만 원" },

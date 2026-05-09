@@ -915,6 +915,7 @@ function currentPlanSignature(){
     packageType: PLAN_INPUT?.packageType || packageTypeFromPackages(P.packages),
     budgetPreset: PLAN_INPUT?.budgetPreset || P.budgetPreset || '',
     nearbyMode: PLAN_INPUT?.nearbyMode || P.nearbyMode || '',
+    routeStyle: PLAN_INPUT?.routeStyle || P.routeStyle || '',
     styles: styles.slice().sort(),
   });
 }
@@ -976,7 +977,7 @@ const STYLE_NAME  = {
 };
 const LEGACY_STYLE_MAP = { healing:'onsen', local:'sightseeing', night:'couple', photo:'sightseeing' };
 const BUDGET_PRESET_NAME = { budget:'가성비 예산', standard:'표준 예산', premium:'프리미엄 예산' };
-const NEARBY_MODE_NAME = { light:'가까운 근교 선택', standard:'대표 근교 1곳', comfort:'근교/테마 경험' };
+const NEARBY_MODE_NAME = { light:'시내 실속형', standard:'대표 코스형', comfort:'근교/테마 경험' };
 const MAX_NIGHTS = 4;
 
 function normalizeStyles(styles){
@@ -1029,6 +1030,10 @@ function budgetChipLabel(){
   return '직접 입력 예산';
 }
 
+function routeStyleLabel(){
+  return PLAN_INPUT?.routeStyle || P.routeStyle || NEARBY_MODE_NAME[P.nearbyMode] || NEARBY_MODE_NAME[PLAN_INPUT?.nearbyMode] || '';
+}
+
 // ═══ RENDER HEADER ═══════════════════════════
 function renderHeader(){
   const city   = CITY_NAME[P.cityCode] || P.cityCode;
@@ -1054,7 +1059,7 @@ function renderHeader(){
   // Condition chips
   const chips = [
     budgetChipLabel(),
-    NEARBY_MODE_NAME[P.nearbyMode] || NEARBY_MODE_NAME[PLAN_INPUT?.nearbyMode] || '',
+    routeStyleLabel(),
     city,
     `${P.nights}박${P.nights+1}일`,
     ...(Array.isArray(P.styles) ? P.styles.map(s=>STYLE_NAME[s]||s) : []),
@@ -2623,6 +2628,9 @@ function stayReason(){
 function tourReason(){
   const styles = currentStyleSet();
   const city = PLAN_INPUT?.city || (P.cityCode === 'FUK' ? 'fukuoka' : 'osaka');
+  if((PLAN_INPUT?.recommendedExtras || P.recommendedExtras) === 'ticketPassOnly') {
+    return '근교 투어보다 공항 이동권·교통패스·eSIM 같은 준비 티켓을 우선 추천했어요.';
+  }
   if(city === 'fukuoka') {
     if(styles.has('onsen')) return '온천 성향을 반영해 유후인·벳부 같은 근교 투어를 우선 추천했어요.';
     if(styles.has('food') || styles.has('sightseeing')) return '야타이, 대표 관광지, 근교 코스를 함께 고려해 투어&티켓을 추천했어요.';
@@ -3068,6 +3076,11 @@ function renderTourCandidateGroup(){
   const isSupportTicketOnly = supportTicketsAllowed() && !packageIncludes('tour');
   if(!packageIncludes('tour') && !isSupportTicketOnly) return '';
   const tours = (RESULT_DATA.tnas || []).slice(0, 2);
+  const ticketPassOnly = (PLAN_INPUT?.recommendedExtras || P.recommendedExtras) === 'ticketPassOnly';
+  const supportTitle = ticketPassOnly ? '이 플랜에 필요한 준비 티켓' : '일정 보조 티켓';
+  const supportCopy = ticketPassOnly
+    ? '근교 투어보다 공항 이동권·교통패스·eSIM처럼 실제 여행에 필요한 준비물을 먼저 추천해요.'
+    : '라피트, 교통패스, 원데이패스처럼 일정에 필요한 티켓을 골라봤어요.';
   const body = tours.length
     ? tours.map((tour) => `<button class="preview-card" type="button" onclick="setActiveTab('tours', true)">
         ${previewThumb(tour, tourFallbackMeta(tour).icon)}
@@ -3080,8 +3093,8 @@ function renderTourCandidateGroup(){
       </button>`).join('')
     : bookingEmpty(isSupportTicketOnly ? '일정 보조 티켓을 불러오지 못했어요. 투어 탭에서 다시 확인해보세요.' : '투어 데이터를 불러오지 못했어요. 투어 탭에서 다시 확인해보세요.', 'tours');
   return `<div class="booking-group">
-    <div class="booking-group-title">${isSupportTicketOnly ? '일정 보조 티켓' : '추천 투어&티켓'}</div>
-    ${isSupportTicketOnly ? '<div class="booking-candidate-sub">라피트, 교통패스, 원데이패스처럼 일정에 필요한 티켓을 골라봤어요.</div>' : ''}
+    <div class="booking-group-title">${isSupportTicketOnly ? supportTitle : '추천 투어&티켓'}</div>
+    ${isSupportTicketOnly ? `<div class="booking-candidate-sub">${supportCopy}</div>` : ''}
     <div class="preview-list">${body}</div>
   </div>`;
 }
@@ -3285,6 +3298,7 @@ function renderSummary(){
     `${PLAN_SUMMARY.totalTravelers || 1}명 기준`,
     perPerson,
     budgetChipLabel(),
+    routeStyleLabel(),
     effectiveBudgetTierLabel(PLAN_SUMMARY.budget?.effectiveBudgetTier || effectiveBudgetTier()),
     `선택 구성: ${SUMMARY_PACKAGE_NAME[PLAN_INPUT.packageType] || PLAN_INPUT.packageType}`,
     styles.length ? `스타일: ${styles.join(' · ')}` : '',

@@ -52,9 +52,9 @@ function presetIcon(icon: BudgetPreset["icon"]) {
 }
 
 function compactSummary(id: string) {
-  if (id === "budget" || id === "value") return "시내 중심 + 가까운 근교 선택";
+  if (id === "budget" || id === "value") return "시내 중심 실속형";
   if (id === "premium" || id === "luxury") return "좋은 숙소 + 근교/테마 경험";
-  return "시내 + 대표 근교 1곳 추천";
+  return "대표 코스형";
 }
 
 export function BudgetPresetList({ items }: BudgetPresetListProps) {
