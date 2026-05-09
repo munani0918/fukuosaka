@@ -50,7 +50,7 @@ export default async function BudgetPlanPage({
                 SAMPLE BUDGET PLAN
               </p>
               <h1 className="text-[21px] font-black tracking-[-0.05em] text-[#241b17]">
-                샘플 플랜
+                {template.title}
               </h1>
             </div>
           </div>
@@ -96,6 +96,9 @@ export default async function BudgetPlanPage({
                 </div>
               ))}
             </div>
+            <p className="mt-3 rounded-[16px] bg-[#fff3ee] px-3 py-2.5 text-[11.5px] font-semibold leading-5 tracking-[-0.03em] text-[#8a746b]">
+              이 플랜은 항공·숙소·티켓 중심의 예약 예산 샘플입니다. 식비·교통·쇼핑 등 현지 사용비는 별도로 준비하는 것을 추천해요.
+            </p>
           </div>
         </section>
 
@@ -122,9 +125,11 @@ export default async function BudgetPlanPage({
             source={`sample-${template.slug}`}
             budgetPresetId={template.budgetPreset}
             presetBudget={template.defaultBudgetPerPerson}
-            nights={3}
+            nights={template.nights}
             packageType={template.packageType}
             nearbyMode={template.nearbyMode}
+            cityCode={template.cityCode}
+            styles={template.styles}
             className="flex h-[54px] w-full items-center justify-center rounded-full bg-[linear-gradient(180deg,#ff6e65_0%,#f4514f_100%)] text-[15px] font-black text-white shadow-[0_14px_24px_rgba(244,89,85,0.22)]"
           >
             이 플랜으로 내 날짜에 맞춰보기

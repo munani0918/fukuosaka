@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>후쿠오사카 AI 플래너</title>
+  <title>후쿠오사카 예산플래너</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -1238,30 +1238,51 @@
         const sessionPreset = normalizeBudgetPresetId(sessionStorage.getItem("plannerBudgetPreset"));
         const queryMode = params.get("budgetInputMode");
         const sessionMode = sessionStorage.getItem("plannerBudgetInputMode");
+        const queryCity = params.get("cityCode");
+        const sessionCity = sessionStorage.getItem("plannerCity");
+        const queryNights = params.get("nights");
+        const sessionNights = sessionStorage.getItem("plannerNights");
+        const queryPackageType = params.get("packageType");
+        const sessionPackageType = sessionStorage.getItem("plannerPackageType");
+        const queryStyles = params.get("styles");
+        const sessionStyles = sessionStorage.getItem("plannerStyles");
+        const presetBudget = sessionStorage.getItem("plannerBudget");
         if (queryMode === "preset" || sessionMode === "preset") F.budgetInputMode = "preset";
         if (queryMode === "custom" || sessionMode === "custom") F.budgetInputMode = "custom";
         const presetId = queryPreset || sessionPreset;
         if (presetId) {
           applyBudgetPreset(presetId);
           F.budgetInputMode = "preset";
-          sessionStorage.removeItem("plannerBudgetPreset");
-          sessionStorage.removeItem("plannerBudgetInputMode");
-          sessionStorage.removeItem("plannerPackageType");
-          sessionStorage.removeItem("plannerNearbyMode");
-          sessionStorage.removeItem("plannerBudget");
-          sessionStorage.removeItem("plannerNights");
         }
-        const presetBudget = sessionStorage.getItem("plannerBudget");
-        const presetNights = sessionStorage.getItem("plannerNights");
-        if (!presetId && presetBudget) {
-          F.budget = Number(presetBudget);
-          sessionStorage.removeItem("plannerBudget");
+        const overrideCity = queryCity || sessionCity;
+        if (overrideCity === "FUK" || overrideCity === "KIX") F.city = overrideCity;
+        const overridePackageType = queryPackageType || sessionPackageType;
+        if (overridePackageType) {
+          F.packages = packagesFromType(overridePackageType);
+          F.feasibilityPackageType = packageTypeFromPackages(F.packages);
         }
-        if (!presetId && presetNights) {
-          F.nights = Math.min(MAX_NIGHTS, Number(presetNights));
-          sessionStorage.removeItem("plannerNights");
+        const overrideNights = Number(queryNights || sessionNights || 0);
+        if (overrideNights) {
+          F.nights = Math.min(MAX_NIGHTS, Math.max(1, overrideNights));
           syncReturnFromNights();
         }
+        const overrideStyles = queryStyles || sessionStyles;
+        if (overrideStyles) F.styles = normalizeStyles(overrideStyles.split(","));
+        if (presetId && presetBudget) {
+          F.budgetPerPerson = Number(presetBudget);
+          F.budget = roundManwon(F.budgetPerPerson * travelerWeight());
+        }
+        if (!presetId && presetBudget) {
+          F.budget = Number(presetBudget);
+        }
+        sessionStorage.removeItem("plannerBudgetPreset");
+        sessionStorage.removeItem("plannerBudgetInputMode");
+        sessionStorage.removeItem("plannerPackageType");
+        sessionStorage.removeItem("plannerNearbyMode");
+        sessionStorage.removeItem("plannerBudget");
+        sessionStorage.removeItem("plannerNights");
+        sessionStorage.removeItem("plannerCity");
+        sessionStorage.removeItem("plannerStyles");
       } catch (error) {}
 
       if (F.nights > MAX_NIGHTS) {
@@ -1779,7 +1800,7 @@
 
       3: () => `
         <h1 class="step-title">빠른 플랜 준비가 끝났어요</h1>
-        <p class="step-sub">선택한 예산 프리셋과 여행 조건으로 기존 AI 플래너 결과를 생성해요.</p>
+        <p class="step-sub">선택한 예산 프리셋과 여행 조건으로 예산플래너 결과를 생성해요.</p>
         ${summaryChip()}
         <div class="assist-card">
           <span>✓</span>

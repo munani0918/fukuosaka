@@ -38,10 +38,7 @@ function HeroBackdrop() {
 }
 
 export function HeroSection({ hero }: HeroSectionProps) {
-  const subtitleLines = [
-    "항공 · 숙소 · 투어를",
-    "예산에 맞게 추천해드려요",
-  ];
+  const subtitleLines = ["내 예산에 딱 맞는", "항공·숙소·투어 추천"];
 
   return (
     <section className="mb-6 px-5 pt-3">
@@ -58,7 +55,7 @@ export function HeroSection({ hero }: HeroSectionProps) {
             {hero.title}
           </h1>
 
-          <div className="mt-2.5 space-y-0 text-[15px] font-bold leading-6 tracking-[-0.03em] text-[#2f2521]">
+          <div className="mt-3 space-y-0 text-[15px] font-bold leading-6 tracking-[-0.03em] text-[#2f2521]">
             {subtitleLines.map((line) => (
               <p key={line} className="max-w-[60%]">
                 {line}
@@ -66,7 +63,7 @@ export function HeroSection({ hero }: HeroSectionProps) {
             ))}
           </div>
 
-          <div className="mt-4 flex gap-1.5">
+          <div className="mt-5 flex gap-1.5">
             {hero.tags.map((tag) => (
               <span
                 key={tag.label}
@@ -80,7 +77,7 @@ export function HeroSection({ hero }: HeroSectionProps) {
 
           <PlannerEntryButton
             source="hero-cta"
-            className="mt-4 inline-flex h-[50px] min-w-[164px] items-center justify-center gap-2 rounded-full bg-[linear-gradient(180deg,#ff6e65_0%,#f4514f_100%)] px-6 text-[15px] font-black text-white shadow-[0_12px_22px_rgba(244,89,85,0.26)] transition active:scale-[0.99]"
+            className="mt-5 inline-flex h-[50px] min-w-[164px] items-center justify-center gap-2 rounded-full bg-[linear-gradient(180deg,#ff6e65_0%,#f4514f_100%)] px-6 text-[15px] font-black text-white shadow-[0_12px_22px_rgba(244,89,85,0.26)] transition active:scale-[0.99]"
           >
             <span>{hero.ctaLabel}</span>
             <ArrowRightIcon className="h-[18px] w-[18px]" />

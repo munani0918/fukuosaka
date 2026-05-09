@@ -10,19 +10,19 @@ import {
 const QUICK_LINKS = [
   {
     title: "최저가 항공권",
-    description: "후쿠오카·오사카 항공권 확인",
+    description: "실시간 가격 비교",
     href: "/flights",
     icon: "flight",
   },
   {
-    title: "숙소",
-    description: "지역·날짜·예산으로 찾기",
+    title: "맞춤 숙소",
+    description: "조건에 맞는 숙소 찾기",
     href: "/stays",
     icon: "stay",
   },
   {
     title: "투어·티켓",
-    description: "입장권·패스·근교투어 보기",
+    description: "필수 패스 및 액티비티",
     href: "/tours",
     icon: "tour",
   },
@@ -48,15 +48,15 @@ export function QuickSearchLinks() {
           <Link
             key={item.title}
             href={item.href}
-            className="group flex min-h-[104px] flex-col rounded-[20px] border border-[#f0e2da] bg-white px-3 py-3 shadow-[0_10px_20px_rgba(115,72,59,0.05)] transition active:scale-[0.99]"
+            className="group flex min-h-[108px] flex-col rounded-[20px] border border-[#f0e2da] bg-white px-3 py-3 shadow-[0_10px_20px_rgba(115,72,59,0.05)] transition active:scale-[0.99]"
           >
-            <span className="mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-[#fff0eb] text-[#f05f5b]">
+            <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#fff0eb] text-[#f05f5b]">
               {quickIcon(item.icon)}
             </span>
-            <span className="text-[13px] font-black tracking-[-0.05em] text-[#2c211d]">
+            <span className="text-[12.5px] font-black leading-4 tracking-[-0.05em] text-[#2c211d]">
               {item.title}
             </span>
-            <span className="mt-1 text-[10.5px] font-semibold leading-4 tracking-[-0.03em] text-[#8d7c74]">
+            <span className="mt-1 text-[10px] font-semibold leading-3 tracking-[-0.03em] text-[#8d7c74]">
               {item.description}
             </span>
             <ChevronRightIcon className="mt-auto h-3.5 w-3.5 self-end text-[#b9a8a0] transition group-hover:translate-x-0.5" />
