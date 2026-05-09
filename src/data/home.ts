@@ -329,7 +329,7 @@ export const homeMockData: HomePageData = {
   ],
   bottomTabs: [
     { id: "home", label: "홈", href: "/", icon: "home", active: true },
-    { id: "planner", label: "AI 플래너", href: "/planner-wizard.html", icon: "planner" },
+    { id: "planner", label: "예산플래너", href: "/planner-wizard.html", icon: "planner" },
     { id: "stay", label: "숙소", href: "/stays", icon: "stay" },
     { id: "tour", label: "투어", href: "/tours", icon: "tour" },
     { id: "my", label: "마이", href: "#top", icon: "my" },

@@ -18,7 +18,7 @@ import {
 function bottomTabs() {
   return [
     { id: "home", label: "홈", href: "/", icon: "home" as const },
-    { id: "planner", label: "AI 플래너", href: "/planner-wizard.html", icon: "planner" as const },
+    { id: "planner", label: "예산플래너", href: "/planner-wizard.html", icon: "planner" as const },
     { id: "stay", label: "숙소", href: "/stays", icon: "stay" as const },
     { id: "tour", label: "투어", href: "/tours", icon: "tour" as const, active: true },
     { id: "my", label: "마이", href: "#top", icon: "my" as const },

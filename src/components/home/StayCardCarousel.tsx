@@ -9,7 +9,7 @@ export function StayCardCarousel({ items }: StayCardCarouselProps) {
   return (
     <ProductCarousel
       id="stays-section"
-      title="추천 숙소"
+      title="오늘의 추천 숙소"
       viewAllHref="/stays"
       items={items}
     />

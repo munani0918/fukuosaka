@@ -15,7 +15,6 @@ import { buildStayDetailHref } from "@/src/lib/stays";
 import { buildTourDetailHref } from "@/src/lib/tours";
 
 const MRT_MCP_URL = "https://mcp-servers.myrealtrip.com/mcp";
-const MRT_PARTNER_API = "https://partner-ext-api.myrealtrip.com";
 
 const BUDGET_PRESETS: BudgetPreset[] = [
   {
@@ -79,16 +78,11 @@ type ParsedWidgetItem = {
   tag: string;
 };
 
-type FareEntry = {
-  departureDate: string;
-  returnDate: string;
-  fromCity: string;
-  toCity: string;
+type LiveFlightDeal = {
+  departureDate?: string;
+  returnDate?: string;
   totalPrice: number;
-  averagePrice: number;
-  airline: string;
-  period: number;
-  transfer: number;
+  transfer?: number;
 };
 
 const HOME_CITY_CONFIG = {
@@ -299,59 +293,6 @@ function keywordList(items: ProductCardData[], fallback: string[]) {
   return Array.from(new Set([...names, ...fallback])).slice(0, 3);
 }
 
-function pickCheapest(items: FareEntry[], toCity: CityCode) {
-  const filtered = items
-    .filter((item) => item.toCity === toCity && item.totalPrice > 0)
-    .sort((a, b) => a.totalPrice - b.totalPrice);
-
-  return filtered[0] ?? null;
-}
-
-async function getLiveFlightDeals() {
-  const apiKey = process.env.MRT_PARTNER_API_KEY ?? process.env.MYREALTRIP_API_KEY;
-  if (!apiKey) return null;
-
-  const response = await fetch(`${MRT_PARTNER_API}/v1/products/flight/calendar/lowest`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      depCityCd: "ICN",
-      arrCityCds: ["FUK", "KIX"],
-      period: 4,
-    }),
-    cache: "no-store",
-    signal: AbortSignal.timeout(10_000),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Flight calendar failed: ${response.status}`);
-  }
-
-  const raw = (await response.json()) as
-    | FareEntry[]
-    | { data?: FareEntry[]; items?: FareEntry[]; result?: FareEntry[]; results?: FareEntry[] };
-
-  const items = Array.isArray(raw)
-    ? raw
-    : Array.isArray(raw.data)
-      ? raw.data
-      : Array.isArray(raw.items)
-        ? raw.items
-        : Array.isArray(raw.result)
-          ? raw.result
-          : Array.isArray(raw.results)
-            ? raw.results
-            : [];
-
-  return {
-    FUK: pickCheapest(items, "FUK"),
-    KIX: pickCheapest(items, "KIX"),
-  };
-}
-
 async function getLiveStayCards() {
   const entries: Array<ProductCardData | null> = await Promise.all(
     (Object.keys(HOME_CITY_CONFIG) as CityCode[]).map(async (cityCode) => {
@@ -458,7 +399,7 @@ async function getLiveTourCards() {
 }
 
 async function mergeFlightDeals(
-  liveDeals: Awaited<ReturnType<typeof getLiveFlightDeals>>,
+  liveDeals: Partial<Record<CityCode, LiveFlightDeal>> | null,
 ): Promise<FlightDealData[]> {
   return Promise.all(
     homeMockData.flightDeals.map(async (deal) => {
@@ -584,21 +525,18 @@ function buildSearchTabs(
 }
 
 export async function getHomePageData(): Promise<HomePageData> {
-  const [liveFareDealsResult, liveStayCardsResult, liveTourCardsResult] =
+  const [liveStayCardsResult, liveTourCardsResult] =
     await Promise.allSettled([
-      getLiveFlightDeals(),
       getLiveStayCards(),
       getLiveTourCards(),
     ]);
 
-  const liveFareDeals =
-    liveFareDealsResult.status === "fulfilled" ? liveFareDealsResult.value : null;
   const liveStayCards =
     liveStayCardsResult.status === "fulfilled" ? liveStayCardsResult.value : [];
   const liveTourCards =
     liveTourCardsResult.status === "fulfilled" ? liveTourCardsResult.value : [];
 
-  const flightDeals = await mergeFlightDeals(liveFareDeals);
+  const flightDeals = await mergeFlightDeals(null);
   const stayCards = pickDailyRecommendations(
     mergeProductCards(liveStayCards, homeMockData.stayCards),
     2,

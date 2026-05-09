@@ -26,6 +26,7 @@ export function BottomTabBar({ items }: BottomTabBarProps) {
         <div className="grid grid-cols-5">
           {items.map((item) => {
             const active = Boolean(item.active);
+            const label = item.id === "planner" ? "예산플래너" : item.label;
 
             return (
               <a
@@ -45,7 +46,7 @@ export function BottomTabBar({ items }: BottomTabBarProps) {
                     active ? "text-[#f05f5b]" : "text-[#847872]"
                   }`}
                 >
-                  <span className="whitespace-nowrap">{item.label}</span>
+                  <span className="whitespace-nowrap">{label}</span>
                 </span>
               </a>
             );
