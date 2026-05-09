@@ -25,9 +25,7 @@ export type PlanInput = {
   packageType:
     | "flight_hotel_tour"
     | "flight_hotel"
-    | "hotel_tour"
-    | "flight_only"
-    | "hotel_only";
+    | "hotel_tour";
 };
 
 export type PlanSummary = {
@@ -164,8 +162,7 @@ function packageTypeFromPackages(packages?: string[]): PlanInput["packageType"] 
   if (hasFlight && hasHotel && hasTour) return "flight_hotel_tour";
   if (hasFlight && hasHotel) return "flight_hotel";
   if (hasHotel && hasTour) return "hotel_tour";
-  if (hasFlight) return "flight_only";
-  return "hotel_only";
+  return "flight_hotel_tour";
 }
 
 function normalizePackageType(value?: string, packages?: string[]) {
@@ -173,8 +170,6 @@ function normalizePackageType(value?: string, packages?: string[]) {
     "flight_hotel_tour",
     "flight_hotel",
     "hotel_tour",
-    "flight_only",
-    "hotel_only",
   ];
   if (allowed.includes(value as PlanInput["packageType"])) {
     return value as PlanInput["packageType"];
@@ -267,11 +262,11 @@ export function normalizePlanInput(raw: RawPlanInput = {}): PlanInput {
 }
 
 function hasFlight(packageType: PlanInput["packageType"]) {
-  return packageType === "flight_hotel_tour" || packageType === "flight_hotel" || packageType === "flight_only";
+  return packageType === "flight_hotel_tour" || packageType === "flight_hotel";
 }
 
 function hasHotel(packageType: PlanInput["packageType"]) {
-  return packageType === "flight_hotel_tour" || packageType === "flight_hotel" || packageType === "hotel_tour" || packageType === "hotel_only";
+  return packageType === "flight_hotel_tour" || packageType === "flight_hotel" || packageType === "hotel_tour";
 }
 
 function hasTour(packageType: PlanInput["packageType"]) {

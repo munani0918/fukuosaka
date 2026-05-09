@@ -200,9 +200,11 @@ async function searchStaysAcrossKeywords({
   const keywords = staySearchKeywords(cityCode, cityKeyword);
   const deduped = new Map<string, ReturnType<typeof extractFromItem> & { searchKeyword?: string }>();
   const errors: string[] = [];
+  const batchSize = 3;
 
-  for (const keyword of keywords) {
-    try {
+  for (let index = 0; index < keywords.length; index += batchSize) {
+    const batch = keywords.slice(index, index + batchSize);
+    const settled = await Promise.allSettled(batch.map(async (keyword) => {
       let parsed: ReturnType<typeof extractFromItem>[] = [];
       for (let attempt = 0; attempt < 2; attempt += 1) {
         const data = await callMrtMcp('searchStays', {
@@ -216,15 +218,21 @@ async function searchStaysAcrossKeywords({
         if (parsed.length) break;
         await sleep(120);
       }
-      for (const stay of parsed.map((item) => ({ ...item, searchKeyword: keyword }))) {
+      return parsed.map((item) => ({ ...item, searchKeyword: keyword }));
+    }));
+
+    for (const result of settled) {
+      if (result.status === 'rejected') {
+        errors.push(String(result.reason));
+        continue;
+      }
+      for (const stay of result.value) {
         const key = stay.productId || stay.gid || stay.detailUrl || stay.bookUrl || stay.name;
         if (!key || deduped.has(key)) continue;
         deduped.set(key, stay);
       }
-      if (deduped.size >= 60) break;
-    } catch (error) {
-      errors.push(`${keyword}: ${String(error)}`);
     }
+    if (deduped.size >= 60) break;
   }
   return {
     stays: [...deduped.values()],
@@ -427,14 +435,14 @@ export async function GET(request: NextRequest) {
   const cityKeyword = cityCode === 'KIX' ? '오사카' : '후쿠오카';
 
   try {
-    let stayResult = includeHotel
-      ? await searchStaysAcrossKeywords({ cityCode, cityKeyword, date, returnDate, adults, children })
-      : { stays: [], keywords: [], candidateCount: 0, errors: [] };
-    if (includeHotel && stayResult.candidateCount === 0) {
-      await sleep(250);
-      stayResult = await searchStaysAcrossKeywords({ cityCode, cityKeyword, date, returnDate, adults, children });
-    }
-    const flightData = includeFlight ? await callMrtMcp('searchInternationalFlights', {
+    const stayPromise = includeHotel
+      ? searchStaysAcrossKeywords({ cityCode, cityKeyword, date, returnDate, adults, children }).then(async (result) => {
+          if (result.candidateCount > 0) return result;
+          await sleep(250);
+          return searchStaysAcrossKeywords({ cityCode, cityKeyword, date, returnDate, adults, children });
+        })
+      : Promise.resolve({ stays: [], keywords: [], candidateCount: 0, errors: [] });
+    const flightPromise = includeFlight ? callMrtMcp('searchInternationalFlights', {
         origin, destination: cityCode,
         departDate: date,
         returnDate: tripType === 'ROUND_TRIP' ? returnDate : '',
@@ -450,15 +458,21 @@ export async function GET(request: NextRequest) {
         infants: 0,
         passengers: { adult: adults, child: children, infant: 0 },
         maxResults: 50,
-      }) : null;
-    const tnaResult = includeTour ? await searchTnaProductsViaApi({
+      }) : Promise.resolve(null);
+    const tnaPromise = includeTour ? searchTnaProductsViaApi({
         keyword: `${cityKeyword} 관광`,
         city: cityKeyword,
         category: 'all',
         sort: 'selling_count_desc',
         page: 1,
         perPage: 6,
-      }) : { ok: false as const };
+      }) : Promise.resolve({ ok: false as const });
+
+    const [stayResult, flightData, tnaResult] = await Promise.all([
+      stayPromise,
+      flightPromise,
+      tnaPromise,
+    ]);
 
     const flights = includeFlight ? parseFlights(flightData as Record<string, unknown>) : [];
     const stays   = includeHotel ? stayResult.stays : [];

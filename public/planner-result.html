@@ -1038,8 +1038,8 @@ function renderHeader(){
     flight_hotel_tour:'항공 + 숙소 + 투어',
     flight_hotel:'항공 + 숙소',
     hotel_tour:'숙소 + 투어',
-    flight_only:'항공만',
-    hotel_only:'숙소만',
+    flight_only:'항공 + 숙소 + 투어',
+    hotel_only:'항공 + 숙소 + 투어',
   };
   document.getElementById('hdr-trip').textContent   = `${city} ${P.nights}박${P.nights+1}일`;
   document.getElementById('hdr-detail').textContent = `${totalTravelers}인 · ${origin} 출발 · 여행 예산 ${(+P.budget).toLocaleString()}원`;
@@ -1198,8 +1198,8 @@ const SUMMARY_PACKAGE_NAME = {
   flight_hotel_tour:'항공 + 숙소 + 투어',
   flight_hotel:'항공 + 숙소',
   hotel_tour:'숙소 + 투어',
-  flight_only:'항공만',
-  hotel_only:'숙소만',
+  flight_only:'항공 + 숙소 + 투어',
+  hotel_only:'항공 + 숙소 + 투어',
 };
 const SUMMARY_AIRPORT_NAME = { ICN:'인천', GMP:'김포', PUS:'부산/김해', CJU:'제주' };
 
@@ -1221,20 +1221,27 @@ function summaryStatusMeta(status, level = PLAN_SUMMARY?.budget?.overBudgetLevel
   return { label:'예산 안에 가능', cls:'status-ok' };
 }
 
+function normalizePackageTypeValue(packageType){
+  return ['flight_hotel_tour','flight_hotel','hotel_tour'].includes(packageType)
+    ? packageType
+    : 'flight_hotel_tour';
+}
+
 function packageIncludes(kind){
-  const packageType = packageTypeFromPackages(P.packages) || PLAN_INPUT?.packageType;
+  const packageType = normalizePackageTypeValue(packageTypeFromPackages(P.packages) || PLAN_INPUT?.packageType);
   return packageTypeIncludes(packageType, kind);
 }
 
 function packageTypeIncludes(packageType, kind){
+  const normalizedPackageType = normalizePackageTypeValue(packageType);
   const map = {
     flight_hotel_tour: ['flight','hotel','tour'],
     flight_hotel: ['flight','hotel'],
     hotel_tour: ['hotel','tour'],
-    flight_only: ['flight'],
-    hotel_only: ['hotel'],
+    flight_only: ['flight','hotel','tour'],
+    hotel_only: ['flight','hotel','tour'],
   };
-  return (map[packageType] || ['flight','hotel','tour']).includes(kind);
+  return (map[normalizedPackageType] || ['flight','hotel','tour']).includes(kind);
 }
 
 function packageFlags(){
@@ -2992,7 +2999,7 @@ function summaryRecommendedHotels(){
 */
 
 function bookingCandidatesSubtitle(){
-  const packageType = PLAN_INPUT?.packageType || packageTypeFromPackages(P.packages);
+  const packageType = normalizePackageTypeValue(PLAN_INPUT?.packageType || packageTypeFromPackages(P.packages));
   const copy = {
     flight_hotel_tour: '항공권부터 숙소, 투어까지 예산에 맞춰 골라봤어요.',
     flight_hotel: '항공권과 숙소, 일정에 필요한 보조 티켓을 예산에 맞춰 골라봤어요.',
@@ -3845,8 +3852,6 @@ const EDIT_PACKAGES = [
   ['flight_hotel_tour','항공 + 숙소 + 투어', ['flight','hotel','tour']],
   ['flight_hotel','항공 + 숙소', ['flight','hotel']],
   ['hotel_tour','숙소 + 투어', ['hotel','tour']],
-  ['flight_only','항공만', ['flight']],
-  ['hotel_only','숙소만', ['hotel']],
 ];
 let editDraft = null;
 
@@ -3855,8 +3860,7 @@ function packageTypeFromPackages(packages){
   if(set.has('flight') && set.has('hotel') && set.has('tour')) return 'flight_hotel_tour';
   if(set.has('flight') && set.has('hotel')) return 'flight_hotel';
   if(set.has('hotel') && set.has('tour')) return 'hotel_tour';
-  if(set.has('flight')) return 'flight_only';
-  return 'hotel_only';
+  return 'flight_hotel_tour';
 }
 
 function packagesFromPackageType(packageType){
@@ -3864,7 +3868,7 @@ function packagesFromPackageType(packageType){
 }
 
 function currentPackageType(){
-  return packageTypeFromPackages(P.packages) || PLAN_INPUT?.packageType || 'flight_hotel_tour';
+  return normalizePackageTypeValue(packageTypeFromPackages(P.packages) || PLAN_INPUT?.packageType || 'flight_hotel_tour');
 }
 
 function setInputValue(id, value){
@@ -4162,7 +4166,7 @@ async function fetchAndRender(){
     const flags = packageFlags();
     params.set('includeFlight', flags.flight ? 'true' : 'false');
     params.set('includeHotel', flags.hotel ? 'true' : 'false');
-    params.set('includeTour', (flags.tour || supportTicketsAllowed()) ? 'true' : 'false');
+    params.set('includeTour', flags.tour ? 'true' : 'false');
     params.set('_ts', String(Date.now()));
     const res  = await fetch(`/api/planner?${params}`, { cache:'no-store' });
     showPageLoading();
@@ -4196,9 +4200,9 @@ async function fetchAndRender(){
 
     let flights = flags.flight ? prepareFlightResults(data.flights || []) : [];
     const rawStays = flags.hotel ? (data.stays || []) : [];
-    const rawTnas = (flags.tour || supportTicketsAllowed()) ? (data.tnas || []) : [];
+    const rawTnas = flags.tour ? (data.tnas || []) : [];
     let stays = flags.hotel ? prepareHotelResults(rawStays) : [];
-    let tourItems = (flags.tour || supportTicketsAllowed()) ? prepareTourResults(rawTnas) : [];
+    let tourItems = flags.tour ? prepareTourResults(rawTnas) : [];
     RESULT_DATA = { flights, stays, tnas: tourItems };
 
     sanitizePlanSummaryForPackage();
@@ -4215,7 +4219,7 @@ async function fetchAndRender(){
       if(PLAN_SUMMARY.budget) PLAN_SUMMARY.budget.budgetMode = 'budget_first';
       flights = flags.flight ? prepareFlightResults(data.flights || []) : [];
       stays = flags.hotel ? prepareHotelResults(rawStays) : [];
-      tourItems = (flags.tour || supportTicketsAllowed()) ? prepareTourResults(rawTnas) : [];
+      tourItems = flags.tour ? prepareTourResults(rawTnas) : [];
       RESULT_DATA = { flights, stays, tnas: tourItems };
       if(flags.flight) updatePlanSummaryFlightBudget(flights);
       if(flags.hotel) updatePlanSummaryHotelBudget(rawStays);

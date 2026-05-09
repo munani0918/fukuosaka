@@ -868,15 +868,14 @@
       all: ["flight", "hotel", "tour"],
       fh: ["flight", "hotel"],
       ht: ["hotel", "tour"],
-      fo: ["flight"],
-      ho: ["hotel"],
     };
     const PACKAGE_PRESET_MAP = {
       flight_hotel_tour: ["flight", "hotel", "tour"],
       flight_hotel: ["flight", "hotel"],
       hotel_tour: ["hotel", "tour"],
-      flight_only: ["flight"],
-      hotel_only: ["hotel"],
+      // Legacy saved values are folded back into the planner default.
+      flight_only: ["flight", "hotel", "tour"],
+      hotel_only: ["flight", "hotel", "tour"],
     };
     const BUDGET_PRESETS = {
       budget: {
@@ -956,8 +955,6 @@
       if (key === "flight+hotel+tour") return "flight_hotel_tour";
       if (key === "flight+hotel") return "flight_hotel";
       if (key === "hotel+tour") return "hotel_tour";
-      if (key === "flight") return "flight_only";
-      if (key === "hotel") return "hotel_only";
       return "flight_hotel_tour";
     }
 
@@ -978,8 +975,6 @@
       if (type === "flight_hotel_tour") return "all";
       if (type === "flight_hotel") return "fh";
       if (type === "hotel_tour") return "ht";
-      if (type === "flight_only") return "fo";
-      if (type === "hotel_only") return "ho";
       return "all";
     }
 
@@ -1659,8 +1654,6 @@
           { key: "all", title: "항공 + 숙소 + 투어", sub: "처음부터 끝까지 한 번에 추천받고 싶을 때", badge: "추천" },
           { key: "fh", title: "항공 + 숙소", sub: "숙소까지 먼저 정하고 투어는 나중에 볼 때" },
           { key: "ht", title: "숙소 + 투어", sub: "항공권은 이미 준비되어 있을 때", badge: "항공 예약 완료" },
-          { key: "fo", title: "항공만", sub: "일단 항공권 가격만 확인하고 싶을 때" },
-          { key: "ho", title: "숙소만", sub: "숙소 위치와 가격만 비교하고 싶을 때" },
         ].map((item) => {
           const selected = F.packages.join("+") === PKG_MAP[item.key].join("+");
           return `<button class="pkg-card ${selected ? "selected" : ""}" type="button" data-package="${item.key}" onclick="pickPackage('${item.key}')">
@@ -1754,8 +1747,6 @@
           { key: "all", title: "항공 + 숙소 + 투어", sub: "처음부터 끝까지 한 번에 추천받고 싶을 때", badge: "추천" },
           { key: "fh", title: "항공 + 숙소", sub: "숙소와 항공권을 먼저 정하고 싶을 때" },
           { key: "ht", title: "숙소 + 투어", sub: "항공권을 이미 준비했을 때", badge: "항공 제외" },
-          { key: "fo", title: "항공만", sub: "항공권 가격만 빠르게 확인할 때" },
-          { key: "ho", title: "숙소만", sub: "숙소 위치와 가격만 비교할 때" },
         ].map((item) => {
           const selected = packageKeyFromPackages() === item.key;
           return `<button class="pkg-card ${selected ? "selected" : ""}" type="button" data-package="${item.key}" onclick="pickPackage('${item.key}')">
@@ -2040,7 +2031,7 @@
     }
 
     function pickPackage(key) {
-      F.packages = PKG_MAP[key];
+      F.packages = (PKG_MAP[key] || PKG_MAP.all).slice();
       F.feasibilityPackageType = packageTypeFromPackages(F.packages);
       document.querySelectorAll(".pkg-card").forEach((card) => {
         card.classList.toggle("selected", card.dataset.package === key);
@@ -2057,7 +2048,9 @@
         if (!proceed) return;
       }
       const loadingMessages = [
-        "입력한 조건에 맞춰 예산과 동선을 정리하고 있어요.\n잠시 후 가장 현실적인 후보부터 보여드릴게요.",
+        "선택한 조건에 맞는 여행 후보를 정리하고 있어요.",
+        "예산에 맞는 조합을 계산하고 있어요.",
+        "일정과 추천 후보를 자연스럽게 맞춰보고 있어요.",
       ];
       let loadingIndex = 0;
       const loadingTitle = document.getElementById("ld-title");
@@ -2088,16 +2081,20 @@
 
       document.getElementById("loading-screen").classList.add("show");
       const loadingTimer = window.setInterval(() => {
-        loadingIndex = Math.min(loadingIndex + 1, loadingMessages.length - 1);
+        loadingIndex = (loadingIndex + 1) % loadingMessages.length;
         loadingSub.textContent = loadingMessages[loadingIndex];
       }, 650);
       try {
-        const summaryRes = await fetch("/api/planner/summary", {
+        const summaryRequest = fetch("/api/planner/summary", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(conditions),
         });
-        if (summaryRes.ok) {
+        const summaryRes = await Promise.race([
+          summaryRequest,
+          new Promise((resolve) => window.setTimeout(() => resolve(null), 1200)),
+        ]);
+        if (summaryRes && summaryRes.ok) {
           const summaryData = await summaryRes.json();
           sessionStorage.setItem("plannerPlanInput", JSON.stringify(summaryData.planInput));
           sessionStorage.setItem("plannerPlanSummary", JSON.stringify(summaryData.planSummary));
