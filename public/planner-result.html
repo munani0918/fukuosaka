@@ -196,6 +196,7 @@
       padding:14px; box-shadow:0 1px 8px rgba(28,28,30,.06);
       display:flex; gap:14px; align-items:flex-start;
       cursor:pointer; transition:transform .2s, box-shadow .2s;
+      color:inherit; text-decoration:none;
     }
     .prod-card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(28,28,30,.10); }
     .prod-img {
@@ -215,8 +216,15 @@
       background:var(--accent-pale); color:var(--accent);
       margin-bottom:5px;
     }
-    .prod-name  { font-size:13px; font-weight:700; color:var(--ink); line-height:1.4; margin-bottom:4px; }
+    .prod-source-tag {
+      display:inline-block; font-size:10px; font-weight:900;
+      padding:2px 8px; border-radius:999px;
+      background:#fff1e8; color:#c05a3a;
+      margin-bottom:5px;
+    }
+    .prod-name  { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:13px; font-weight:700; color:var(--ink); line-height:1.4; margin-bottom:4px; }
     .prod-stars { font-size:12px; color:var(--muted); margin-bottom:6px; }
+    .prod-meta { font-size:11px; color:var(--muted); line-height:1.35; margin:-2px 0 6px; }
     .prod-foot  { display:flex; align-items:center; justify-content:space-between; }
     .prod-price { font-size:15px; font-weight:900; color:var(--accent); }
     .prod-btn   {
@@ -282,7 +290,9 @@
     .budget-total-box { margin-top:14px; padding-top:14px; border-top:2px solid #2C221D; display:flex; flex-direction:column; gap:8px; }
     .budget-total-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
     .budget-total-label { font-size:14px; font-weight:800; color:#2C221D; }
-    .budget-total-value { font-size:18px; font-weight:900; color:#D9524A; }
+    .budget-total-value { font-size:16px; line-height:1.35; font-weight:900; color:#D9524A; text-align:right; }
+    .local-cost-box { display:flex; flex-direction:column; gap:6px; padding:12px 0 4px; }
+    .local-cost-box .budget-total-value { text-align:left; white-space:nowrap; }
     .budget-note { margin-top:12px; font-size:12px; line-height:1.5; color:#7E7067; }
     .local-range-value { color:#2C221D; }
     .local-reference-note { margin-top:10px; color:#8E8076; font-size:12px; line-height:1.5; font-weight:600; }
@@ -290,7 +300,7 @@
     .timeline-item { display:grid; grid-template-columns:38px 1fr; gap:10px; }
     .day-badge { width:34px; height:34px; border-radius:50%; background:#FFF0EE; color:#D9524A; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; }
     .day-title { font-size:15px; font-weight:800; color:#2C221D; margin-bottom:3px; }
-    .day-desc { font-size:13px; line-height:1.5; color:#7E7067; }
+    .day-desc { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:13px; line-height:1.5; color:#7E7067; }
     .summary-cta-row { display:flex; gap:8px; flex-wrap:wrap; }
     .summary-cta {
       flex:1 1 30%; min-width:106px; padding:12px 10px; border-radius:16px;
@@ -339,6 +349,7 @@
       width:100%; border:1px solid #EEE4DA; border-radius:18px;
       background:#fff; padding:10px; display:grid; grid-template-columns:46px 1fr auto;
       align-items:center; gap:11px; font-family:inherit; text-align:left; cursor:pointer;
+      color:inherit; text-decoration:none;
     }
     .preview-thumb {
       width:46px; height:46px; border-radius:15px; display:flex;
@@ -348,7 +359,7 @@
     }
     .preview-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
     .preview-kicker { font-size:11px; font-weight:900; color:#D9524A; margin-bottom:2px; }
-    .preview-title { display:block; font-size:13px; font-weight:900; color:#2C221D; line-height:1.35; }
+    .preview-title { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:13px; font-weight:900; color:#2C221D; line-height:1.35; }
     .preview-meta { margin-top:2px; font-size:11px; color:#7E7067; line-height:1.35; }
     .preview-go { color:#A2958B; font-size:18px; font-weight:900; }
     .hotel-preview-head { display:flex; flex-direction:column; gap:3px; margin-bottom:12px; }
@@ -579,9 +590,9 @@
   <!-- Loading overlay (shown while fetching) -->
   <div id="page-loading">
     <div class="page-spinner"></div>
-    <div class="page-loading-txt" id="page-loading-title">AI 플랜 생성 중</div>
-    <div class="page-loading-sub" id="page-loading-sub">입력한 조건에 맞춰 예산과 동선을 정리하고 있어요.
-잠시 후 가장 현실적인 후보부터 보여드릴게요.</div>
+    <div class="page-loading-txt" id="page-loading-title">여행 플랜을 계산하고 있어요</div>
+    <div class="page-loading-sub" id="page-loading-sub">항공·숙소·추천 티켓을
+예산에 맞춰 정리 중입니다.</div>
   </div>
 
   <!-- ── Sticky header ─────────────────────────── -->
@@ -764,6 +775,7 @@
                 <option value="ICN">인천</option>
                 <option value="GMP">김포</option>
                 <option value="PUS">부산/김해</option>
+                <option value="CJJ">청주</option>
                 <option value="CJU">제주</option>
               </select>
             </label>
@@ -776,15 +788,9 @@
               <input type="date" id="edit-return-date">
             </label>
             <label class="edit-field">
-              <span class="edit-label">성인</span>
+              <span class="edit-label">여행자 수</span>
               <select id="edit-adults">
-                <option value="1">1명</option><option value="2">2명</option><option value="3">3명</option><option value="4">4명</option><option value="5">5명</option><option value="6">6명</option>
-              </select>
-            </label>
-            <label class="edit-field">
-              <span class="edit-label">아동</span>
-              <select id="edit-children">
-                <option value="0">0명</option><option value="1">1명</option><option value="2">2명</option><option value="3">3명</option><option value="4">4명</option>
+                <option value="1">1명</option><option value="2">2명</option><option value="3">3명</option><option value="4">4명</option><option value="5">5명</option><option value="6">6명</option><option value="7">7명</option><option value="8">8명</option><option value="9">9명</option><option value="10">10명</option>
               </select>
             </label>
           </div>
@@ -839,9 +845,18 @@ const P = {};
   } catch(e){}
   // 2. URL params are the newest explicit navigation values.
   const sp = new URLSearchParams(window.location.search);
-  ['cityCode','date','nights','origin','adults','children','budget','returnDate','tripType'].forEach(k => {
+  ['cityCode','date','nights','origin','adults','children','budget','returnDate','tripType','packageType','styles','routeStyle','templateTitle','recommendedExtras','planType'].forEach(k => {
     if(sp.get(k)) P[k] = sp.get(k);
   });
+  if(typeof P.styles === 'string') P.styles = P.styles.split(',').map((v) => v.trim()).filter(Boolean);
+  if(P.packageType) {
+    const packageMap = {
+      flight_hotel_tour: ['flight','hotel','tour'],
+      flight_hotel: ['flight','hotel'],
+      hotel_tour: ['hotel','tour'],
+    };
+    P.packages = packageMap[P.packageType] || packageMap.flight_hotel_tour;
+  }
   // 3. Defaults
   if(!P.cityCode)   P.cityCode   = 'KIX';
   if(!P.date)       P.date       = futureDate(45);
@@ -855,19 +870,26 @@ const P = {};
   if(!P.returnDate) P.returnDate = addDays(P.date, Number(P.nights || 3));
   P.nights  = +P.nights;
   P.adults  = +P.adults;
-  P.children = +(P.children || 0);
+  P.children = 0;
   P.budget  = +P.budget;
 })();
 
 let PLAN_INPUT = null;
 let PLAN_SUMMARY = null;
 let activeTab = 'summary';
-let RESULT_DATA = { flights: [], stays: [], tnas: [] };
+let RESULT_DATA = { flights: [], stays: [], agodaStays: [], tnas: [] };
 const RESULT_FILTERS = { hotels: null, tours: null, flights: null };
 (function readPlanSummary(){
   try {
     PLAN_INPUT = JSON.parse(sessionStorage.getItem('plannerPlanInput') || 'null');
     PLAN_SUMMARY = JSON.parse(sessionStorage.getItem('plannerPlanSummary') || 'null');
+    if(PLAN_INPUT) PLAN_INPUT.children = 0;
+    const explicitParams = new URLSearchParams(window.location.search);
+    if(PLAN_INPUT && explicitParams.get('packageType')) PLAN_INPUT.packageType = explicitParams.get('packageType');
+    if(PLAN_INPUT && explicitParams.get('recommendedExtras')) PLAN_INPUT.recommendedExtras = explicitParams.get('recommendedExtras');
+    if(PLAN_INPUT && explicitParams.get('templateTitle')) PLAN_INPUT.templateTitle = explicitParams.get('templateTitle');
+    if(PLAN_INPUT && explicitParams.get('routeStyle')) PLAN_INPUT.routeStyle = explicitParams.get('routeStyle');
+    if(PLAN_INPUT && explicitParams.get('planType')) PLAN_INPUT.planType = explicitParams.get('planType');
     const storedSignature = PLAN_SUMMARY?.resultInputSignature || PLAN_INPUT?.resultInputSignature;
     const hasExplicitQuery = Boolean(window.location.search);
     if(PLAN_SUMMARY && ((storedSignature && storedSignature !== currentPlanSignature()) || (!storedSignature && hasExplicitQuery))) {
@@ -890,6 +912,7 @@ async function ensurePlanSummary(){
     if(!res.ok) return;
     const data = await res.json();
     PLAN_INPUT = data.planInput;
+    if(PLAN_INPUT) PLAN_INPUT.children = 0;
     if(PLAN_INPUT?.travelStyles) PLAN_INPUT.travelStyles = normalizeStyles(PLAN_INPUT.travelStyles);
     PLAN_SUMMARY = data.planSummary;
     stampPlanState();
@@ -910,7 +933,7 @@ function currentPlanSignature(){
     nights: Number(P.nights) || Number(PLAN_INPUT?.nights) || 0,
     origin: P.origin,
     adults: Number(P.adults) || Number(PLAN_INPUT?.adults) || 0,
-    children: Number(P.children) || Number(PLAN_INPUT?.children) || 0,
+    children: 0,
     budget: Number(P.budget) || Number(PLAN_INPUT?.totalBudget) || 0,
     packageType: PLAN_INPUT?.packageType || packageTypeFromPackages(P.packages),
     budgetPreset: PLAN_INPUT?.budgetPreset || P.budgetPreset || '',
@@ -970,7 +993,7 @@ function escapeAttr(value){
 
 // ═══ HELPERS ═════════════════════════════════
 const CITY_NAME = { KIX:'오사카', FUK:'후쿠오카' };
-const ORIGIN_NAME = { ICN:'인천', GMP:'김포', PUS:'김해(부산)', CJU:'제주' };
+const ORIGIN_NAME = { ICN:'인천', GMP:'김포', PUS:'부산/김해', CJJ:'청주', CJU:'제주' };
 const STYLE_NAME  = {
   food:'맛집', shopping:'쇼핑', sightseeing:'관광',
   family:'가족', onsen:'온천', couple:'커플', solo:'혼자',
@@ -987,8 +1010,20 @@ function normalizeStyles(styles){
 
 function travelerWeightForBudget(){
   const adults = Math.max(1, Number(PLAN_INPUT?.adults ?? P.adults) || 1);
-  const children = Math.max(0, Number(PLAN_INPUT?.children ?? P.children) || 0);
-  return adults + children * 0.65;
+  return adults;
+}
+
+function travelerCount(){
+  return Math.max(1, Number(PLAN_INPUT?.adults ?? P.adults) || 1);
+}
+
+function fmtWonPerPerson(value){
+  return fmtWon(Math.round((Number(value) || 0) / travelerCount()));
+}
+
+function fmtWonRangeCompact(min, max){
+  const format = (value) => `${Math.round((Number(value) || 0) / 10000).toLocaleString('ko-KR')}만`;
+  return `약 ${format(min)}~${format(max)} 원`;
 }
 
 function effectiveBudgetTier(){
@@ -1038,7 +1073,7 @@ function routeStyleLabel(){
 function renderHeader(){
   const city   = CITY_NAME[P.cityCode] || P.cityCode;
   const origin = ORIGIN_NAME[P.origin] || P.origin;
-  const totalTravelers = Math.max(1, (Number(P.adults) || 0) + (Number(P.children) || 0));
+  const totalTravelers = travelerCount();
   const packageLabelMap = {
     flight_hotel_tour:'항공 + 숙소 + 투어',
     flight_hotel:'항공 + 숙소',
@@ -1047,7 +1082,7 @@ function renderHeader(){
     hotel_only:'항공 + 숙소 + 투어',
   };
   document.getElementById('hdr-trip').textContent   = `${city} ${P.nights}박${P.nights+1}일`;
-  document.getElementById('hdr-detail').textContent = `${totalTravelers}인 · ${origin} 출발 · 여행 예산 ${(+P.budget).toLocaleString()}원`;
+  document.getElementById('hdr-detail').textContent = `${totalTravelers}명 기준 · ${origin} 출발 · 여행 예산 ${(+P.budget).toLocaleString()}원`;
   const statusEl = document.getElementById('hdr-status');
   if(statusEl) {
     const status = PLAN_SUMMARY?.budget?.status;
@@ -1146,10 +1181,25 @@ function hotelImageDebugEnabled(){
   return new URLSearchParams(location.search).get('debugHotelImage') === '1';
 }
 
-function isValidHotelUrl(url){
+function isValidAgodaHotelUrl(url){
   const value = String(url || '').trim();
   if(!value || value === '#' || /undefined|null|mock/i.test(value)) return false;
   if(!/^https?:\/\//i.test(value)) return false;
+  try {
+    const parsed = new URL(value);
+    const isAgodaHost = /(^|\.)agoda\.com$/i.test(parsed.hostname);
+    const isPartnerSearch = /\/partners\/partnersearch\.aspx$/i.test(parsed.pathname);
+    return isAgodaHost && (parsed.searchParams.has('hid') || isPartnerSearch);
+  } catch(e) {
+    return false;
+  }
+}
+
+function isValidHotelUrl(url, item = null){
+  const value = String(url || '').trim();
+  if(!value || value === '#' || /undefined|null|mock/i.test(value)) return false;
+  if(!/^https?:\/\//i.test(value)) return false;
+  if(hotelSource(item || {}) === 'agoda') return isValidAgodaHotelUrl(value);
   try {
     const parsed = new URL(value);
     if(!/myrealtrip\.com$/i.test(parsed.hostname) && !/\.myrealtrip\.com$/i.test(parsed.hostname)) return false;
@@ -1163,22 +1213,24 @@ function hotelProductId(item){
   const rawId = item?.productId || item?.hotelId || item?.itemId || item?.gid || item?.id || '';
   const direct = String(rawId || '').trim();
   if(/^\d+$/.test(direct)) return direct;
-  const url = item?.detailUrl || item?.affiliateUrl || item?.bookUrl || item?.deepLink || item?.productUrl || item?.url || '';
+  const url = item?.detailUrl || item?.affiliateUrl || item?.bookingUrl || item?.bookUrl || item?.deepLink || item?.productUrl || item?.url || '';
   const match = String(url || '').match(/\/products\/(\d+)/i);
-  return match?.[1] || '';
+  const agodaMatch = String(url || '').match(/[?&]hid=([^&]+)/i);
+  return match?.[1] || (agodaMatch ? decodeURIComponent(agodaMatch[1]) : '');
 }
 
 function firstValidHotelUrl(item){
-  const urls = [item?.detailUrl, item?.affiliateUrl, item?.bookUrl, item?.deepLink, item?.productUrl, item?.url];
+  const urls = [item?.detailUrl, item?.affiliateUrl, item?.bookingUrl, item?.bookUrl, item?.deepLink, item?.productUrl, item?.url];
   for(const url of urls) {
     const normalized = normalizeImageUrl(url);
-    if(isValidHotelUrl(normalized)) return normalized;
+    if(isValidHotelUrl(normalized, item)) return normalized;
   }
   return '';
 }
 
 function hotelSource(item){
   const explicit = String(item?.source || '').toLowerCase();
+  if(explicit === 'agoda') return 'agoda';
   if(explicit === 'mock' || explicit === 'fallback') return explicit;
   if(String(item?.provider || '').toLowerCase() === 'fallback') return 'fallback';
   return 'api';
@@ -1200,13 +1252,13 @@ const SUMMARY_STYLE_NAME = {
   family:'가족', onsen:'온천', couple:'커플', solo:'혼자',
 };
 const SUMMARY_PACKAGE_NAME = {
-  flight_hotel_tour:'항공 + 숙소 + 투어',
-  flight_hotel:'항공 + 숙소',
-  hotel_tour:'숙소 + 투어',
-  flight_only:'항공 + 숙소 + 투어',
-  hotel_only:'항공 + 숙소 + 투어',
+  flight_hotel_tour:'항공+숙소+투어',
+  flight_hotel:'항공+숙소',
+  hotel_tour:'숙소+투어',
+  flight_only:'항공+숙소+투어',
+  hotel_only:'항공+숙소+투어',
 };
-const SUMMARY_AIRPORT_NAME = { ICN:'인천', GMP:'김포', PUS:'부산/김해', CJU:'제주' };
+const SUMMARY_AIRPORT_NAME = { ICN:'인천', GMP:'김포', PUS:'부산/김해', CJJ:'청주', CJU:'제주' };
 
 function fmtWon(won){
   const value = Number(won) || 0;
@@ -1368,7 +1420,7 @@ function localSpendingEstimate(){
   const preset = PLAN_INPUT?.budgetPreset || P.budgetPreset || 'standard';
   const styles = normalizeStyles(PLAN_INPUT?.travelStyles || P.styles || []);
   const adults = Math.max(1, Number(PLAN_INPUT?.adults ?? P.adults) || 1);
-  const children = Math.max(0, Number(PLAN_INPUT?.children ?? P.children) || 0);
+  const children = 0;
   const days = Math.max(2, Number(PLAN_INPUT?.days) || (Number(P.nights) || 1) + 1);
   const localDays = Math.max(1, days - 0.5); // 마지막 날은 체류 시간이 짧아 0.5일로 계산합니다.
   const table = {
@@ -1480,7 +1532,7 @@ function sanitizePlanSummaryForPackage(){
 }
 
 function resetRenderedResults(){
-  RESULT_DATA = { flights: [], stays: [], tnas: [] };
+  RESULT_DATA = { flights: [], stays: [], agodaStays: [], tnas: [] };
   ['sec-summary','flight-list','hotel-list','tour-list','cost-card'].forEach((id) => {
     const el = document.getElementById(id);
     if(el) el.innerHTML = '';
@@ -1505,7 +1557,7 @@ function updatePlanSummaryFlightBudget(flights){
   if(!prices.length) return;
 
   const lowestPerPersonRoundTrip = Math.min(...prices);
-  const totalTravelers = PLAN_SUMMARY.totalTravelers || Math.max(1, (Number(PLAN_INPUT.adults) || 0) + (Number(PLAN_INPUT.children) || 0));
+  const totalTravelers = travelerCount();
   const nextFlightBudget = Math.round(lowestPerPersonRoundTrip * totalTravelers);
   const currentFlightBudget = Number(PLAN_SUMMARY.budget.flight) || 0;
   if(nextFlightBudget <= 0 || nextFlightBudget === currentFlightBudget) return;
@@ -1518,7 +1570,7 @@ function updatePlanSummaryFlightBudget(flights){
 }
 
 function roomCountForTravelers(){
-  const totalTravelers = PLAN_SUMMARY?.totalTravelers || Math.max(1, (Number(PLAN_INPUT?.adults) || 0) + (Number(PLAN_INPUT?.children) || 0));
+  const totalTravelers = travelerCount();
   return totalTravelers <= 3 ? 1 : Math.ceil(totalTravelers / 2);
 }
 
@@ -1822,9 +1874,8 @@ function resultBudgetFeasibility(){
   const packageType = currentPackageType();
   const cityCode = P.cityCode || (PLAN_INPUT?.city === 'fukuoka' ? 'FUK' : 'KIX');
   const adults = Math.max(1, Number(P.adults || PLAN_INPUT?.adults) || 1);
-  const children = Math.max(0, Number(P.children || PLAN_INPUT?.children) || 0);
-  const totalTravelers = adults + children;
-  const travelerWeight = adults + children * 0.65;
+  const totalTravelers = adults;
+  const travelerWeight = adults;
   const nights = Math.max(1, currentTripNights());
   const rooms = totalTravelers <= 3 ? 1 : Math.ceil(totalTravelers / 2);
   const styles = normalizeStyles(Array.isArray(P.styles) ? P.styles : PLAN_INPUT?.travelStyles || []);
@@ -1996,7 +2047,7 @@ async function applyBudgetAlternative(id){
     P.returnDate = nextReturnDate;
     PLAN_INPUT = null;
     PLAN_SUMMARY = null;
-    RESULT_DATA = { flights: [], stays: [], tnas: [] };
+    RESULT_DATA = { flights: [], stays: [], agodaStays: [], tnas: [] };
     activeTab = 'summary';
     RESULT_FILTERS.hotels = null;
     RESULT_FILTERS.tours = null;
@@ -2052,6 +2103,74 @@ function currentStyleSet(){
 
 function currentCity(){
   return PLAN_INPUT?.city || (P.cityCode === 'FUK' ? 'fukuoka' : 'osaka');
+}
+
+function agodaSearchCity(){
+  const city = currentCity();
+  return city === 'osaka' || city === 'fukuoka' ? city : '';
+}
+
+function normalizeAgodaHotelForResult(item){
+  const bookingUrl = normalizeImageUrl(item?.bookingUrl || item?.landingURL || item?.landingUrl || item?.url || '');
+  if(!isValidAgodaHotelUrl(bookingUrl)) return null;
+  const nights = Math.max(1, Number(P.nights) || calcNights(P.date, P.returnDate || addDays(P.date, P.nights)) || 1);
+  const travelers = Math.max(1, Number(P.adults || PLAN_SUMMARY?.totalTravelers || 2) || 2);
+  const pricePerNight = Math.round(Number(item?.pricePerNight) || 0);
+  const totalPrice = Math.round(Number(item?.totalPrice) || (pricePerNight ? pricePerNight * nights : 0));
+  const reviewScore = Number(item?.reviewScore) || Number(item?.starRating) || 0;
+  const reviewCount = Number(item?.reviewCount) || 0;
+  return {
+    ...item,
+    id: String(item?.id || item?.hotelId || hotelProductId({ bookingUrl }) || item?.name || ''),
+    source: 'agoda',
+    provider: 'agoda',
+    isBookable: true,
+    name: item?.name || item?.hotelName || 'Agoda hotel',
+    img: normalizeImageUrl(item?.imageUrl || item?.img || ''),
+    imageUrl: normalizeImageUrl(item?.imageUrl || item?.img || ''),
+    detailUrl: bookingUrl,
+    affiliateUrl: bookingUrl,
+    bookingUrl,
+    bookUrl: bookingUrl,
+    pricePerNight,
+    totalPrice,
+    price: pricePerNight ? `1박 ${fmtWon(pricePerNight)}` : '가격 확인',
+    priceSub: totalPrice ? `${nights}박 예상 ${fmtWon(totalPrice)}${travelers > 1 ? ` · 1인 환산 ${fmtWon(Math.round(totalPrice / travelers))}` : ''}` : '아고다 기준 예상가',
+    rating: reviewScore ? reviewScore.toFixed(reviewScore >= 10 ? 0 : 1).replace(/\.0$/, '') : '',
+    reviewCount: reviewCount ? reviewCount.toLocaleString('ko-KR') : '',
+    sourceLabel: '아고다',
+    priceNote: '아고다 기준 예상가',
+  };
+}
+
+async function fetchAgodaHotelsForResult(){
+  if(!packageIncludes('hotel')) return [];
+  const city = agodaSearchCity();
+  const checkIn = P.date;
+  const checkOut = P.returnDate || addDays(P.date, P.nights);
+  const travelers = Math.max(1, Number(P.adults || PLAN_SUMMARY?.totalTravelers || 2) || 2);
+  if(!city || !checkIn || !checkOut) return [];
+  try {
+    const params = new URLSearchParams({
+      city,
+      checkIn,
+      checkOut,
+      travelers: String(travelers),
+      maxResult: '6',
+    });
+    const res = await fetch(`/api/agoda/hotels/search?${params.toString()}`, { cache:'no-store' });
+    if(!res.ok) return [];
+    const data = await res.json();
+    if(!data?.ok || !Array.isArray(data.hotels)) return [];
+    return data.hotels
+      .map(normalizeAgodaHotelForResult)
+      .filter(Boolean)
+      .filter((hotel) => hotel.bookingUrl && isValidAgodaHotelUrl(hotel.bookingUrl))
+      .slice(0, 3);
+  } catch(e) {
+    console.warn('Agoda hotels unavailable');
+    return [];
+  }
 }
 
 function asText(...values){
@@ -2184,10 +2303,11 @@ function tourTypeBadgeLabel(item = {}){
     item.title,
   );
   if(tags.has('esim') || tags.has('usim') || tags.has('sim') || hasAny(typeText, ['esim', 'e-sim', '유심', 'usim', 'sim'])) return '유심';
-  if(tags.has('airport_transfer') || tags.has('train_ticket') || hasAny(typeText, ['라피트', '하루카', '공항철도', '공항 이동', '열차', '기차', '교통권', 'airport transfer', 'train ticket'])) return '교통권';
+  if(hasAny(typeText, ['교토', '나라', '고베', '유후인', '벳푸', '다자이후', '버스투어', '가이드투어', '당일투어', '일일투어', 'guided tour', 'bus tour'])) return '근교투어';
+  if(tags.has('airport_transfer') || tags.has('train_ticket') || hasAny(typeText, ['라피트', '하루카', '공항철도', '공항 이동', '공항버스', 'airport transfer'])) return '공항이동';
   if(tags.has('transport_pass') || tags.has('city_pass') || hasAny(typeText, ['주유패스', '메트로패스', '산큐패스', '원데이패스', '교통패스', 'city pass', 'transport pass', 'pass', '패스'])) return '패스';
-  if(tags.has('admission_ticket') || item.ticketCategory === 'activity_ticket' || hasAny(typeText, ['입장권', '티켓', 'e-티켓', 'e-ticket', 'admission', 'entry ticket', '전망대', '테마파크', 'usj', '유니버설'])) return '티켓';
-  if(tags.has('guided_tour') || tags.has('city_tour') || hasAny(typeText, ['투어', '버스투어', '가이드', '일일투어', '워킹투어', '당일투어', 'guided tour', 'bus tour', 'walking tour'])) return '투어';
+  if(tags.has('admission_ticket') || item.ticketCategory === 'activity_ticket' || hasAny(typeText, ['입장권', '티켓', 'e-티켓', 'e-ticket', 'admission', 'entry ticket', '전망대', '테마파크', 'usj', '유니버설'])) return '입장권';
+  if(tags.has('guided_tour') || tags.has('city_tour') || hasAny(typeText, ['투어', '가이드', '워킹투어', 'walking tour'])) return '근교투어';
   return '추천';
 }
 
@@ -2200,6 +2320,79 @@ function tourPreviewMeta(item = {}){
   const price = formatTourPriceForMeta(item);
   const label = tourTypeBadgeLabel(item);
   return [price || '가격 확인', label].filter(Boolean).join(' · ');
+}
+
+function normalizeProductUrl(value){
+  const url = String(value || '').trim();
+  if(!url || url === '#' || /undefined|null/i.test(url)) return '';
+  if(url.startsWith('//')) return `https:${url}`;
+  if(url.startsWith('/')) return url;
+  if(/^https?:\/\//i.test(url)) return url;
+  return '';
+}
+
+function isGenericTourUrl(url){
+  const value = String(url || '').trim().replace(/\/+$/, '');
+  return [
+    'https://experiences.myrealtrip.com',
+    'https://www.myrealtrip.com/offers',
+    'https://www.myrealtrip.com',
+  ].includes(value);
+}
+
+function firstTourProductUrl(item = {}){
+  const urls = [
+    item.affiliateUrl,
+    item.detailUrl,
+    item.productUrl,
+    item.url,
+    item.href,
+    item.link,
+    item.bookUrl,
+    item.deepLink,
+  ];
+  for(const raw of urls) {
+    const url = normalizeProductUrl(raw);
+    if(url && !isGenericTourUrl(url)) return url;
+  }
+  return '';
+}
+
+function tourSearchFallbackUrl(item = {}){
+  const query = String(item.name || item.title || item.itemName || item.tag || '투어 티켓').trim();
+  return `/tours?query=${encodeURIComponent(query || '투어 티켓')}`;
+}
+
+function resolveTourProductUrl(item = {}){
+  const url = firstTourProductUrl(item);
+  const resolved = url || tourSearchFallbackUrlSafe(item);
+  return {
+    url: resolved,
+    isExternal: /^https?:\/\//i.test(resolved),
+    isFallback: !url,
+  };
+}
+
+function tourSearchFallbackUrlSafe(item = {}){
+  const query = String(item.displayTitle || item.name || item.title || item.itemName || item.tag || '투어 티켓').trim();
+  return `/tours?query=${encodeURIComponent(query || '투어 티켓')}`;
+}
+
+function tourLinkAttributes(item = {}){
+  const link = resolveTourProductUrl(item);
+  const target = link.isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
+  return `href="${escapeAttr(link.url)}"${target}`;
+}
+
+function openTourCardLink(element){
+  const url = element?.dataset?.href || '';
+  if(!url) return;
+  if(/^https?:\/\//i.test(url)) {
+    const opened = window.open(url, '_blank', 'noopener,noreferrer');
+    if(opened) opened.opener = null;
+    return;
+  }
+  window.location.href = url;
 }
 
 function normalizeHotel(item){
@@ -2253,12 +2446,38 @@ function normalizeHotel(item){
   };
 }
 
+function tourDisplayTitle(item = {}){
+  const text = asText(item.displayTitle, item.name, item.title, item.itemName, item.tag);
+  const lower = text.toLowerCase();
+  if(hasAny(lower, ['esim', 'e-sim', '유심', '데이터'])) return '일본 eSIM';
+  if(hasAny(text, ['유후인', '벳푸', '벳부'])) return '유후인·벳푸 투어';
+  if(hasAny(text, ['다자이후']) && hasAny(text, ['버스투어', '투어', '가이드'])) return '다자이후 근교 투어';
+  if(hasAny(text, ['교토', '나라', '고베']) && hasAny(text, ['버스투어', '투어', '가이드'])) return `${hasAny(text, ['교토']) ? '교토' : hasAny(text, ['나라']) ? '나라' : '고베'} 근교 투어`;
+  if(hasAny(text, ['주유패스'])) return '오사카 주유패스';
+  if(hasAny(text, ['라피트'])) return '라피트 공항 이동권';
+  if(hasAny(text, ['산큐패스', 'SUNQ'])) return '산큐패스 북큐슈';
+  if(hasAny(text, ['후쿠오카 지하철', '지하철 1일권'])) return '후쿠오카 지하철 1일권';
+  if(hasAny(text, ['지하철패스', '메트로패스'])) return '오사카 지하철패스';
+  if(hasAny(lower, ['usj']) || hasAny(text, ['유니버설 스튜디오'])) return 'USJ 입장권';
+  const cleaned = text
+    .replace(/\[[^\]]+\]/g, '')
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned.length > 28 ? `${cleaned.slice(0, 28).trim()}…` : cleaned;
+}
+
 function normalizeTour(item){
   const tags = uniq([...(item.tags || []), ...inferTourTags(item)]);
   const price = parsePrice(item.price || item.salePrice);
   const ticketCategory = item.ticketCategory || tourTicketCategoryFromTags(tags, item);
+  const rawTitle = item.title || item.name || item.itemName || '';
+  const displayTitle = tourDisplayTitle({ ...item, title: rawTitle, name: rawTitle, tags, ticketCategory });
   return {
     ...item,
+    title: rawTitle,
+    originalTitle: rawTitle,
+    displayTitle,
     provider: item.provider || 'myrealtrip',
     tags,
     ticketCategory,
@@ -3075,22 +3294,22 @@ function renderHotelCandidateGroup(){
 function renderTourCandidateGroup(){
   const isSupportTicketOnly = supportTicketsAllowed() && !packageIncludes('tour');
   if(!packageIncludes('tour') && !isSupportTicketOnly) return '';
-  const tours = (RESULT_DATA.tnas || []).slice(0, 2);
+  const tours = prepareTourResults(RESULT_DATA.tnas || []).slice(0, 3);
   const ticketPassOnly = (PLAN_INPUT?.recommendedExtras || P.recommendedExtras) === 'ticketPassOnly';
   const supportTitle = ticketPassOnly ? '이 플랜에 필요한 준비 티켓' : '일정 보조 티켓';
   const supportCopy = ticketPassOnly
     ? '근교 투어보다 공항 이동권·교통패스·eSIM처럼 실제 여행에 필요한 준비물을 먼저 추천해요.'
     : '라피트, 교통패스, 원데이패스처럼 일정에 필요한 티켓을 골라봤어요.';
   const body = tours.length
-    ? tours.map((tour) => `<button class="preview-card" type="button" onclick="setActiveTab('tours', true)">
+    ? tours.map((tour) => `<a class="preview-card" ${tourLinkAttributes(tour)}>
         ${previewThumb(tour, tourFallbackMeta(tour).icon)}
         <span>
           <span class="preview-badge">${escapeHtml(tourTypeBadgeLabel(tour))}</span>
-          <span class="preview-title">${escapeHtml(tour.name || tour.title || '추천 투어')}</span>
+          <span class="preview-title">${escapeHtml(tour.displayTitle || tour.name || tour.title || '추천 투어')}</span>
           <span class="preview-meta">${escapeHtml(tourPreviewMeta(tour) || '추천 상품 확인')}</span>
         </span>
         <span class="preview-go">›</span>
-      </button>`).join('')
+      </a>`).join('')
     : bookingEmpty(isSupportTicketOnly ? '일정 보조 티켓을 불러오지 못했어요. 투어 탭에서 다시 확인해보세요.' : '투어 데이터를 불러오지 못했어요. 투어 탭에서 다시 확인해보세요.', 'tours');
   return `<div class="booking-group">
     <div class="booking-group-title">${isSupportTicketOnly ? supportTitle : '추천 투어&티켓'}</div>
@@ -3234,7 +3453,10 @@ function renderReservationBudgetCard(b){
     over:'여행 예산을 초과할 수 있어요.',
   }[usageStatus] || '';
   const remainingNote = remainingAmount >= 0
-    ? `<div class="budget-note">여행 예산 내 여유 ${remainingMeta.value}</div>`
+    ? `<div class="budget-note">예산 여유 ${remainingMeta.value}${statusCopy ? ` · ${statusCopy}` : ''}</div>`
+    : '';
+  const statusOnlyNote = remainingAmount < 0 && statusCopy
+    ? `<div class="budget-note">${statusCopy}</div>`
     : '';
   const overRow = remainingAmount < 0
     ? `<div class="budget-total-row"><span class="budget-total-label">${remainingMeta.label}</span><span class="budget-total-value">${remainingMeta.value}</span></div>`
@@ -3244,19 +3466,22 @@ function renderReservationBudgetCard(b){
     packageIncludes('hotel') ? renderBudgetLine('🏨', '숙소', costSummary.hotelCost, false) : '',
     packageIncludes('tour') ? renderBudgetLine('🎫', '투어/티켓', costSummary.tourTicketCost, false) : '',
   ].filter(Boolean).join('');
+  const perPersonTotal = fmtWonPerPerson(costSummary.total);
+  const totalValueText = travelerCount() > 1
+    ? `전체 ${fmtWon(costSummary.total)} / 1인 ${perPersonTotal}`
+    : fmtWon(costSummary.total);
   return `<div class="summary-card">
       <div class="summary-card-title">여행 예상 비용</div>
       <div class="summary-sub" style="margin:-4px 0 14px">여행 예산에 맞는 항공·숙소·티켓 후보를 계산했어요.</div>
       <div class="budget-list">${rows || '<div class="summary-empty">선택한 예약 항목이 없어요.</div>'}</div>
       <div class="budget-total-box">
-        <div class="budget-total-row"><span class="budget-total-label">여행 예상 합계</span><span class="budget-total-value">${fmtWon(costSummary.total)}</span></div>
+        <div class="budget-total-row"><span class="budget-total-label">여행 예상 합계</span><span class="budget-total-value">${totalValueText}</span></div>
         ${overRow}
       </div>
-      ${statusCopy ? `<div class="budget-note">${statusCopy}</div>` : ''}
+      ${statusOnlyNote}
       ${remainingNote}
       ${roomyCopy}
-      <div class="budget-note">여행 예상 비용은 항공·숙소·티켓 기준이에요. 현지 사용비는 아래에서 별도로 안내해요.</div>
-      <div class="budget-advice">${budgetAdviceCompact()}</div>
+      <div class="budget-note">숙소 비용은 객실 기준이며, 선택한 숙박일수로 합산했어요.</div>
     </div>`;
 }
 
@@ -3266,15 +3491,34 @@ function renderLocalSpendingCard(b){
   const tripMin = reservationTotal + Number(estimate.min || 0);
   const tripMax = reservationTotal + Number(estimate.max || 0);
   const cityLabel = PLAN_INPUT?.city === 'fukuoka' ? '후쿠오카' : '오사카';
-  const days = Number(PLAN_INPUT?.days) || (Number(P.nights) || 1) + 1;
-  const travelers = PLAN_SUMMARY?.totalTravelers || Math.max(1, (Number(PLAN_INPUT?.adults) || 0) + (Number(PLAN_INPUT?.children) || 0));
+  const nights = Number(PLAN_INPUT?.nights ?? P.nights) || 1;
+  const days = nights + 1;
+  const travelers = travelerCount();
   return `<div class="summary-card">
       <div class="summary-card-title">현지 사용 예산 팁</div>
-      <div class="summary-sub" style="margin:-4px 0 14px">식비·교통·카페·간식은 개인차가 커 별도 예산으로 준비하는 것이 좋아요.</div>
-      <div class="budget-total-row"><span class="budget-total-label">${cityLabel} ${days}일 ${travelers}인 기준</span><span class="budget-total-value local-range-value">${fmtWonRange(estimate.min, estimate.max)}</span></div>
-      <div class="budget-note">쇼핑이나 고가 식사는 개인차가 커 별도 예산으로 잡아주세요.</div>
-      <div class="local-reference-note">참고로 여행 예상 비용과 현지 사용비를 모두 더하면 ${fmtWonRange(tripMin, tripMax)} 정도로 예상돼요.</div>
+      <div class="local-cost-box">
+        <span class="budget-total-label">${cityLabel} ${nights}박${days}일 · ${travelers}명 예상 현지비</span>
+        <span class="budget-total-value local-range-value">${fmtWonRangeCompact(estimate.min, estimate.max)}</span>
+      </div>
+      <div class="budget-note">식비·교통·카페·간식 기준이에요. 쇼핑 비용은 제외했어요.</div>
+      <div class="local-reference-note">예약비와 합치면 전체 ${fmtWonRangeCompact(tripMin, tripMax)} 정도예요.</div>
     </div>`;
+}
+
+function compactItineraryTitle(title){
+  const text = String(title || '').replace(/\s+/g, ' ').trim();
+  if(text.length <= 18) return text;
+  const parts = text.split('·').map((part) => part.trim()).filter(Boolean);
+  if(parts.length >= 2) return `${parts[0]} · ${parts[1]}`.slice(0, 22);
+  return text.slice(0, 20);
+}
+
+function compactItineraryDescription(description){
+  const text = String(description || '').replace(/\s+/g, ' ').trim();
+  if(text.length <= 42) return text;
+  const firstSentence = text.split(/[.!?。]|요\.|다\./)[0]?.trim();
+  if(firstSentence && firstSentence.length >= 12 && firstSentence.length <= 42) return firstSentence;
+  return text.slice(0, 42).replace(/[,\s·-]+$/g, '');
 }
 
 function renderSummary(){
@@ -3290,27 +3534,17 @@ function renderSummary(){
   const styles = normalizeStyles(PLAN_INPUT.travelStyles || []).map(s => SUMMARY_STYLE_NAME[s] || s).filter(Boolean);
   const city = PLAN_INPUT.city === 'fukuoka' ? '후쿠오카' : '오사카';
   const totalBudget = fmtWon(PLAN_INPUT.totalBudget);
-  const travelers = `성인 ${PLAN_INPUT.adults}명${PLAN_INPUT.children ? ` · 아동 ${PLAN_INPUT.children}명` : ''}`;
-  const perPerson = PLAN_SUMMARY.totalTravelers
-    ? `1인 약 ${Math.round((Number(PLAN_INPUT.totalBudget) || 0) / PLAN_SUMMARY.totalTravelers).toLocaleString('ko-KR')}원`
-    : '';
+  const travelers = `${travelerCount()}명 기준`;
+  const perPerson = travelerCount() > 1
+    ? `1인 ${fmtWonPerPerson(PLAN_INPUT.totalBudget)} · 전체 ${fmtWon(PLAN_INPUT.totalBudget)}`
+    : `1인 예산 ${fmtWon(PLAN_INPUT.totalBudget)}`;
+  const summaryNights = Number(PLAN_INPUT.nights || P.nights) || 1;
   const conditionTags = [
-    `${PLAN_SUMMARY.totalTravelers || 1}명 기준`,
+    `${city} · ${summaryNights}박${summaryNights + 1}일 · ${travelerCount()}명`,
     perPerson,
-    budgetChipLabel(),
     routeStyleLabel(),
-    effectiveBudgetTierLabel(PLAN_SUMMARY.budget?.effectiveBudgetTier || effectiveBudgetTier()),
-    `선택 구성: ${SUMMARY_PACKAGE_NAME[PLAN_INPUT.packageType] || PLAN_INPUT.packageType}`,
-    styles.length ? `스타일: ${styles.join(' · ')}` : '',
-    `예산 기준: ${status.label}`,
+    SUMMARY_PACKAGE_NAME[PLAN_INPUT.packageType] || PLAN_INPUT.packageType,
   ].filter(Boolean);
-  const tags = [
-    travelers,
-    `${SUMMARY_AIRPORT_NAME[PLAN_INPUT.departureAirport] || PLAN_INPUT.departureAirport} 출발`,
-    `여행 예산 ${totalBudget}`,
-    ...styles,
-    `선택 구성: ${SUMMARY_PACKAGE_NAME[PLAN_INPUT.packageType] || PLAN_INPUT.packageType}`,
-  ];
   const timeline = (PLAN_SUMMARY.itineraryOutline || []).length ? PLAN_SUMMARY.itineraryOutline : [
     { day:1, title:'일정 준비 중', description:'입력한 조건을 기준으로 기본 일정 흐름을 준비하고 있어요.' },
   ];
@@ -3339,7 +3573,7 @@ function renderSummary(){
       <div class="timeline">
         ${timeline.map(item => `<div class="timeline-item">
           <div class="day-badge">${item.day}일</div>
-          <div><div class="day-title">${item.title}</div><div class="day-desc">${item.description}</div></div>
+          <div><div class="day-title">${compactItineraryTitle(item.title)}</div><div class="day-desc">${compactItineraryDescription(item.description)}</div></div>
         </div>`).join('')}
       </div>
     </div>
@@ -3378,10 +3612,10 @@ function renderCost(flights, stays, tnas){
     ].filter(Boolean);
     document.getElementById('cost-card').innerHTML =
       rows.join('') +
-      `<div class="cost-total"><span class="cost-total-lbl">여행 예상 합계</span><span class="cost-total-val">${fmtMan(reservationTotal)}</span></div>
-       <div class="cost-row"><span class="cost-lbl">현지 사용 예산 팁</span><span class="cost-val">${fmtWonRange(localEstimate.min, localEstimate.max)}</span></div>
-       <div class="cost-row"><span class="cost-lbl">전체 여행비 참고</span><span class="cost-val">${fmtWonRange(tripMin, tripMax)}</span></div>
-       <div class="budget-note">현지 사용비는 식비·카페·간식·시내교통을 위한 별도 준비 팁이며, 예산 초과 판정은 여행 예상 비용 기준으로 계산해요.</div>
+      `<div class="cost-total"><span class="cost-total-lbl">여행 예상 합계</span><span class="cost-total-val">전체 ${fmtMan(reservationTotal)} / 1인 ${fmtMan(Math.round(reservationTotal / travelerCount()))}</span></div>
+       <div class="cost-row"><span class="cost-lbl">현지 사용 예산 팁</span><span class="cost-val">${fmtWonRangeCompact(localEstimate.min, localEstimate.max)}</span></div>
+       <div class="cost-row"><span class="cost-lbl">전체 여행비 참고</span><span class="cost-val">${fmtWonRangeCompact(tripMin, tripMax)}</span></div>
+       <div class="budget-note">현지 사용비는 별도 준비 팁이며, 예산 초과 판정은 여행 예상 비용 기준이에요.</div>
        <div class="budget-advice">${budgetAdviceCompact()}</div>`;
     return;
   }
@@ -3420,7 +3654,7 @@ function buildFlightListUrl(origin){
     tripType: flightTripType(),
     departDate: P.date,
     adult: String(Math.max(1, Number(P.adults) || 1)),
-    child: String(Math.max(0, Number(P.children) || 0)),
+    child: '0',
   });
   if(flightTripType() === 'RT') params.set('returnDate', P.returnDate || addDays(P.date, P.nights));
   return `/api/myrealtrip/flight-redirect?${params.toString()}`;
@@ -3474,7 +3708,7 @@ function renderFlights(flights){
     return;
   }
 
-  const adultLabel = `성인 ${Number(P.adults) || 1}명${Number(P.children) ? ` · 아동 ${Number(P.children)}명` : ''}`;
+  const adultLabel = `${travelerCount()}명 기준`;
   const tripLabel = flightTripType() === 'RT' ? '왕복' : '편도';
   el.innerHTML = `<section class="flight-result-section">
     <div class="flight-result-head">
@@ -3673,15 +3907,62 @@ function prepareTourResults(tours){
   const source = (Array.isArray(tours) && tours.length) ? tours : getFallbackToursFinal();
   let items = scoreTours(source);
   if(supportTicketsAllowed() && !packageIncludes('tour')) {
-    items = items.filter((item) => item.ticketCategory === 'essential_ticket');
-    if(!items.length) items = scoreTours(getFallbackToursFinal()).filter((item) => item.ticketCategory === 'essential_ticket');
+    items = items.filter(isPreparationTicketItem);
+    if(!items.length) items = scoreTours(getFallbackToursFinal()).filter(isPreparationTicketItem);
   } else if(!packageIncludes('tour')) {
     items = [];
   }
   if(RESULT_FILTERS.tours === 'budget' || RESULT_FILTERS.tours === 'budget_ticket' || budgetFirstMode()) {
-    return items.slice().sort((a, b) => (b.budgetScore || 0) - (a.budgetScore || 0) || (a.price || 0) - (b.price || 0));
+    items = items.slice().sort((a, b) => (b.budgetScore || 0) - (a.budgetScore || 0) || (a.price || 0) - (b.price || 0));
   }
-  return items;
+  return diversifyTourItems(items, 3);
+}
+
+function isTicketPassItem(item){
+  const tags = new Set(item?.tags || []);
+  const category = item?.ticketCategory || categorizeTourTicket(item);
+  return category === 'essential_ticket'
+    || category === 'activity_ticket'
+    || tags.has('transport_pass')
+    || tags.has('airport_transfer')
+    || tags.has('entry_ticket')
+    || hasAny(`${item?.name || ''} ${item?.title || ''} ${item?.tag || ''}`, ['패스','교통권','공항','라피트','하루카','eSIM','유심','입장권','티켓']);
+}
+
+function isPreparationTicketItem(item){
+  return isTicketPassItem(item) && tourTypeBadgeLabel(item) !== '근교투어';
+}
+
+function tourDedupeKey(item){
+  const text = String(item?.name || item?.title || '').toLowerCase();
+  if(text.includes('유후인') || text.includes('벳부') || text.includes('beppu') || text.includes('yufuin')) return 'onsen-daytour';
+  if(text.includes('다자이후') || text.includes('yanagawa')) return 'dazaifu';
+  if(text.includes('교토') || text.includes('나라')) return 'kyoto-nara';
+  if(text.includes('라피트') || text.includes('공항')) return 'airport-transfer';
+  if(text.includes('패스') || text.includes('pass')) return 'pass';
+  if(text.includes('esim') || text.includes('유심')) return 'sim';
+  return text.replace(/\s+/g, '').slice(0, 24);
+}
+
+function diversifyTourItems(items, max = 3){
+  const scored = Array.isArray(items) ? items.slice() : [];
+  const fallbackTickets = scoreTours(getFallbackToursFinal()).filter(supportTicketsAllowed() && !packageIncludes('tour') ? isPreparationTicketItem : isTicketPassItem);
+  const pool = [...scored, ...fallbackTickets];
+  const selected = [];
+  const seen = new Set();
+  const add = (item) => {
+    if(!item || selected.length >= max) return false;
+    const key = tourDedupeKey(item);
+    if(seen.has(key)) return false;
+    seen.add(key);
+    selected.push(item);
+    return true;
+  };
+  const ticketFirst = pool.find(isTicketPassItem);
+  add(ticketFirst);
+  pool.filter((item) => !isTicketPassItem(item)).forEach(add);
+  pool.filter(isTicketPassItem).forEach(add);
+  return selected.slice(0, max);
 }
 
 function prepareFlightResults(flights){
@@ -3692,6 +3973,24 @@ function prepareFlightResults(flights){
   return items;
 }
 
+function mergeHotelDisplayItems(myrealtripItems, agodaItems){
+  const base = Array.isArray(myrealtripItems) ? myrealtripItems : [];
+  const agoda = (Array.isArray(agodaItems) ? agodaItems : [])
+    .filter((item) => item?.source === 'agoda' && item?.isBookable && firstValidHotelUrl(item));
+  if(!agoda.length) return base;
+  const selectedBase = base.slice(0, Math.min(base.length, 2));
+  const seen = new Set(selectedBase.map((item) => hotelUniqueKey(item) || item?.name || item?.id).filter(Boolean));
+  const selectedAgoda = [];
+  for(const item of agoda) {
+    if(selectedAgoda.length >= Math.min(3, 5 - selectedBase.length)) break;
+    const key = hotelUniqueKey(item) || item?.name || item?.id;
+    if(key && seen.has(key)) continue;
+    if(key) seen.add(key);
+    selectedAgoda.push(item);
+  }
+  return [...selectedBase, ...selectedAgoda].slice(0, 5);
+}
+
 function renderHotels(stays){
   const el = document.getElementById('hotel-list');
   if(!packageIncludes('hotel')){
@@ -3699,12 +3998,14 @@ function renderHotels(stays){
     return;
   }
   const items = prepareHotelResults(stays);
-  if(!items.length){
+  const displayItems = mergeHotelDisplayItems(items, RESULT_DATA.agodaStays || []);
+  if(!displayItems.length){
     el.innerHTML = `<div class="reason-box">${stayReasonFinal()}</div><div class="empty-card">숙소 데이터를 불러오지 못했어요</div>`;
     return;
   }
   const notice = styleFallbackNoticeFinal('hotel', items);
-  const cards = items.map(s=>{
+  const hasAgoda = displayItems.some((item) => item.source === 'agoda');
+  const cards = displayItems.map(s=>{
     const url = firstValidHotelUrl(s);
     const urlAttr = escapeAttr(url);
     const image = getHotelImageUrl(s);
@@ -3713,13 +4014,15 @@ function renderHotels(stays){
         + `<div class="prod-ph" style="display:none">🏨</div>`
       : `<div class="prod-ph">🏨</div>`;
     const action = s.isBookable && url
-      ? `<a href="${urlAttr}" target="_blank" class="prod-btn">예약하기</a>`
+      ? `<a href="${urlAttr}" target="_blank" rel="noopener noreferrer" class="prod-btn" onclick="event.stopPropagation()">예약하기</a>`
       : `<button type="button" class="prod-btn" onclick="event.stopPropagation();setActiveTab('hotels', true)">숙소 다시 조회</button>`;
-    return `<div class="prod-card"${s.isBookable && url ? ` onclick="window.open('${urlAttr}','_blank')"` : ''}>
+    return `<div class="prod-card"${s.isBookable && url ? ` onclick="window.open('${urlAttr}','_blank','noopener,noreferrer')"` : ''}>
       ${imgH}
       <div class="prod-info">
+        ${s.source === 'agoda' ? '<div class="prod-source-tag">아고다</div>' : ''}
         <div class="prod-name">${s.name||'추천 숙소'}</div>
         ${s.rating?`<div class="prod-stars">⭐ ${s.rating} (${s.reviewCount||''})</div>`:''}
+        ${s.priceSub ? `<div class="prod-meta">${escapeHtml(s.priceSub)}</div>` : ''}
         <div class="prod-foot">
           <div class="prod-price">${s.price||''}</div>
           ${action}
@@ -3727,7 +4030,10 @@ function renderHotels(stays){
       </div>
     </div>`;
   }).join('');
-  el.innerHTML = `<div class="reason-box">${stayReasonFinal()}${notice ? `<br>${notice}` : ''}</div>${cards}`;
+  const agodaNotice = hasAgoda
+    ? '<div class="reason-box">아고다 기준 예상가이며, 실제 결제 금액은 예약 페이지에서 확인해주세요.</div>'
+    : '';
+  el.innerHTML = `<div class="reason-box">${stayReasonFinal()}${notice ? `<br>${notice}` : ''}</div>${cards}${agodaNotice}`;
 }
 
 // ═══ RENDER TOURS ═════════════════════════════
@@ -3787,17 +4093,19 @@ function renderTours(tnas){
   }
   const notice = styleFallbackNoticeFinal('tour', items);
   const cards = items.map(t=>{
-    const url  = (t.bookUrl||'https://www.myrealtrip.com/offers').replace(/"/g,'&quot;');
+    const link = resolveTourProductUrl(t);
+    const url  = escapeAttr(link.url);
     const imgH = tourThumbHtml(t);
     const tagH = `<div class="prod-tag">${escapeHtml(tourTypeBadgeLabel(t))}</div>`;
-    const action = `<a href="${url}" target="_blank" class="prod-btn">예약하기</a>`; /*
+    const linkTarget = link.isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
+    const action = `<a href="${url}"${linkTarget} class="prod-btn" onclick="event.stopPropagation()">예약하기</a>`; /*
       ? `<a href="${urlAttr}" target="_blank" class="prod-btn">예약하기</a>`
       : `<button type="button" class="prod-btn" onclick="event.stopPropagation();setActiveTab('hotels', true)">숙소 다시 조회</button>`;
-    */ return `<div class="prod-card" onclick="window.open('${url}','_blank')">
+    */ return `<div class="prod-card" data-href="${url}" onclick="openTourCardLink(this)">
       ${imgH}
       <div class="prod-info">
         ${tagH}
-        <div class="prod-name">${t.name||'추천 투어'}</div>
+        <div class="prod-name">${escapeHtml(t.displayTitle || t.name || '추천 투어')}</div>
         ${t.rating?`<div class="prod-stars">⭐ ${t.rating}</div>`:''}
         <div class="prod-foot">
           <div class="prod-price">${escapeHtml(formatTourPriceForMeta(t) || '가격 확인')}</div>
@@ -3951,7 +4259,7 @@ function openEditPanel(){
     returnDate: P.returnDate || addDays(P.date, P.nights),
     origin: P.origin || 'ICN',
     adults: Number(P.adults) || 2,
-    children: Number(P.children) || 0,
+    children: 0,
     budget: Number(P.budget) || 1200000,
     styles: normalizeStyles(Array.isArray(P.styles) ? P.styles : []),
     packageType: currentPackageType(),
@@ -3962,7 +4270,6 @@ function openEditPanel(){
   setInputValue('edit-date', editDraft.date);
   setInputValue('edit-return-date', editDraft.returnDate);
   setInputValue('edit-adults', String(editDraft.adults));
-  setInputValue('edit-children', String(editDraft.children));
   setBudgetInputValue(editDraft.budget);
   document.getElementById('edit-overlay')?.classList.add('on');
   document.getElementById('edit-overlay')?.setAttribute('aria-hidden', 'false');
@@ -4023,7 +4330,7 @@ function readEditFields(){
   editDraft.date = document.getElementById('edit-date')?.value || P.date;
   editDraft.returnDate = document.getElementById('edit-return-date')?.value || addDays(editDraft.date, 3);
   editDraft.adults = Math.max(1, Number(document.getElementById('edit-adults')?.value) || 1);
-  editDraft.children = Math.max(0, Number(document.getElementById('edit-children')?.value) || 0);
+  editDraft.children = 0;
   editDraft.budget = parseBudgetInput(document.getElementById('edit-budget')?.value);
   syncEditSoloStyle();
 }
@@ -4054,25 +4361,25 @@ function updateUrlFromConditions(){
     nights: String(P.nights),
     origin: P.origin,
     adults: String(P.adults),
-    children: String(P.children || 0),
+    children: '0',
     budget: String(P.budget),
     tripType: P.tripType || 'RT',
   });
   window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
 }
 
-const PLAN_LOADING_MESSAGE = '입력한 조건에 맞춰 예산과 동선을 정리하고 있어요.\n잠시 후 가장 현실적인 후보부터 보여드릴게요.';
+const PLAN_LOADING_MESSAGE = '항공·숙소·추천 티켓을\n예산에 맞춰 정리 중입니다.';
 
 function showPageLoading(message = PLAN_LOADING_MESSAGE){
   const loading = document.getElementById('page-loading');
   if(loading && !document.getElementById('page-loading-title')) {
     loading.innerHTML = `<div class="page-spinner"></div>
-      <div class="page-loading-txt" id="page-loading-title">AI 플랜 생성 중</div>
+      <div class="page-loading-txt" id="page-loading-title">여행 플랜을 계산하고 있어요</div>
       <div class="page-loading-sub" id="page-loading-sub"></div>`;
   }
   const title = document.getElementById('page-loading-title');
   const sub = document.getElementById('page-loading-sub');
-  if(title) title.textContent = 'AI 플랜 생성 중';
+  if(title) title.textContent = '여행 플랜을 계산하고 있어요';
   if(sub) sub.textContent = PLAN_LOADING_MESSAGE;
   if(loading) loading.style.display = 'flex';
 }
@@ -4089,7 +4396,7 @@ async function applyEditChanges(){
     nights: validation.nights,
     origin: editDraft.origin,
     adults: editDraft.adults,
-    children: editDraft.children,
+    children: 0,
     budget: editDraft.budget,
     styles: editDraft.styles.slice(0,2),
     packages,
@@ -4097,7 +4404,7 @@ async function applyEditChanges(){
   });
   PLAN_INPUT = null;
   PLAN_SUMMARY = null;
-  RESULT_DATA = { flights: [], stays: [], tnas: [] };
+  RESULT_DATA = { flights: [], stays: [], agodaStays: [], tnas: [] };
   RESULT_FILTERS.hotels = null;
   RESULT_FILTERS.tours = null;
   RESULT_FILTERS.flights = null;
@@ -4116,7 +4423,7 @@ async function applyEditChanges(){
   await fetchAndRender();
 }
 
-['edit-city','edit-origin','edit-date','edit-return-date','edit-adults','edit-children','edit-budget'].forEach((id) => {
+['edit-city','edit-origin','edit-date','edit-return-date','edit-adults','edit-budget'].forEach((id) => {
   document.addEventListener('input', (event) => {
     if(event.target && event.target.id === 'edit-budget') normalizeBudgetInput();
     if(event.target && event.target.id === id) validateEditDraft();
@@ -4174,13 +4481,17 @@ async function fetchAndRender(){
       nights:   String(P.nights),
       origin:   P.origin,
       adults:   String(P.adults || 1),
-      children: String(P.children || 0),
+      children: '0',
       tripType: P.tripType || 'RT',
     });
     const flags = packageFlags();
     params.set('includeFlight', flags.flight ? 'true' : 'false');
     params.set('includeHotel', flags.hotel ? 'true' : 'false');
     params.set('includeTour', flags.tour ? 'true' : 'false');
+    if(PLAN_INPUT?.recommendedExtras || P.recommendedExtras) params.set('recommendedExtras', PLAN_INPUT?.recommendedExtras || P.recommendedExtras);
+    if(PLAN_INPUT?.templateTitle || P.templateTitle) params.set('templateTitle', PLAN_INPUT?.templateTitle || P.templateTitle);
+    if(PLAN_INPUT?.routeStyle || P.routeStyle) params.set('routeStyle', PLAN_INPUT?.routeStyle || P.routeStyle);
+    if(PLAN_INPUT?.planType || P.planType) params.set('planType', PLAN_INPUT?.planType || P.planType);
     params.set('_ts', String(Date.now()));
     const res  = await fetch(`/api/planner?${params}`, { cache:'no-store' });
     showPageLoading();
@@ -4214,17 +4525,19 @@ async function fetchAndRender(){
 
     let flights = flags.flight ? prepareFlightResults(data.flights || []) : [];
     const rawStays = flags.hotel ? (data.stays || []) : [];
-    const rawTnas = flags.tour ? (data.tnas || []) : [];
+    const agodaStays = flags.hotel ? await fetchAgodaHotelsForResult() : [];
+    const shouldShowSupportTickets = flags.tour || supportTicketsAllowed();
+    const rawTnas = shouldShowSupportTickets ? (data.tnas || []) : [];
     let stays = flags.hotel ? prepareHotelResults(rawStays) : [];
-    let tourItems = flags.tour ? prepareTourResults(rawTnas) : [];
-    RESULT_DATA = { flights, stays, tnas: tourItems };
+    let tourItems = shouldShowSupportTickets ? prepareTourResults(rawTnas) : [];
+    RESULT_DATA = { flights, stays, agodaStays, tnas: tourItems };
 
     sanitizePlanSummaryForPackage();
     if(flags.flight) updatePlanSummaryFlightBudget(flights);
     if(flags.hotel) updatePlanSummaryHotelBudget(rawStays);
     sanitizePlanSummaryForPackage();
     if(flags.hotel) stays = prepareHotelResults(rawStays);
-    RESULT_DATA = { flights, stays, tnas: tourItems };
+    RESULT_DATA = { flights, stays, agodaStays, tnas: tourItems };
 
     if(shouldUseBudgetFirstMode()) {
       captureOriginalEstimateBeforeBudgetFirst();
@@ -4233,13 +4546,13 @@ async function fetchAndRender(){
       if(PLAN_SUMMARY.budget) PLAN_SUMMARY.budget.budgetMode = 'budget_first';
       flights = flags.flight ? prepareFlightResults(data.flights || []) : [];
       stays = flags.hotel ? prepareHotelResults(rawStays) : [];
-      tourItems = flags.tour ? prepareTourResults(rawTnas) : [];
-      RESULT_DATA = { flights, stays, tnas: tourItems };
+      tourItems = shouldShowSupportTickets ? prepareTourResults(rawTnas) : [];
+      RESULT_DATA = { flights, stays, agodaStays, tnas: tourItems };
       if(flags.flight) updatePlanSummaryFlightBudget(flights);
       if(flags.hotel) updatePlanSummaryHotelBudget(rawStays);
       sanitizePlanSummaryForPackage();
       if(flags.hotel) stays = prepareHotelResults(rawStays);
-      RESULT_DATA = { flights, stays, tnas: tourItems };
+      RESULT_DATA = { flights, stays, agodaStays, tnas: tourItems };
       PLAN_SUMMARY.forceBudgetFirst = true;
       PLAN_SUMMARY.budgetMode = 'budget_first';
       if(PLAN_SUMMARY.budget) PLAN_SUMMARY.budget.budgetMode = 'budget_first';
