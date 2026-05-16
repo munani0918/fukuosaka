@@ -210,6 +210,7 @@
       line-height: 15px;
       font-weight: 800;
       text-align: center;
+      word-break: keep-all;
     }
     .preset-plan-link {
       display: inline-flex;
@@ -396,6 +397,9 @@
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
+    }
+    .people-grid.single {
+      grid-template-columns: 1fr;
     }
     .people-grid { margin-bottom: 16px; }
     .date-lbl,
@@ -868,9 +872,9 @@
   <div id="app">
     <div id="loading-screen">
       <div class="loader-ring"></div>
-      <div class="ld-title" id="ld-title">AI 플랜 생성 중</div>
-      <div class="ld-sub" id="ld-sub">입력한 조건에 맞춰 예산과 동선을 정리하고 있어요.
-잠시 후 가장 현실적인 후보부터 보여드릴게요.</div>
+      <div class="ld-title" id="ld-title">여행 플랜을 계산하고 있어요</div>
+      <div class="ld-sub" id="ld-sub">항공·숙소·추천 티켓을
+예산에 맞춰 정리 중입니다.</div>
     </div>
 
     <div id="wizard">
@@ -921,7 +925,7 @@
     const STEP_LABELS = ["도시 선택", "일정·출발지", "인원·예산", "여행 스타일", "추천 구성"];
     const PRESET_STEP_LABELS = ["여행 조건 확인", "여행 스타일", "결과 보기"];
     const SAMPLE_PRESET_STEP_LABELS = ["조건 확인", "결과 보기"];
-    const ORIGINS = [["ICN", "인천"], ["GMP", "김포"], ["PUS", "부산/김해"], ["CJU", "제주"]];
+    const ORIGINS = [["ICN", "인천"], ["GMP", "김포"], ["PUS", "부산/김해"], ["CJJ", "청주"], ["CJU", "제주"]];
     const MAX_NIGHTS = 4;
     const STYLE_OPTIONS = [["food", "맛집"], ["shopping", "쇼핑"], ["sightseeing", "관광"], ["family", "가족"], ["onsen", "온천"], ["couple", "커플"], ["solo", "혼자"]];
     const STYLE_LABELS = Object.fromEntries(STYLE_OPTIONS);
@@ -995,7 +999,7 @@
     }
 
     function travelerWeight() {
-      return Math.max(1, F.adults + F.children * 0.65);
+      return Math.max(1, F.adults);
     }
 
     function totalBudgetFromPreset(preset) {
@@ -1029,7 +1033,47 @@
     }
 
     function isSamplePresetFlow() {
-      return isPresetFlow() && String(F.entrySource || "").startsWith("sample-");
+      return isPresetFlow() && (String(F.entrySource || "").startsWith("sample-") || Boolean(F.templateTitle));
+    }
+
+    function clearPresetEntryStorage() {
+      [
+        "plannerBudgetPreset",
+        "plannerBudgetInputMode",
+        "plannerPackageType",
+        "plannerNearbyMode",
+        "plannerBudget",
+        "plannerNights",
+        "plannerCity",
+        "plannerStyles",
+        "plannerTemplateTitle",
+        "plannerRouteStyle",
+        "plannerPlanType",
+        "plannerRecommendedExtras",
+        "plannerNearbyTrip",
+        "plannerEntrySource",
+      ].forEach((key) => sessionStorage.removeItem(key));
+    }
+
+    function clearPresetStateForCustomEntry() {
+      F.budgetInputMode = "custom";
+      F.entrySource = "";
+      F.templateTitle = "";
+      F.routeStyle = "";
+      F.planType = "";
+      F.recommendedExtras = "";
+      F.nearbyTrip = "";
+      F.budgetPreset = "";
+      F.feasibilityPackageType = "";
+    }
+
+    function hasExplicitPresetEntry(params) {
+      const queryMode = params.get("budgetInputMode");
+      return (
+        params.has("budgetPreset") ||
+        queryMode === "preset" ||
+        params.has("templateTitle")
+      );
     }
 
     function totalSteps() {
@@ -1064,9 +1108,9 @@
       const nights = Math.max(1, Number(F.nights) || 1);
       const days = nights + 1;
       const adults = Math.max(1, Number(F.adults) || 1);
-      const children = Math.max(0, Number(F.children) || 0);
-      const totalTravelers = adults + children;
-      const weight = Math.max(1, adults + children * 0.65);
+      const children = 0;
+      const totalTravelers = adults;
+      const weight = Math.max(1, adults);
       const rooms = totalTravelers <= 3 ? 1 : Math.ceil(totalTravelers / 2);
       const styles = normalizeStyles(F.styles);
       let subtotal = 0;
@@ -1239,19 +1283,19 @@
       const preset = activePreset();
       if (!preset) return "";
       const routeStyle = F.routeStyle ? ` · ${F.routeStyle}` : "";
-      return `<div class="preset-badge">${preset.label} 예산으로 시작 중 · ${preset.range}${routeStyle || ` · ${preset.note}`}</div>`;
+      const duration = ` · ${F.nights}박${F.nights + 1}일 기준`;
+      return `<div class="preset-badge">${preset.label} 예산으로 시작 중 · ${preset.range}${routeStyle || duration}</div>`;
     }
 
     function presetBudgetNote() {
       const preset = activePreset();
       if (!preset) return "";
       const total = totalBudgetFromPreset(preset);
-      const adultText = `성인 ${F.adults}명`;
-      const childText = F.children > 0 ? ` + 아동 ${F.children}명(0.65명 기준)` : "";
+      const travelerText = `여행자 ${F.adults}명`;
       return `
         <div class="preset-note" id="preset-budget-note">
           <div class="preset-note-title">${preset.label} 예산 참고 기준</div>
-          <div>1인 <strong>${formatManwon(preset.defaultBudgetPerPerson)}</strong> × ${adultText}${childText} 기준 = 추천 총예산 <strong>${formatManwon(total)}</strong></div>
+          <div>1인 <strong>${formatManwon(preset.defaultBudgetPerPerson)}</strong> × ${travelerText} 기준 = 추천 총예산 <strong>${formatManwon(total)}</strong></div>
         </div>
       `;
     }
@@ -1288,7 +1332,7 @@
         if (saved.nights) F.nights = Number(saved.nights);
         if (saved.origin) F.origin = saved.origin;
         if (saved.adults) F.adults = Number(saved.adults);
-        if (saved.children) F.children = Number(saved.children);
+        F.children = 0;
         if (saved.budget) F.budget = Number(saved.budget);
         if (saved.budgetPreset) F.budgetPreset = normalizeBudgetPresetId(saved.budgetPreset);
         if (saved.budgetPerPerson) F.budgetPerPerson = Number(saved.budgetPerPerson);
@@ -1306,8 +1350,15 @@
         if (saved.nearbyTrip) F.nearbyTrip = saved.nearbyTrip;
       } catch (error) {}
 
+      F.children = 0;
+
       try {
         const params = new URLSearchParams(window.location.search);
+        const explicitPresetEntry = hasExplicitPresetEntry(params);
+        if (!explicitPresetEntry) {
+          clearPresetStateForCustomEntry();
+          clearPresetEntryStorage();
+        }
         const queryPreset = normalizeBudgetPresetId(params.get("budgetPreset"));
         const sessionPreset = normalizeBudgetPresetId(sessionStorage.getItem("plannerBudgetPreset"));
         const queryMode = params.get("budgetInputMode");
@@ -1355,19 +1406,7 @@
         if (!presetId && presetBudget) {
           F.budget = Number(presetBudget);
         }
-        sessionStorage.removeItem("plannerBudgetPreset");
-        sessionStorage.removeItem("plannerBudgetInputMode");
-        sessionStorage.removeItem("plannerPackageType");
-        sessionStorage.removeItem("plannerNearbyMode");
-        sessionStorage.removeItem("plannerBudget");
-        sessionStorage.removeItem("plannerNights");
-        sessionStorage.removeItem("plannerCity");
-        sessionStorage.removeItem("plannerStyles");
-        sessionStorage.removeItem("plannerTemplateTitle");
-        sessionStorage.removeItem("plannerRouteStyle");
-        sessionStorage.removeItem("plannerPlanType");
-        sessionStorage.removeItem("plannerRecommendedExtras");
-        sessionStorage.removeItem("plannerNearbyTrip");
+        clearPresetEntryStorage();
       } catch (error) {}
 
       if (F.nights > MAX_NIGHTS) {
@@ -1388,7 +1427,8 @@
       area.innerHTML = `<div class="step-wrap ${cls}">${templates[nextStep]()}</div>`;
       injectPresetUi(nextStep);
       if ((!isPresetFlow() && nextStep === 2) || (isPresetFlow() && nextStep === 1)) {
-        recalcNights();
+        if (isSamplePresetFlow()) syncReturnFromNights();
+        else recalcNights();
         syncDateUI();
       }
       if (!isPresetFlow() && nextStep === 3) updateBudgetUI();
@@ -1479,9 +1519,7 @@
     }
 
     function peopleLabel() {
-      const parts = [`성인 ${F.adults}명`];
-      if (F.children > 0) parts.push(`아동 ${F.children}명`);
-      return parts.join(" · ");
+      return `여행자 ${F.adults}명`;
     }
 
     function summaryText() {
@@ -1703,21 +1741,13 @@
         <p class="step-sub">항공·숙소·투어/티켓 예약 기준 예산이에요. 현지 사용비는 결과에서 별도로 안내돼요.</p>
         ${summaryChip()}
 
-        <div class="people-grid">
+        <div class="people-grid single">
           <div class="stepper-card">
-            <div class="stpr-lbl">성인</div>
+            <div class="stpr-lbl">여행자 수</div>
             <div class="stpr-row">
               <button class="stpr-btn" type="button" onclick="stepPeople('adults', -1)">−</button>
               <div class="stpr-val" id="v-adults">${F.adults}</div>
               <button class="stpr-btn plus" type="button" onclick="stepPeople('adults', 1)">+</button>
-            </div>
-          </div>
-          <div class="stepper-card">
-            <div class="stpr-lbl">아동</div>
-            <div class="stpr-row">
-              <button class="stpr-btn" type="button" onclick="stepPeople('children', -1)">−</button>
-              <div class="stpr-val" id="v-children">${F.children}</div>
-              <button class="stpr-btn plus" type="button" onclick="stepPeople('children', 1)">+</button>
             </div>
           </div>
         </div>
@@ -1800,10 +1830,10 @@
 
     function packageTypeLabel(packageType) {
       return {
-        flight_hotel_tour: "항공 + 숙소 + 투어",
-        flight_hotel: "항공 + 숙소",
-        hotel_tour: "숙소 + 투어",
-      }[packageType] || "항공 + 숙소 + 투어";
+        flight_hotel_tour: "항공+숙소+투어",
+        flight_hotel: "항공+숙소",
+        hotel_tour: "숙소+투어",
+      }[packageType] || "항공+숙소+투어";
     }
 
     function samplePresetStepOne() {
@@ -1836,21 +1866,13 @@
         </div>
 
         <div class="sec-lbl">인원</div>
-        <div class="people-grid">
+        <div class="people-grid single">
           <div class="stepper-card">
-            <div class="stpr-lbl">성인</div>
+            <div class="stpr-lbl">여행자 수</div>
             <div class="stpr-row">
               <button class="stpr-btn" type="button" onclick="stepPeople('adults', -1)">−</button>
               <div class="stpr-val" id="v-adults">${F.adults}</div>
               <button class="stpr-btn plus" type="button" onclick="stepPeople('adults', 1)">+</button>
-            </div>
-          </div>
-          <div class="stepper-card">
-            <div class="stpr-lbl">아동</div>
-            <div class="stpr-row">
-              <button class="stpr-btn" type="button" onclick="stepPeople('children', -1)">−</button>
-              <div class="stpr-val" id="v-children">${F.children}</div>
-              <button class="stpr-btn plus" type="button" onclick="stepPeople('children', 1)">+</button>
             </div>
           </div>
         </div>
@@ -1927,21 +1949,13 @@
         </div>
 
         <div class="sec-lbl">인원</div>
-        <div class="people-grid">
+        <div class="people-grid single">
           <div class="stepper-card">
-            <div class="stpr-lbl">성인</div>
+            <div class="stpr-lbl">여행자 수</div>
             <div class="stpr-row">
               <button class="stpr-btn" type="button" onclick="stepPeople('adults', -1)">−</button>
               <div class="stpr-val" id="v-adults">${F.adults}</div>
               <button class="stpr-btn plus" type="button" onclick="stepPeople('adults', 1)">+</button>
-            </div>
-          </div>
-          <div class="stepper-card">
-            <div class="stpr-lbl">아동</div>
-            <div class="stpr-row">
-              <button class="stpr-btn" type="button" onclick="stepPeople('children', -1)">−</button>
-              <div class="stpr-val" id="v-children">${F.children}</div>
-              <button class="stpr-btn plus" type="button" onclick="stepPeople('children', 1)">+</button>
             </div>
           </div>
         </div>
@@ -2007,7 +2021,7 @@
     function onDepartChange() {
       F.departDate = document.getElementById("d-dep").value;
       if (isSamplePresetFlow()) syncReturnFromNights();
-      if (F.departDate && F.returnDate) recalcNights();
+      else if (F.departDate && F.returnDate) recalcNights();
       syncDateUI();
       refreshCta();
     }
@@ -2106,9 +2120,14 @@
       const retSub = document.getElementById("ret-sub");
       const summary = document.getElementById("date-summary");
       const error = document.getElementById("date-error");
+      const departInput = document.getElementById("d-dep");
       const returnInput = document.getElementById("d-ret");
       const validation = getDateValidation();
-      if (returnInput) returnInput.min = minReturnDate();
+      if (departInput && departInput.value !== F.departDate) departInput.value = F.departDate;
+      if (returnInput) {
+        returnInput.min = minReturnDate();
+        if (returnInput.value !== F.returnDate) returnInput.value = F.returnDate;
+      }
       if (depSub) depSub.textContent = fmtDate(F.departDate);
       if (retSub) retSub.textContent = fmtDate(F.returnDate);
       if (summary) {
@@ -2124,8 +2143,8 @@
     }
 
     function stepPeople(key, delta) {
-      const min = key === "adults" ? 1 : 0;
-      F[key] = Math.max(min, Math.min(8, F[key] + delta));
+      if (key !== "adults") return;
+      F[key] = Math.max(1, Math.min(10, F[key] + delta));
       const preset = activePreset();
       if (preset && !F.isBudgetManuallyEdited) {
         F.budget = totalBudgetFromPreset(preset);
@@ -2256,14 +2275,14 @@
         if (!proceed) return;
       }
       const loadingMessages = [
-        "선택한 조건에 맞는 여행 후보를 정리하고 있어요.",
-        "예산에 맞는 조합을 계산하고 있어요.",
-        "일정과 추천 후보를 자연스럽게 맞춰보고 있어요.",
+        "예산 구성을 계산하고 있어요",
+        "항공권과 숙소 후보를 찾고 있어요",
+        "추천 티켓과 일정을 정리하고 있어요",
       ];
       let loadingIndex = 0;
       const loadingTitle = document.getElementById("ld-title");
       const loadingSub = document.getElementById("ld-sub");
-      loadingTitle.textContent = "AI 플랜 생성 중";
+      loadingTitle.textContent = "여행 플랜을 계산하고 있어요";
       loadingSub.textContent = loadingMessages[loadingIndex];
 
       const conditions = {
@@ -2273,7 +2292,7 @@
         nights: F.nights,
         origin: F.origin,
         adults: F.adults,
-        children: F.children,
+        children: 0,
         budget: F.budget,
         budgetPreset: F.budgetPreset,
         budgetPerPerson: F.budgetPerPerson,

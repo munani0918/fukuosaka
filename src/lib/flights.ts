@@ -1,6 +1,6 @@
 import type { FlightTripTypeCode } from "@/src/lib/myrealtrip";
 
-export type FlightAirportCode = "ALL" | "ICN" | "GMP" | "PUS" | "TAE" | "CJJ" | "MWX";
+export type FlightAirportCode = "ALL" | "ICN" | "GMP" | "PUS" | "TAE" | "CJJ";
 export type FlightDestinationCode = "KIX" | "FUK";
 export type FlightTripType = Extract<FlightTripTypeCode, "OW" | "RT">;
 
@@ -35,7 +35,6 @@ export const KOREA_DIRECT_FLIGHT_AIRPORTS: AirportOption[] = [
   { code: "PUS", name: "김해국제공항", city: "부산" },
   { code: "TAE", name: "대구국제공항", city: "대구" },
   { code: "CJJ", name: "청주국제공항", city: "청주" },
-  { code: "MWX", name: "무안국제공항", city: "무안" },
 ];
 
 export const JAPAN_FLIGHT_DESTINATIONS: Array<{
@@ -48,8 +47,8 @@ export const JAPAN_FLIGHT_DESTINATIONS: Array<{
 ];
 
 const DIRECT_ROUTE_ORIGINS: Record<FlightDestinationCode, AirportOption["code"][]> = {
-  KIX: ["ICN", "GMP", "PUS", "TAE", "CJJ", "MWX"],
-  FUK: ["ICN", "PUS", "TAE", "CJJ", "MWX"],
+  KIX: ["ICN", "GMP", "PUS", "TAE", "CJJ"],
+  FUK: ["ICN", "PUS", "TAE", "CJJ"],
 };
 
 function formatDate(date: Date) {

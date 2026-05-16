@@ -2,7 +2,6 @@ import Link from "next/link";
 
 import {
   BedIcon,
-  ChevronRightIcon,
   PlaneIcon,
   TicketIcon,
 } from "@/src/components/home/icons";
@@ -59,7 +58,6 @@ export function QuickSearchLinks() {
             <span className="mt-1 text-[10px] font-semibold leading-3 tracking-[-0.03em] text-[#8d7c74]">
               {item.description}
             </span>
-            <ChevronRightIcon className="mt-auto h-3.5 w-3.5 self-end text-[#b9a8a0] transition group-hover:translate-x-0.5" />
           </Link>
         ))}
       </div>

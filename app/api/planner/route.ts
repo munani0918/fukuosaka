@@ -263,14 +263,79 @@ function parseTnas(data: Record<string, unknown> | null) {
 function toPlannerTna(item: TnaSearchItem) {
   return {
     name: item.itemName,
+    title: item.itemName,
     img: item.imageUrl ?? '',
     rating: item.reviewScore ? String(item.reviewScore) : '',
     reviewCount: item.reviewCount ? String(item.reviewCount) : '',
     price: item.priceDisplay,
     bookUrl: item.productUrl,
+    productUrl: item.productUrl,
+    url: item.productUrl,
+    deepLink: item.deepLink ?? '',
     gid: item.gid,
     tag: item.category ?? '',
+    category: item.category ?? '',
+    tags: item.tags ?? [],
+    source: 'myrealtrip',
   };
+}
+
+function hasUsableTnaUrl(item: TnaSearchItem) {
+  const url = String(item.productUrl || item.deepLink || '').trim();
+  return Boolean(url) && !/undefined|null|#/.test(url);
+}
+
+function sampleTnaKeywords(options: {
+  cityCode: string;
+  recommendedExtras?: string;
+  templateTitle?: string;
+  routeStyle?: string;
+  planType?: string;
+}) {
+  const text = `${options.recommendedExtras || ''} ${options.templateTitle || ''} ${options.routeStyle || ''} ${options.planType || ''}`.toLowerCase();
+  if (options.cityCode === 'FUK') {
+    if (text.includes('onsen') || text.includes('온천')) {
+      return ['유후인 벳푸 투어', '산큐패스', '일본 eSIM'];
+    }
+    return ['후쿠오카 지하철 1일권', '산큐패스', '일본 eSIM'];
+  }
+  if (text.includes('standard') || text.includes('표준')) {
+    return ['오사카 주유패스', '유니버설 스튜디오 재팬', '일본 eSIM'];
+  }
+  return ['오사카 주유패스', '라피트', '일본 eSIM'];
+}
+
+async function searchPlannerTnas(options: {
+  cityCode: string;
+  cityKeyword: string;
+  recommendedExtras?: string;
+  templateTitle?: string;
+  routeStyle?: string;
+  planType?: string;
+}) {
+  const keywords = sampleTnaKeywords(options);
+  const results = await Promise.allSettled(
+    keywords.map((keyword) => searchTnaProductsViaApi({
+      keyword,
+      city: options.cityKeyword,
+      category: 'all',
+      sort: 'selling_count_desc',
+      page: 1,
+      perPage: 4,
+    })),
+  );
+  const seen = new Set<string>();
+  const items: TnaSearchItem[] = [];
+  for (const result of results) {
+    if (result.status !== 'fulfilled' || !result.value.ok) continue;
+    for (const item of result.value.data.items) {
+      const key = item.gid || item.productUrl || item.itemName;
+      if (!key || seen.has(key) || !hasUsableTnaUrl(item)) continue;
+      seen.add(key);
+      items.push(item);
+    }
+  }
+  return items.slice(0, 9);
 }
 
 function getFallbackTnas(cityCode: string) {
@@ -425,6 +490,12 @@ export async function GET(request: NextRequest) {
   const includeFlight = p.get('includeFlight') !== 'false';
   const includeHotel = p.get('includeHotel') !== 'false';
   const includeTour = p.get('includeTour') !== 'false';
+  const recommendedExtras = p.get('recommendedExtras') ?? '';
+  const templateTitle = p.get('templateTitle') ?? '';
+  const routeStyle = p.get('routeStyle') ?? '';
+  const planType = p.get('planType') ?? '';
+  const includeSupportTickets = Boolean(recommendedExtras || templateTitle || routeStyle || planType);
+  const includeTna = includeTour || includeSupportTickets;
 
   const d = new Date(date);
   d.setDate(d.getDate() + nights);
@@ -459,15 +530,9 @@ export async function GET(request: NextRequest) {
         passengers: { adult: adults, child: children, infant: 0 },
         maxResults: 50,
       }) : Promise.resolve(null);
-    const tnaPromise = includeTour ? searchTnaProductsViaApi({
-        keyword: `${cityKeyword} 관광`,
-        city: cityKeyword,
-        category: 'all',
-        sort: 'selling_count_desc',
-        page: 1,
-        perPage: 6,
-      }) : Promise.resolve({ ok: false as const });
-
+    const tnaPromise = includeTna
+      ? searchPlannerTnas({ cityCode, cityKeyword, recommendedExtras, templateTitle, routeStyle, planType })
+      : Promise.resolve([]);
     const [stayResult, flightData, tnaResult] = await Promise.all([
       stayPromise,
       flightPromise,
@@ -476,11 +541,11 @@ export async function GET(request: NextRequest) {
 
     const flights = includeFlight ? parseFlights(flightData as Record<string, unknown>) : [];
     const stays   = includeHotel ? stayResult.stays : [];
-    const liveTnas = includeTour && tnaResult.ok ? tnaResult.data.items.map(toPlannerTna) : [];
-    const tnas    = includeTour ? (liveTnas.length ? liveTnas : getFallbackTnas(cityCode)) : [];
+    const liveTnas = includeTna ? tnaResult.map(toPlannerTna) : [];
+    const tnas    = includeTna ? (liveTnas.length ? liveTnas : getFallbackTnas(cityCode)) : [];
 
     return NextResponse.json(
-      { flights, stays, tnas, meta: { date, returnDate, nights, cityCode, cityKeyword, adults, children, tripType, includeFlight, includeHotel, includeTour, stayKeywords: stayResult.keywords, stayCandidateCount: stayResult.candidateCount, stayErrors: stayResult.errors } },
+      { flights, stays, tnas, meta: { date, returnDate, nights, cityCode, cityKeyword, adults, children, tripType, includeFlight, includeHotel, includeTour, includeSupportTickets, includeTna, stayKeywords: stayResult.keywords, stayCandidateCount: stayResult.candidateCount, stayErrors: stayResult.errors } },
       { headers: CORS }
     );
   } catch (err) {
@@ -488,8 +553,8 @@ export async function GET(request: NextRequest) {
       {
         flights: [],
         stays: [],
-        tnas: includeTour ? getFallbackTnas(cityCode) : [],
-        meta: { date, returnDate, nights, cityCode, cityKeyword, adults, children, tripType, includeFlight, includeHotel, includeTour, fallback: true, error: String(err) },
+        tnas: includeTna ? getFallbackTnas(cityCode) : [],
+        meta: { date, returnDate, nights, cityCode, cityKeyword, adults, children, tripType, includeFlight, includeHotel, includeTour, includeSupportTickets, includeTna, fallback: true, error: String(err) },
       },
       { headers: CORS },
     );

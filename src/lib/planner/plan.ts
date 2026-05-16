@@ -12,7 +12,7 @@ export type PlanInput = {
   endDate: string;
   nights: number;
   days: number;
-  departureAirport: "ICN" | "GMP" | "PUS" | "CJU";
+  departureAirport: "ICN" | "GMP" | "PUS" | "CJJ" | "CJU";
   adults: number;
   children: number;
   totalBudget: number;
@@ -114,6 +114,7 @@ const AIRPORT_MULTIPLIER = {
   ICN: 1,
   GMP: 1.05,
   PUS: 0.95,
+  CJJ: 1.02,
   CJU: 1.15,
 } as const;
 
@@ -158,7 +159,7 @@ function normalizeCity(value?: string) {
 }
 
 function normalizeAirport(value?: string): PlanInput["departureAirport"] {
-  if (value === "GMP" || value === "PUS" || value === "CJU") return value;
+  if (value === "GMP" || value === "PUS" || value === "CJJ" || value === "CJU") return value;
   return "ICN";
 }
 
@@ -251,7 +252,7 @@ export function normalizePlanInput(raw: RawPlanInput = {}): PlanInput {
     throw new Error("MAX_TRIP_NIGHTS_EXCEEDED");
   }
   const adults = Math.max(1, toNumber(raw.adults, 2));
-  const children = Math.max(0, toNumber(raw.children, 0));
+  const children = 0;
 
   return {
     city,

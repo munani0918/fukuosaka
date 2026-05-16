@@ -46,6 +46,20 @@ export function PlannerEntryButton({
     } else {
       window.sessionStorage.removeItem("plannerBudgetPreset");
       window.sessionStorage.setItem("plannerBudgetInputMode", "custom");
+      [
+        "plannerBudget",
+        "plannerNights",
+        "plannerPackageType",
+        "plannerNearbyMode",
+        "plannerCity",
+        "plannerStyles",
+        "plannerTemplateTitle",
+        "plannerRouteStyle",
+        "plannerPlanType",
+        "plannerRecommendedExtras",
+        "plannerNearbyTrip",
+        "plannerConditions",
+      ].forEach((key) => window.sessionStorage.removeItem(key));
     }
 
     if (presetBudget) {
