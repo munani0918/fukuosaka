@@ -13,6 +13,7 @@ import {
   type AccommodationSearchItem,
 } from "@/src/lib/myrealtrip";
 import {
+  addStayDays,
   buildStayResultsHref,
   coerceStaySearchState,
   formatStayPriceLabel,
@@ -62,6 +63,18 @@ function buildSnapshot(
 function hiddenFieldValue(value: string | number | null | undefined) {
   if (value === null || value === undefined) return "";
   return String(value);
+}
+
+function formatStayDetailPriceText(value: string | null | undefined) {
+  const cleaned = value?.replace(/\s+/g, " ").trim();
+  if (!cleaned) return "가격 확인";
+
+  const amountMatch = cleaned.match(/([\d,]+)\s*원/);
+  if (amountMatch) {
+    return `1박 ${amountMatch[1]}원~`;
+  }
+
+  return cleaned;
 }
 
 export default async function StayDetailPage({
@@ -130,9 +143,15 @@ export default async function StayDetailPage({
   const backHref = buildStayResultsHref(state);
   const stickyHref = primaryRoom?.bookUrl ?? stay.bookUrl;
   const stickyPrice =
-    primaryRoom?.footerPriceText ??
-    primaryRoom?.averagePriceText ??
-    formatStayPriceLabel(stay.salePrice);
+    formatStayDetailPriceText(
+      primaryRoom?.footerPriceText ??
+        primaryRoom?.averagePriceText ??
+        formatStayPriceLabel(stay.salePrice),
+    );
+  const heroPrice = formatStayDetailPriceText(
+    primaryRoom?.averagePriceText ?? formatStayPriceLabel(stay.salePrice),
+  );
+  const minCheckOut = addStayDays(state.checkIn, 1);
   const detailAddress = productDetail.ok ? productDetail.address : null;
 
   return (
@@ -171,7 +190,7 @@ export default async function StayDetailPage({
                 <img
                   src={stay.imageUrl}
                   alt={stay.itemName}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover object-center"
                   referrerPolicy="no-referrer"
                 />
               ) : (
@@ -220,8 +239,8 @@ export default async function StayDetailPage({
 
                 <div className="shrink-0 rounded-[18px] bg-[#fff7f3] px-4 py-3 text-right ring-1 ring-[#f0ded6]">
                   <p className="text-[11px] font-semibold text-[#9f8c84]">최저가 기준</p>
-                  <p className="mt-1 whitespace-nowrap text-[18px] font-black tracking-[-0.05em] text-[#221c19]">
-                    {primaryRoom?.averagePriceText ?? formatStayPriceLabel(stay.salePrice)}
+                  <p className="mt-1 whitespace-nowrap text-[16px] font-black tracking-[-0.05em] text-[#221c19]">
+                    {heroPrice}
                   </p>
                 </div>
               </div>
@@ -237,7 +256,7 @@ export default async function StayDetailPage({
                     </p>
                   </div>
                   <span className="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-[#b18778] ring-1 ring-[#efddd5]">
-                    성인 {state.adultCount}명
+                    성인 {state.adultCount} · 아동 {state.childCount} · 객실 {state.roomCount}
                   </span>
                 </div>
 
@@ -260,6 +279,7 @@ export default async function StayDetailPage({
                     <input
                       type="date"
                       name="checkOut"
+                      min={minCheckOut}
                       defaultValue={state.checkOut}
                       className="h-11 w-full rounded-[16px] border border-[#eadcd3] bg-white px-3 text-[13px] font-semibold text-[#241b17] outline-none"
                     />
@@ -268,6 +288,8 @@ export default async function StayDetailPage({
                   <input type="hidden" name="keyword" value={state.keyword} />
                   <input type="hidden" name="adultCount" value={state.adultCount} />
                   <input type="hidden" name="childCount" value={state.childCount} />
+                  <input type="hidden" name="roomCount" value={state.roomCount} />
+                  <input type="hidden" name="rooms" value={state.roomCount} />
                   <input type="hidden" name="isDomestic" value={String(state.isDomestic)} />
                   <input type="hidden" name="name" value={stay.itemName} />
                   <input type="hidden" name="salePrice" value={hiddenFieldValue(stay.salePrice)} />
@@ -319,7 +341,7 @@ export default async function StayDetailPage({
                             <img
                               src={room.imageUrl}
                               alt={room.title}
-                              className="h-full w-full object-cover"
+                              className="h-full w-full object-cover object-center"
                               referrerPolicy="no-referrer"
                             />
                           ) : (
@@ -373,11 +395,12 @@ export default async function StayDetailPage({
                                 <p className="text-[11px] font-semibold text-[#9b8780]">
                                   {room.priceLabel ?? "선택한 날짜 기준"}
                                 </p>
-                                <p className="mt-1 text-[18px] font-black tracking-[-0.04em] text-[#201b19]">
-                                  {room.footerPriceText ??
-                                    room.averagePriceText ??
-                                    room.totalPriceText ??
-                                    "가격 확인"}
+                                <p className="mt-1 whitespace-nowrap text-[16px] font-black tracking-[-0.04em] text-[#201b19]">
+                                  {formatStayDetailPriceText(
+                                    room.footerPriceText ??
+                                      room.averagePriceText ??
+                                      room.totalPriceText,
+                                  )}
                                 </p>
                                 {room.footerSubPriceText || room.priceDescription ? (
                                   <p className="mt-1 text-[11px] leading-5 text-[#7f6f69]">
@@ -455,7 +478,7 @@ export default async function StayDetailPage({
               <p className="truncate text-[12px] font-bold text-[#2a1f1a]">
                 {primaryRoom?.title ?? stay.itemName}
               </p>
-              <p className="mt-1 text-[11px] font-medium text-[#8b7a73]">
+              <p className="mt-1 truncate whitespace-nowrap text-[11px] font-medium text-[#8b7a73]">
                 {stickyPrice} · 마이리얼트립 예약 연동
               </p>
             </div>
@@ -463,7 +486,7 @@ export default async function StayDetailPage({
               href={stickyHref}
               target="_blank"
               rel="noreferrer"
-              className="shrink-0 rounded-full bg-[#cb4b42] px-4 py-2.5 text-[12px] font-black text-white"
+              className="shrink-0 whitespace-nowrap rounded-full bg-[#cb4b42] px-4 py-2.5 text-[12px] font-black text-white"
             >
               예약하기
             </a>

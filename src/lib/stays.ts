@@ -20,6 +20,7 @@ export type StaySearchState = {
   checkOut: string;
   adultCount: number;
   childCount: number;
+  roomCount: number;
   isDomestic: boolean;
   hotelPriceMin: number | null;
   hotelPriceMax: number | null;
@@ -36,6 +37,35 @@ function formatDate(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
+function isValidDateString(value?: string) {
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
+}
+
+export function addStayDays(dateValue: string, days: number) {
+  if (!isValidDateString(dateValue)) return dateValue;
+  const [year, month, day] = dateValue.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return formatDate(date);
+}
+
+export function normalizeStayDates(checkIn: string, checkOut: string) {
+  const safeCheckIn = isValidDateString(checkIn) ? checkIn : futureStayDate(35);
+  const minCheckOut = addStayDays(safeCheckIn, 1);
+  const safeCheckOut =
+    isValidDateString(checkOut) && checkOut > safeCheckIn ? checkOut : minCheckOut;
+
+  return {
+    checkIn: safeCheckIn,
+    checkOut: safeCheckOut,
+    minCheckOut,
+  };
+}
+
+function clampInt(value: number, min: number, max: number) {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(max, Math.max(min, Math.round(value)));
+}
+
 export function futureStayDate(offsetDays: number, now = new Date()) {
   const target = new Date(now);
   target.setDate(target.getDate() + offsetDays);
@@ -46,18 +76,28 @@ export function getDefaultStaySearchState(
   keyword = "오사카",
   overrides?: Partial<StaySearchState>,
 ): StaySearchState {
-  return {
+  const base = {
     keyword,
     checkIn: futureStayDate(35),
     checkOut: futureStayDate(38),
     adultCount: 2,
     childCount: 0,
+    roomCount: 1,
     isDomestic: false,
     hotelPriceMin: null,
     hotelPriceMax: null,
     page: 0,
     size: 12,
     ...overrides,
+  };
+  const dates = normalizeStayDates(base.checkIn, base.checkOut);
+
+  return {
+    ...base,
+    ...dates,
+    adultCount: clampInt(base.adultCount, 1, 8),
+    childCount: clampInt(base.childCount, 0, 6),
+    roomCount: clampInt(base.roomCount, 1, 4),
   };
 }
 
@@ -79,11 +119,16 @@ export function coerceStaySearchState(
     return Number.isFinite(parsed) ? parsed : null;
   };
 
+  const adultCount = toInt(pick(input.adultCount) ?? pick(input.adults), 2);
+  const childCount = toInt(pick(input.childCount) ?? pick(input.children), 0);
+  const roomCount = toInt(pick(input.roomCount) ?? pick(input.rooms), 1);
+
   return getDefaultStaySearchState(pick(input.keyword)?.trim() || fallbackKeyword, {
     checkIn: pick(input.checkIn) || futureStayDate(35),
     checkOut: pick(input.checkOut) || futureStayDate(38),
-    adultCount: toInt(pick(input.adultCount), 2),
-    childCount: toInt(pick(input.childCount), 0),
+    adultCount,
+    childCount,
+    roomCount,
     isDomestic: pick(input.isDomestic) === "true",
     hotelPriceMin: toNullableInt(
       pick(input.hotelPriceMin) ?? pick(input.minPrice),
@@ -117,6 +162,10 @@ export function buildStayResultsHref(state: Partial<StaySearchState> & { keyword
     checkOut: normalized.checkOut,
     adultCount: String(normalized.adultCount),
     childCount: String(normalized.childCount),
+    roomCount: String(normalized.roomCount),
+    adults: String(normalized.adultCount),
+    children: String(normalized.childCount),
+    rooms: String(normalized.roomCount),
     isDomestic: String(normalized.isDomestic),
     page: String(normalized.page),
     size: String(normalized.size),
@@ -137,6 +186,10 @@ export function buildStayDetailHref(
     checkOut: normalized.checkOut,
     adultCount: String(normalized.adultCount),
     childCount: String(normalized.childCount),
+    roomCount: String(normalized.roomCount),
+    adults: String(normalized.adultCount),
+    children: String(normalized.childCount),
+    rooms: String(normalized.roomCount),
     isDomestic: String(normalized.isDomestic),
     name: snapshot.itemName,
     salePrice: snapshot.salePrice !== null ? String(snapshot.salePrice) : "",

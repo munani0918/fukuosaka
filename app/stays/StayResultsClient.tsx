@@ -49,6 +49,16 @@ function matchesFilter(stay: AccommodationSearchItem, filter: StayPriceFilterOpt
   return true;
 }
 
+function compactDateRange(checkIn: string, checkOut: string) {
+  const [, inMonth, inDay] = checkIn.split("-");
+  const [, outMonth, outDay] = checkOut.split("-");
+  if (!inMonth || !inDay || !outMonth || !outDay) {
+    return `${checkIn} ~ ${checkOut}`;
+  }
+
+  return `${Number(inMonth)}.${Number(inDay)} - ${Number(outMonth)}.${Number(outDay)}`;
+}
+
 export function StayResultsClient({
   state,
   stays,
@@ -133,7 +143,7 @@ export function StayResultsClient({
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[12px] font-semibold text-[#a58f86]">
-                {state.checkIn} ~ {state.checkOut} · 성인 {state.adultCount}명
+                {compactDateRange(state.checkIn, state.checkOut)} · 성인 {state.adultCount} · 아동 {state.childCount} · 객실 {state.roomCount}
               </p>
               <h2 className="mt-1 text-[24px] font-black tracking-[-0.05em] text-[#251b17]">
                 {state.keyword}

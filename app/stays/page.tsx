@@ -2,16 +2,13 @@ import Link from "next/link";
 import { connection } from "next/server";
 
 import { BottomTabBar } from "@/src/components/home/BottomTabBar";
-import { SearchIcon } from "@/src/components/home/icons";
 import {
   hydrateAccommodationImages,
   searchAccommodationsSmart,
 } from "@/src/lib/myrealtrip";
-import {
-  buildStayResultsHref,
-  coerceStaySearchState,
-} from "@/src/lib/stays";
+import { coerceStaySearchState } from "@/src/lib/stays";
 import { StayResultsClient } from "./StayResultsClient";
+import { StaySearchForm } from "./StaySearchForm";
 
 function bottomTabs() {
   return [
@@ -73,103 +70,7 @@ export default async function StaysPage({
             </div>
           </div>
 
-          <form action="/stays" method="get" className="mt-4 space-y-3">
-            <div className="flex h-12 items-center gap-2 rounded-[18px] border border-[#eadcd3] bg-white px-3.5 shadow-[0_10px_20px_rgba(92,50,38,0.05)]">
-              <SearchIcon className="h-[18px] w-[18px] shrink-0 text-[#a28f88]" />
-              <input
-                type="search"
-                name="keyword"
-                defaultValue={state.keyword}
-                placeholder="오사카, 후쿠오카, 난바처럼 지역으로 검색해보세요"
-                className="min-w-0 flex-1 bg-transparent text-[14px] font-semibold text-[#241b17] outline-none placeholder:text-[#b3a39b]"
-              />
-              <input type="hidden" name="childCount" value={state.childCount} />
-              <input type="hidden" name="isDomestic" value={String(state.isDomestic)} />
-              <input
-                type="hidden"
-                name="hotelPriceMin"
-                value={state.hotelPriceMin ?? ""}
-              />
-              <input
-                type="hidden"
-                name="hotelPriceMax"
-                value={state.hotelPriceMax ?? ""}
-              />
-              <input type="hidden" name="page" value="0" />
-              <input type="hidden" name="size" value={state.size} />
-              <button
-                type="submit"
-                className="rounded-full bg-[#cb4b42] px-3.5 py-1.5 text-[11px] font-black text-white"
-              >
-                검색
-              </button>
-            </div>
-
-            <div className="rounded-[18px] bg-white/70 p-3 ring-1 ring-[#efe3db]">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="text-[12px] font-black tracking-[-0.02em] text-[#6c5650]">
-                  숙소 검색 조건
-                </p>
-                <span className="whitespace-nowrap rounded-full bg-[#fff4f0] px-2.5 py-1 text-[10px] font-black text-[#cb4b42]">
-                  마이리얼트립
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <label className="space-y-1">
-                  <span className="text-[10px] font-bold text-[#8f776f]">체크인</span>
-                  <input
-                    type="date"
-                    name="checkIn"
-                    defaultValue={state.checkIn}
-                    className="h-10 w-full rounded-[14px] border border-[#eadcd3] bg-white px-2.5 text-[12px] font-semibold text-[#241b17] outline-none"
-                  />
-                </label>
-                <label className="space-y-1">
-                  <span className="text-[10px] font-bold text-[#8f776f]">체크아웃</span>
-                  <input
-                    type="date"
-                    name="checkOut"
-                    defaultValue={state.checkOut}
-                    className="h-10 w-full rounded-[14px] border border-[#eadcd3] bg-white px-2.5 text-[12px] font-semibold text-[#241b17] outline-none"
-                  />
-                </label>
-                <label className="col-span-2 space-y-1">
-                  <span className="text-[10px] font-bold text-[#8f776f]">성인</span>
-                  <input
-                    type="number"
-                    name="adultCount"
-                    min={1}
-                    max={10}
-                    defaultValue={state.adultCount}
-                    className="h-10 w-full rounded-[14px] border border-[#eadcd3] bg-white px-2.5 text-[12px] font-semibold text-[#241b17] outline-none"
-                  />
-                </label>
-              </div>
-              <p className="mt-2 text-[11px] font-semibold leading-5 text-[#9a837b]">
-                날짜와 인원에 따라 예약 가능 여부와 요금이 달라질 수 있어요.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-1.5">
-              {quickKeywords.map((keyword) => (
-                <Link
-                  key={keyword}
-                  href={buildStayResultsHref({
-                    ...state,
-                    keyword,
-                    page: 0,
-                  })}
-                  className={`rounded-full px-3 py-1.5 text-[11px] font-semibold ${
-                    keyword === state.keyword
-                      ? "bg-[#cb4b42] text-white"
-                      : "bg-[#f8ede6] text-[#8c746a]"
-                  }`}
-                >
-                  {keyword}
-                </Link>
-              ))}
-            </div>
-          </form>
+          <StaySearchForm state={state} quickKeywords={quickKeywords} />
         </header>
 
         <StayResultsClient
