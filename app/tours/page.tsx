@@ -20,7 +20,7 @@ function bottomTabs() {
     { id: "home", label: "홈", href: "/", icon: "home" as const },
     { id: "planner", label: "예산플래너", href: "/planner-wizard.html", icon: "planner" as const },
     { id: "stay", label: "숙소", href: "/stays", icon: "stay" as const },
-    { id: "tour", label: "투어", href: "/tours", icon: "tour" as const, active: true },
+    { id: "tour", label: "투어·티켓", href: "/tours", icon: "tour" as const, active: true },
     { id: "my", label: "마이", href: "#top", icon: "my" as const },
   ];
 }
@@ -44,7 +44,6 @@ export default async function ToursPage({
   ]);
 
   const tours = result.ok ? result.data.items : [];
-  const totalCount = result.ok ? result.data.totalCount : 0;
   const categories = categoryResult.ok ? categoryResult.data.categories : [];
   const quickKeywords = ["오사카", "라피트", "유니버설", "후쿠오카", "패스"];
   const categoryChips = [
@@ -74,7 +73,7 @@ export default async function ToursPage({
                 FUKUOSAKA TOURS
               </p>
               <h1 className="text-[21px] font-black tracking-[-0.05em] text-[#241b17]">
-                투어&티켓 검색
+                투어·티켓 검색
               </h1>
             </div>
           </div>
@@ -124,30 +123,9 @@ export default async function ToursPage({
           </form>
         </header>
 
-        <section className="px-5 pb-4 pt-4">
-          <div className="rounded-[24px] bg-white/88 p-4 shadow-[0_14px_26px_rgba(85,42,28,0.06)] ring-1 ring-[#efe3db]">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[12px] font-semibold text-[#a58f86]">
-                  {cityLabel(state.city)} · {state.category === "all" ? "전체 카테고리" : "선택 카테고리"}
-                </p>
-                <h2 className="mt-1 text-[24px] font-black tracking-[-0.05em] text-[#251b17]">
-                  {state.keyword}
-                </h2>
-                <p className="mt-1 text-[13px] font-medium text-[#7d6f69]">
-                  {result.ok
-                    ? `${totalCount.toLocaleString("ko-KR")}개 상품 중 상위 결과를 보여드려요`
-                    : "지금은 투어&티켓 결과를 불러오지 못했어요"}
-                </p>
-              </div>
-              <span className="rounded-full bg-[#fbf2ed] px-3 py-1.5 text-[11px] font-black text-[#cb4b42]">
-                날짜 없이 먼저 보기
-              </span>
-            </div>
-          </div>
-
+        <section className="px-5 pb-3 pt-3">
           {categoryChips.length > 1 ? (
-            <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
+            <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
               {categoryChips.map((category) => (
                 <Link
                   key={category.value}
@@ -223,15 +201,15 @@ export default async function ToursPage({
                   </p>
 
                   <div className="mt-auto flex items-end justify-between gap-3 border-t border-[#f3e7df] pt-3">
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-[11px] font-medium text-[#8d7c74]">
                         마이리얼트립 실시간 상품
                       </p>
-                      <p className="mt-1 whitespace-nowrap text-[18px] font-black tracking-[-0.04em] text-[#201b19]">
+                      <p className="mt-1 truncate whitespace-nowrap text-[16px] font-black tracking-[-0.04em] text-[#201b19]">
                         {formatTourPriceLabel(tour.priceDisplay, tour.salePrice)}
                       </p>
                     </div>
-                    <span className="inline-flex h-8 shrink-0 items-center whitespace-nowrap rounded-full bg-[#fff4f0] px-3 text-[11px] font-black leading-none text-[#cb4b42] ring-1 ring-[#f1d7cf]">
+                    <span className="inline-flex h-8 min-w-[62px] shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#fff4f0] px-2.5 text-[11px] font-black leading-none text-[#cb4b42] ring-1 ring-[#f1d7cf]">
                       상세보기
                     </span>
                   </div>

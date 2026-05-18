@@ -26,7 +26,12 @@ export function BottomTabBar({ items }: BottomTabBarProps) {
         <div className="grid grid-cols-5">
           {items.map((item) => {
             const active = Boolean(item.active);
-            const label = item.id === "planner" ? "예산플래너" : item.label;
+            const label =
+              item.id === "planner"
+                ? "예산플래너"
+                : item.id === "tour"
+                  ? "투어·티켓"
+                  : item.label;
 
             return (
               <a
@@ -42,7 +47,7 @@ export function BottomTabBar({ items }: BottomTabBarProps) {
                   {iconForTab(item.icon)}
                 </span>
                 <span
-                  className={`text-[10px] font-semibold tracking-[-0.02em] ${
+                  className={`text-[9.5px] font-semibold tracking-[-0.04em] ${
                     active ? "text-[#f05f5b]" : "text-[#847872]"
                   }`}
                 >

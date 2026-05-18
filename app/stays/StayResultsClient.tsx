@@ -190,9 +190,14 @@ export function StayResultsClient({
               <div className="flex min-w-0 flex-1 flex-col p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-[#b48577]">
-                      {state.keyword} 추천 숙소
-                    </p>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="inline-flex rounded-full bg-[#fff4f0] px-2 py-0.5 text-[10px] font-black text-[#cb4b42] ring-1 ring-[#f1d7cf]">
+                        마이리얼트립
+                      </span>
+                      <span className="text-[11px] font-bold text-[#b48577]">
+                        {state.keyword} 추천
+                      </span>
+                    </div>
                     <h3 className="mt-1 text-[16px] font-black leading-[1.35] tracking-[-0.04em] text-[#221a17] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
                       {stay.itemName}
                     </h3>
@@ -209,17 +214,17 @@ export function StayResultsClient({
                 </div>
 
                 <div className="mt-auto flex items-end justify-between gap-3 border-t border-[#f3e7df] pt-3">
-                  <div>
-                    <p className="text-[11px] font-medium text-[#8d7c74]">
-                      마이리얼트립 실시간 숙소
-                    </p>
-                    <p className="mt-1 whitespace-nowrap text-[18px] font-black tracking-[-0.04em] text-[#201b19]">
-                      {formatStayPriceLabel(stay.salePrice)}
-                    </p>
-                  </div>
-                  <span className="inline-flex h-8 shrink-0 items-center whitespace-nowrap rounded-full bg-[#fff4f0] px-3 text-[11px] font-black leading-none text-[#cb4b42] ring-1 ring-[#f1d7cf]">
-                    자세히보기
-                  </span>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-medium text-[#8d7c74]">
+                        마이리얼트립 실시간 숙소
+                      </p>
+                      <p className="mt-1 truncate whitespace-nowrap text-[16px] font-black tracking-[-0.04em] text-[#201b19]">
+                        {formatStayPriceLabel(stay.salePrice)}
+                      </p>
+                    </div>
+                    <span className="inline-flex h-8 min-w-[66px] shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#fff4f0] px-2.5 text-[11px] font-black leading-none text-[#cb4b42] ring-1 ring-[#f1d7cf]">
+                      자세히보기
+                    </span>
                 </div>
               </div>
             </Link>
