@@ -171,7 +171,7 @@ export function StayResultsClient({
                   <img
                     src={stay.imageUrl}
                     alt={stay.itemName}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover object-center"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
@@ -217,8 +217,8 @@ export function StayResultsClient({
                       {formatStayPriceLabel(stay.salePrice)}
                     </p>
                   </div>
-                  <span className="inline-flex h-8 items-center rounded-full bg-[#fff4f0] px-3.5 text-[11px] font-black text-[#cb4b42] ring-1 ring-[#f1d7cf]">
-                    자세히 보기
+                  <span className="inline-flex h-8 shrink-0 items-center whitespace-nowrap rounded-full bg-[#fff4f0] px-3 text-[11px] font-black leading-none text-[#cb4b42] ring-1 ring-[#f1d7cf]">
+                    자세히보기
                   </span>
                 </div>
               </div>

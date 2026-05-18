@@ -183,7 +183,7 @@ export default async function ToursPage({
                     <img
                       src={tour.imageUrl}
                       alt={tour.itemName}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover object-center"
                       referrerPolicy="no-referrer"
                     />
                   ) : (
@@ -231,8 +231,8 @@ export default async function ToursPage({
                         {formatTourPriceLabel(tour.priceDisplay, tour.salePrice)}
                       </p>
                     </div>
-                    <span className="inline-flex h-8 items-center rounded-full bg-[#fff4f0] px-3.5 text-[11px] font-black text-[#cb4b42] ring-1 ring-[#f1d7cf]">
-                      상세 보기
+                    <span className="inline-flex h-8 shrink-0 items-center whitespace-nowrap rounded-full bg-[#fff4f0] px-3 text-[11px] font-black leading-none text-[#cb4b42] ring-1 ring-[#f1d7cf]">
+                      상세보기
                     </span>
                   </div>
                 </div>

@@ -263,9 +263,11 @@
     .cost-row:last-of-type { border-bottom:none; }
     .cost-lbl { font-size:14px; font-weight:600; color:var(--ink-light); display:flex; align-items:center; gap:6px; }
     .cost-val { font-size:14px; font-weight:700; color:var(--ink); }
-    .cost-total { margin-top:14px; padding-top:14px; border-top:2px solid var(--ink); display:flex; justify-content:space-between; align-items:center; }
+    .cost-total { margin-top:14px; padding-top:14px; border-top:2px solid var(--ink); display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
     .cost-total-lbl { font-size:16px; font-weight:800; color:var(--ink); }
-    .cost-total-val { font-size:19px; font-weight:900; color:var(--accent); }
+    .cost-total-val { display:flex; flex-wrap:wrap; justify-content:flex-start; gap:2px 6px; max-width:100%; font-size:17px; line-height:1.35; font-weight:900; color:var(--accent); text-align:left; }
+    .cost-total-val .nowrap, .budget-total-value .nowrap { white-space:nowrap; }
+    .cost-total-val .sep, .budget-total-value .sep { color:inherit; opacity:.72; }
 
     .summary-wrap { padding:18px 16px 4px; display:flex; flex-direction:column; gap:14px; }
     .summary-card {
@@ -290,9 +292,9 @@
     .budget-icon { width:26px; height:26px; border-radius:10px; background:#FFF0EE; color:#D9524A; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:900; }
     .budget-value { font-size:14px; font-weight:900; color:#2C221D; white-space:nowrap; }
     .budget-total-box { margin-top:14px; padding-top:14px; border-top:2px solid #2C221D; display:flex; flex-direction:column; gap:8px; }
-    .budget-total-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .budget-total-row { display:flex; flex-direction:column; align-items:flex-start; justify-content:space-between; gap:4px; }
     .budget-total-label { font-size:14px; font-weight:800; color:#2C221D; }
-    .budget-total-value { font-size:15px; line-height:1.35; font-weight:900; color:#D9524A; text-align:right; }
+    .budget-total-value { display:flex; flex-wrap:wrap; justify-content:flex-start; gap:2px 6px; max-width:100%; font-size:15px; line-height:1.35; font-weight:900; color:#D9524A; text-align:left; }
     .local-cost-box { display:flex; flex-direction:column; gap:6px; padding:12px 0 4px; }
     .local-cost-box .budget-total-value { text-align:left; white-space:nowrap; }
     .budget-note { margin-top:12px; font-size:12px; line-height:1.5; color:#7E7067; }
@@ -1376,7 +1378,9 @@ function reservationCostSummaryFromBudget(budget = PLAN_SUMMARY?.budget){
     };
   }
   const flightCost = packageIncludes('flight') ? (Number(budget.flight) || 0) : 0;
-  const hotelCost = packageIncludes('hotel') ? (Number(budget.selectedHotelCost ?? budget.hotel) || 0) : 0;
+  const selectedHotelCost = Number(budget.selectedHotelCost) || 0;
+  const baseHotelCost = Number(budget.hotel) || 0;
+  const hotelCost = packageIncludes('hotel') ? (selectedHotelCost > 0 ? selectedHotelCost : baseHotelCost) : 0;
   const tourTicketCost = packageIncludes('tour') ? (Number(budget.tour) || 0) : 0;
   const total = flightCost + hotelCost + tourTicketCost;
   return {
@@ -1733,14 +1737,24 @@ function updatePlanSummaryHotelBudget(stays){
   PLAN_SUMMARY.budget.apiHotelCandidateCount = Array.isArray(stays) ? stays.length : 0;
   PLAN_SUMMARY.budget.bookableHotelCandidateCount = normalizedStays.length;
   if(!normalizedStays.length) {
-    PLAN_SUMMARY.budget.hotel = 0;
-    PLAN_SUMMARY.budget.selectedHotelCost = 0;
-    PLAN_SUMMARY.budget.selectedHotelPerNight = 0;
+    const fallbackHotelBudget = Number(PLAN_SUMMARY.budget.selectedHotelCost) > 0
+      ? Number(PLAN_SUMMARY.budget.selectedHotelCost)
+      : currentHotelBudget;
+    if(fallbackHotelBudget > 0) {
+      PLAN_SUMMARY.budget.hotel = fallbackHotelBudget;
+      PLAN_SUMMARY.budget.selectedHotelCost = fallbackHotelBudget;
+      PLAN_SUMMARY.budget.selectedHotelPerNight = Math.round(fallbackHotelBudget / Math.max(1, nights) / Math.max(1, rooms));
+    } else {
+      delete PLAN_SUMMARY.budget.selectedHotelCost;
+      PLAN_SUMMARY.budget.selectedHotelPerNight = 0;
+    }
     PLAN_SUMMARY.budget.selectedHotelName = '';
     PLAN_SUMMARY.budget.hotelMatchStatus = 'candidate_shortage';
     PLAN_SUMMARY.budget.hotelTargetRangeCandidateCount = 0;
     PLAN_SUMMARY.budget.hotelFallbackTargetRangeCandidateCount = 0;
-    PLAN_SUMMARY.budget.selectedHotelDebug = null;
+    PLAN_SUMMARY.budget.selectedHotelDebug = fallbackHotelBudget > 0
+      ? { reason:'no_bookable_myrealtrip_candidates_preserved_budget', preservedHotelCost:fallbackHotelBudget }
+      : null;
     recalcPlanBudget();
     return;
   }
@@ -2065,13 +2079,19 @@ function auxiliaryTicketsVisible(){
   return supportTicketsAllowed() && (RESULT_DATA.tnas || []).length > 0;
 }
 
+function costValueText(value, excluded = false){
+  if(excluded) return '선택 제외';
+  const amount = Number(value) || 0;
+  return amount > 0 ? fmtWon(amount) : '예약 페이지에서 확인';
+}
+
 function renderBudgetLine(icon, label, value, excluded, helper = ''){
   return `<div class="budget-line">
     <div>
       <div class="budget-label"><span class="budget-icon">${icon}</span>${label}</div>
       ${helper ? `<div class="budget-note" style="margin:4px 0 0 34px">${helper}</div>` : ''}
     </div>
-    <div class="budget-value">${excluded ? '선택 제외' : fmtWon(value)}</div>
+    <div class="budget-value">${costValueText(value, excluded)}</div>
   </div>`;
 }
 
@@ -3374,6 +3394,12 @@ function fmtWonRange(min, max){
   return `${fmtWon(min)}~${fmtWon(max)}`;
 }
 
+function reservationTotalHtml(total){
+  const amount = Math.round(Number(total) || 0);
+  if(travelerCount() <= 1) return `<span class="nowrap">${fmtWon(amount)}</span>`;
+  return `<span class="nowrap">전체 ${fmtWon(amount)} · 1인 ${fmtWonPerPerson(amount)}</span>`;
+}
+
 function setReservationRenderDebug(b, costSummary){
   if(!b || !costSummary) return;
   const selectedHotelCost = Number(b.selectedHotelCost ?? b.hotel) || 0;
@@ -3456,10 +3482,7 @@ function renderReservationBudgetCard(b){
     packageIncludes('hotel') ? renderBudgetLine('🏨', '숙소', costSummary.hotelCost, false) : '',
     packageIncludes('tour') ? renderBudgetLine('🎫', '투어/티켓', costSummary.tourTicketCost, false) : '',
   ].filter(Boolean).join('');
-  const perPersonTotal = fmtWonPerPerson(costSummary.total);
-  const totalValueText = travelerCount() > 1
-    ? `전체 ${fmtWon(costSummary.total)} / 1인 ${perPersonTotal}`
-    : fmtWon(costSummary.total);
+  const totalValueText = reservationTotalHtml(costSummary.total);
   return `<div class="summary-card">
       <div class="summary-card-title">여행 예상 비용</div>
       <div class="summary-sub" style="margin:-4px 0 14px">여행 예산에 맞는 항공·숙소·티켓 후보를 계산했어요.</div>
@@ -3505,16 +3528,26 @@ function compactItineraryTitle(title){
 
 function compactItineraryDescription(description){
   const text = String(description || '').replace(/\s+/g, ' ').trim();
-  if(text.length <= 34) return text;
+  if(text.length <= 46) return text;
+  if(/난바|도톤보리/.test(text)) return '난바와 도톤보리 중심으로 가볍게 시작해요.';
+  if(/오사카성|우메다/.test(text)) return '대표 명소와 쇼핑 동선을 가볍게 이동해요.';
+  if(/구로몬|신사이바시/.test(text)) return '시장과 쇼핑 동선을 가볍게 둘러봐요.';
+  if(/공항|체크아웃|출국/.test(text)) return '숙소 주변을 정리하고 여유 있게 공항으로 이동해요.';
+  if(/하카타|라멘/.test(text)) return '하카타역 주변과 맛집 동선으로 시작해요.';
+  if(/텐진|오호리|모모치/.test(text)) return '카페와 산책 중심으로 여유롭게 이동해요.';
+  if(/유후인|벳푸|벳부|온천/.test(text)) return '근교 온천 코스로 휴식 시간을 확보해요.';
+  if(/다자이후/.test(text)) return '다자이후와 주변 산책을 짧게 다녀와요.';
   const firstSentence = text.split(/[.!?。]|요\.|다\./)[0]?.trim();
-  if(firstSentence && firstSentence.length >= 10 && firstSentence.length <= 34) return firstSentence;
+  if(firstSentence && firstSentence.length >= 10 && firstSentence.length <= 46) return firstSentence;
   const compact = text
     .replace(/중심으로\s*/g, '중심 ')
     .replace(/여유롭게\s*/g, '여유 있게 ')
     .replace(/가볍게\s*/g, '')
     .replace(/둘러봐요/g, '이동')
     .replace(/이동해요/g, '이동');
-  return compact.slice(0, 34).replace(/[,\s·-]+$/g, '');
+  const cutAt = compact.lastIndexOf(' ', 44);
+  const clipped = compact.slice(0, cutAt > 18 ? cutAt : 44).replace(/[,\s·-]+$/g, '');
+  return `${clipped}…`;
 }
 
 function renderSummary(){
@@ -3598,7 +3631,7 @@ function renderCost(flights, stays, tnas){
     const tripMin = reservationTotal + Number(localEstimate.min || 0);
     const tripMax = reservationTotal + Number(localEstimate.max || 0);
     const detailRow = (label, value, included) =>
-      `<div class="cost-row"><span class="cost-lbl">${label}</span><span class="cost-val">${included ? fmtMan(value) : '선택 제외'}</span></div>`;
+      `<div class="cost-row"><span class="cost-lbl">${label}</span><span class="cost-val">${included ? (Number(value) > 0 ? fmtMan(value) : '예약 페이지에서 확인') : '선택 제외'}</span></div>`;
     const rows = [
       detailRow('항공권', costSummary.flightCost, hasF),
       detailRow('숙소', costSummary.hotelCost, hasH),
@@ -3608,7 +3641,7 @@ function renderCost(flights, stays, tnas){
     ].filter(Boolean);
     document.getElementById('cost-card').innerHTML =
       rows.join('') +
-      `<div class="cost-total"><span class="cost-total-lbl">여행 예상 합계</span><span class="cost-total-val">전체 ${fmtMan(reservationTotal)} / 1인 ${fmtMan(Math.round(reservationTotal / travelerCount()))}</span></div>
+      `<div class="cost-total"><span class="cost-total-lbl">여행 예상 합계</span><span class="cost-total-val">${reservationTotalHtml(reservationTotal)}</span></div>
        <div class="cost-row"><span class="cost-lbl">현지 사용 예산 팁</span><span class="cost-val">${fmtWonRangeCompact(localEstimate.min, localEstimate.max)}</span></div>
        <div class="cost-row"><span class="cost-lbl">전체 여행비 참고</span><span class="cost-val">${fmtWonRangeCompact(tripMin, tripMax)}</span></div>
        <div class="budget-note">현지 사용비는 별도 준비 팁이며, 예산 초과 판정은 여행 예상 비용 기준이에요.</div>
@@ -3630,7 +3663,7 @@ function renderCost(flights, stays, tnas){
   const localEstimate = localSpendingEstimate();
   document.getElementById('cost-card').innerHTML =
     rows.join('') +
-    `<div class="cost-total"><span class="cost-total-lbl">여행 예상 합계</span><span class="cost-total-val">약 ${Math.round(totalEst/10000)}만원</span></div>
+    `<div class="cost-total"><span class="cost-total-lbl">여행 예상 합계</span><span class="cost-total-val">${reservationTotalHtml(totalEst)}</span></div>
      <div class="cost-row"><span class="cost-lbl">현지 사용 예산 팁</span><span class="cost-val">${fmtWonRange(localEstimate.min, localEstimate.max)}</span></div>`;
 }
 

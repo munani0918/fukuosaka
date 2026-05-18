@@ -318,6 +318,7 @@
       font-size: 12px;
       line-height: 15px;
       font-weight: 700;
+      white-space: nowrap;
     }
     .check {
       position: absolute;
@@ -528,7 +529,9 @@
       background: rgba(255,255,255,.22);
       color: #fff;
     }
+    .budget-presets { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:7px; }
     .apchip, .bp, .schip { padding: 0 15px; }
+    .bp { min-width:0; padding:0 8px; white-space:nowrap; }
     .vchip { padding: 0 10px; }
     .nq.on,
     .apchip.on,
@@ -1690,7 +1693,7 @@
               <span class="city-tag">쇼핑</span>
               <span class="city-tag">맛집</span>
               <span class="city-tag">도시여행</span>
-              <span class="city-tag">도시여행</span>
+              <span class="city-tag">관광</span>
             </div>
           </div>
           <div class="check">✓</div>
@@ -1738,7 +1741,7 @@
 
       3: () => `
         <h1 class="step-title">여행 예약 예산을 알려주세요</h1>
-        <p class="step-sub">항공·숙소·투어/티켓 예약 기준 예산이에요. 현지 사용비는 결과에서 별도로 안내돼요.</p>
+        <p class="step-sub">항공·숙소·투어/티켓 예약 기준 예산이에요.</p>
         ${summaryChip()}
 
         <div class="people-grid single">
