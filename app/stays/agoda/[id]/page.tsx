@@ -92,7 +92,7 @@ function buildReturnHref(
 
 function totalPriceLabel(value: number | null) {
   if (!value || value <= 0) return "예약 페이지에서 확인";
-  return `총 숙박 예상 ${value.toLocaleString("ko-KR")}원`;
+  return `${value.toLocaleString("ko-KR")}원`;
 }
 
 function bookingUrlDebug(url: string) {
@@ -154,11 +154,11 @@ export default async function AgodaStayBridgePage({
       className="min-h-dvh bg-[linear-gradient(180deg,#fff8f3_0%,#fcf2eb_48%,#f6ede6_100%)] text-[#241b17]"
     >
       <div className="mx-auto min-h-dvh max-w-[430px] pb-[calc(env(safe-area-inset-bottom)+132px)]">
-        <header className="sticky top-0 z-30 border-b border-[#f0e4dd] bg-[#fffaf6]/95 px-5 pb-4 pt-[calc(env(safe-area-inset-top)+14px)] backdrop-blur-xl">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-30 border-b border-[#f0e4dd] bg-[#fffaf6]/95 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+12px)] backdrop-blur-xl">
+          <div className="flex items-start gap-3">
             <Link
               href={backHref}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#7f6f69] shadow-[0_8px_18px_rgba(78,42,29,0.07)] ring-1 ring-[#efe3db]"
+              className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[#7f6f69] shadow-[0_8px_18px_rgba(78,42,29,0.07)] ring-1 ring-[#efe3db]"
               aria-label="숙소 리스트로 돌아가기"
             >
               <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -169,16 +169,16 @@ export default async function AgodaStayBridgePage({
               <p className="text-[11px] font-semibold tracking-[-0.02em] text-[#a58f86]">
                 아고다 예약 전 확인
               </p>
-              <h1 className="truncate text-[19px] font-black tracking-[-0.05em] text-[#241b17]">
+              <h1 className="mt-0.5 text-[17px] font-black leading-[1.2] tracking-[-0.045em] text-[#241b17] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
                 {stay?.name ?? "아고다 숙소"}
               </h1>
             </div>
           </div>
         </header>
 
-        <section className="px-5 pt-5">
-          <div className="overflow-hidden rounded-[30px] bg-white shadow-[0_16px_30px_rgba(85,42,28,0.07)] ring-1 ring-[#efe3db]">
-            <div className="relative h-[248px] bg-[#f4e8df]">
+        <section className="px-5 pt-4">
+          <div className="overflow-hidden rounded-[28px] bg-white shadow-[0_16px_30px_rgba(85,42,28,0.07)] ring-1 ring-[#efe3db]">
+            <div className="relative h-[220px] bg-[#f4e8df]">
               {stay?.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -191,17 +191,17 @@ export default async function AgodaStayBridgePage({
                 <Artwork variant={fallbackVariant} className="h-full w-full" />
               )}
               <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(26,14,11,0)_0%,rgba(26,14,11,0.36)_100%)]" />
-              <div className="absolute bottom-4 left-4 right-4">
-                <span className="inline-flex rounded-full bg-white/90 px-3 py-1 text-[11px] font-black text-[#cb4b42]">
+              <div className="absolute bottom-3 left-4 right-4">
+                <span className="inline-flex rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-black text-[#cb4b42]">
                   아고다
                 </span>
-                <h2 className="mt-2 text-[24px] font-black leading-[1.14] tracking-[-0.05em] text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.16)]">
+                <h2 className="mt-2 text-[20px] font-black leading-[1.16] tracking-[-0.045em] text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.16)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
                   {stay?.name ?? "아고다 숙소"}
                 </h2>
               </div>
             </div>
 
-            <div className="space-y-4 p-5">
+            <div className="space-y-3.5 p-4">
               <div className="flex flex-wrap items-center gap-1.5 text-[12px] font-semibold text-[#7a6862]">
                 <StarIcon className="h-4 w-4 text-[#ffb627]" />
                 {stay?.rating ? (
@@ -215,56 +215,46 @@ export default async function AgodaStayBridgePage({
                 ) : null}
               </div>
 
-              <div className="rounded-[22px] bg-[#fcf6f2] p-4 ring-1 ring-[#f0e4dc]">
-                <p className="text-[12px] font-black tracking-[-0.03em] text-[#2a1e19]">
+              <div className="rounded-[20px] bg-[#fcf6f2] p-3.5 ring-1 ring-[#f0e4dc]">
+                <p className="text-[11px] font-black tracking-[-0.03em] text-[#2a1e19]">
                   예약 조건
                 </p>
-                <p className="mt-2 text-[13px] font-semibold leading-6 text-[#6f605a]">
+                <p className="mt-1.5 text-[12px] font-semibold leading-5 text-[#6f605a]">
                   {compactDateRange(state.checkIn, state.checkOut)} · 성인 {state.adultCount} · 아동 {state.childCount} · 객실 {state.roomCount}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-[20px] bg-[#fff7f3] p-4 ring-1 ring-[#f0ded6]">
-                  <p className="text-[11px] font-semibold text-[#9f8c84]">1박 예상가</p>
-                  <p className="mt-1 whitespace-nowrap text-[16px] font-black tracking-[-0.05em] text-[#221c19]">
+                <div className="rounded-[18px] bg-[#fff7f3] p-3.5 ring-1 ring-[#f0ded6]">
+                  <p className="text-[11px] font-semibold text-[#9f8c84]">1박 예상</p>
+                  <p className="mt-1 whitespace-nowrap text-[15px] font-black tracking-[-0.045em] text-[#221c19]">
                     {priceLabel}
                   </p>
                 </div>
-                <div className="rounded-[20px] bg-[#fff7f3] p-4 ring-1 ring-[#f0ded6]">
-                  <p className="text-[11px] font-semibold text-[#9f8c84]">숙박 예상가</p>
-                  <p className="mt-1 whitespace-nowrap text-[15px] font-black tracking-[-0.05em] text-[#221c19]">
+                <div className="rounded-[18px] bg-[#fff7f3] p-3.5 ring-1 ring-[#f0ded6]">
+                  <p className="text-[11px] font-semibold text-[#9f8c84]">총 예상</p>
+                  <p className="mt-1 whitespace-nowrap text-[15px] font-black tracking-[-0.045em] text-[#221c19]">
                     {totalPriceLabel(stay?.totalPrice ?? null)}
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-[22px] bg-white p-4 ring-1 ring-[#f1e6df]">
+              <div className="rounded-[20px] bg-white p-3.5 ring-1 ring-[#f1e6df]">
                 <p className="text-[13px] font-black tracking-[-0.03em] text-[#2a1e19]">
-                  예약은 아고다에서 진행돼요.
+                  아고다에서 객실을 선택하고 예약을 진행해요.
                 </p>
-                <p className="mt-2 text-[12px] leading-6 text-[#7f6f69]">
+                <p className="mt-1.5 text-[12px] leading-5 text-[#7f6f69]">
                   요금은 예약 시점과 인원 조건에 따라 달라질 수 있어요.
-                  실제 결제 금액은 아고다 예약 페이지에서 확인해주세요.
                 </p>
               </div>
 
               {bookingDebug ? (
                 <p className="text-[11px] leading-5 text-[#9b8780]">
-                  선택한 날짜와 인원 조건을 포함해 아고다 예약 페이지로 연결합니다.
+                  선택한 조건으로 아고다 예약 페이지에 연결해요.
                 </p>
               ) : null}
 
-              {bookingUrl ? (
-                <a
-                  href={bookingUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex h-12 items-center justify-center rounded-full bg-[#cb4b42] px-5 text-[14px] font-black text-white shadow-[0_12px_24px_rgba(203,75,66,0.24)]"
-                >
-                  아고다에서 예약하기
-                </a>
-              ) : (
+              {!bookingUrl ? (
                 <div className="rounded-[22px] bg-[#fff7f3] p-4 text-center ring-1 ring-[#f0ded6]">
                   <p className="text-[13px] font-black text-[#2a1e19]">
                     예약 링크를 다시 확인해야 해요
@@ -273,12 +263,12 @@ export default async function AgodaStayBridgePage({
                     숙소 리스트로 돌아가 조건을 다시 선택해주세요.
                   </p>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </section>
 
-        <div className="px-5 pt-5">
+        <div className="px-5 pb-5 pt-4">
           <Link
             href={backHref}
             className="inline-flex items-center gap-2 text-[12px] font-bold text-[#8d7b73]"
@@ -286,13 +276,13 @@ export default async function AgodaStayBridgePage({
             <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M12.5 4.5 7 10l5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            숙소 리스트로 돌아가기
+            리스트로 돌아가기
           </Link>
         </div>
       </div>
 
       {bookingUrl ? (
-        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+74px)] z-40 flex justify-center px-4">
+        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+78px)] z-40 flex justify-center px-4">
           <div className="pointer-events-auto w-full max-w-[398px] rounded-[24px] bg-white/96 p-3 shadow-[0_18px_40px_rgba(71,34,26,0.18)] ring-1 ring-[#f0dfd6] backdrop-blur-xl">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
