@@ -29,6 +29,9 @@ const RESULT_PRICE_FILTERS: StayPriceFilterOption[] = [
   { id: "over-300k", label: "30만원+", min: 300000, max: null },
 ];
 
+const MAX_VISIBLE_STAYS = 20;
+const AGODA_TARGET_RATIO = 0.4;
+
 type StayResultsClientProps = {
   state: StaySearchState;
   stays: AccommodationSearchItem[];
@@ -73,7 +76,7 @@ function matchesFilter(stay: UnifiedStayCardItem, filter: StayPriceFilterOption)
 }
 
 function normalizeStayName(name: string) {
-  return name.toLowerCase().replace(/[\s()[\]{}·.,'"]/g, "");
+  return name.toLowerCase().replace(/[\s()[\]{}·.,'"-]/g, "");
 }
 
 function mapMyRealTripStay(
@@ -113,32 +116,140 @@ function mapAgodaStay(stay: AgodaStayCardItem): UnifiedStayCardItem {
   };
 }
 
+function toRatingNumber(rating: UnifiedStayCardItem["rating"]) {
+  if (typeof rating === "number" && Number.isFinite(rating)) return rating;
+  if (typeof rating === "string") {
+    const parsed = Number(rating.replace(/[^\d.]/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function qualityScore(stay: UnifiedStayCardItem) {
+  const rating = toRatingNumber(stay.rating);
+  const normalizedRating =
+    rating !== null ? Math.max(0, Math.min(1, rating / stay.ratingScale)) : 0.68;
+  const reviews = stay.reviewCount ?? 0;
+  const reviewScore = Math.min(16, Math.log10(reviews + 1) * 4);
+  const ratingBonus =
+    normalizedRating >= 0.85 ? 10 : normalizedRating < 0.75 ? -18 : 0;
+  const reviewPenalty = reviews > 0 && reviews < 50 ? -6 : 0;
+
+  return normalizedRating * 58 + reviewScore + ratingBonus + reviewPenalty;
+}
+
+function recommendationScore(
+  stay: UnifiedStayCardItem,
+  filter: StayPriceFilterOption,
+) {
+  const price = stay.pricePerNight;
+  const quality = qualityScore(stay);
+
+  // 예산 앱의 1차 추천순: 예산 안에서는 저렴함을 보되, 품질이 낮은 숙소는 뒤로 보낸다.
+  if (!price || price <= 0) return quality - 120;
+
+  if (filter.id === "over-300k") {
+    const premiumFit = price >= 300000 ? 18 : -80;
+    const notTooExpensive = Math.max(0, 1 - Math.max(0, price - 300000) / 500000) * 8;
+    return quality * 1.25 + premiumFit + notTooExpensive;
+  }
+
+  if (filter.max !== null) {
+    const affordability = Math.max(0, (filter.max - price) / filter.max) * 42;
+    return quality + affordability;
+  }
+
+  const balancedPrice = Math.max(0, 1 - Math.max(0, price - 90000) / 260000) * 22;
+  return quality + balancedPrice;
+}
+
+function sortByRecommendation(
+  stays: UnifiedStayCardItem[],
+  filter: StayPriceFilterOption,
+) {
+  return [...stays].sort((a, b) => {
+    const scoreGap =
+      recommendationScore(b, filter) - recommendationScore(a, filter);
+    if (Math.abs(scoreGap) > 0.01) return scoreGap;
+
+    const priceA = a.pricePerNight ?? Number.MAX_SAFE_INTEGER;
+    const priceB = b.pricePerNight ?? Number.MAX_SAFE_INTEGER;
+    return priceA - priceB;
+  });
+}
+
 function mergeStayCards(
   myrealtripCards: UnifiedStayCardItem[],
   agodaCards: UnifiedStayCardItem[],
+  filter: StayPriceFilterOption,
 ) {
   const myrealtripNames = new Set(
     myrealtripCards.map((stay) => normalizeStayName(stay.name)),
   );
-  const dedupedAgoda = agodaCards
+  const sortedMyRealTrip = sortByRecommendation(myrealtripCards, filter);
+  const sortedAgoda = sortByRecommendation(
+    agodaCards
     .filter((stay) => stay.href)
-    .filter((stay) => !myrealtripNames.has(normalizeStayName(stay.name)))
-    .slice(0, 6);
+      .filter((stay) => !myrealtripNames.has(normalizeStayName(stay.name))),
+    filter,
+  );
 
-  if (myrealtripCards.length === 0) return dedupedAgoda;
+  const totalAvailable = sortedMyRealTrip.length + sortedAgoda.length;
+  const targetCount = Math.min(MAX_VISIBLE_STAYS, totalAvailable);
+  const targetAgoda = Math.min(
+    sortedAgoda.length,
+    Math.round(targetCount * AGODA_TARGET_RATIO),
+  );
+  const targetMyRealTrip = Math.min(
+    sortedMyRealTrip.length,
+    targetCount - targetAgoda,
+  );
+  const extraSlots = targetCount - targetAgoda - targetMyRealTrip;
+  const myrealtripLimit = targetMyRealTrip + Math.min(extraSlots, sortedMyRealTrip.length - targetMyRealTrip);
+  const agodaLimit =
+    targetAgoda +
+    Math.max(0, extraSlots - Math.max(0, sortedMyRealTrip.length - targetMyRealTrip));
+  const myrealtripPool = sortedMyRealTrip.slice(0, myrealtripLimit);
+  const agodaPool = sortedAgoda.slice(0, agodaLimit);
+
+  if (myrealtripPool.length === 0) return agodaPool;
+  if (agodaPool.length === 0) return myrealtripPool;
 
   const merged: UnifiedStayCardItem[] = [];
+  let myrealtripIndex = 0;
   let agodaIndex = 0;
+  const sourcePattern: Array<UnifiedStayCardItem["source"]> = [
+    "myrealtrip",
+    "myrealtrip",
+    "agoda",
+    "myrealtrip",
+    "agoda",
+  ];
 
-  myrealtripCards.forEach((stay, index) => {
-    merged.push(stay);
-    if ((index + 1) % 3 === 0 && agodaIndex < dedupedAgoda.length) {
-      merged.push(dedupedAgoda[agodaIndex]);
+  while (merged.length < targetCount && (myrealtripIndex < myrealtripPool.length || agodaIndex < agodaPool.length)) {
+    const preferredSource = sourcePattern[merged.length % sourcePattern.length];
+    if (preferredSource === "agoda" && agodaIndex < agodaPool.length) {
+      merged.push(agodaPool[agodaIndex]);
+      agodaIndex += 1;
+      continue;
+    }
+    if (preferredSource === "myrealtrip" && myrealtripIndex < myrealtripPool.length) {
+      merged.push(myrealtripPool[myrealtripIndex]);
+      myrealtripIndex += 1;
+      continue;
+    }
+    if (myrealtripIndex < myrealtripPool.length) {
+      merged.push(myrealtripPool[myrealtripIndex]);
+      myrealtripIndex += 1;
+      continue;
+    }
+    if (agodaIndex < agodaPool.length) {
+      merged.push(agodaPool[agodaIndex]);
       agodaIndex += 1;
     }
-  });
+  }
 
-  return merged.concat(dedupedAgoda.slice(agodaIndex));
+  return merged;
 }
 
 function stayRatingLabel(stay: UnifiedStayCardItem) {
@@ -255,17 +366,17 @@ export function StayResultsClient({
     }),
     [activeFilter.max, activeFilter.min, state],
   );
-  const mergedStays = useMemo(() => {
+  const visibleStays = useMemo(() => {
     const myrealtripCards = stays.map((stay) =>
       mapMyRealTripStay(stay, currentState),
     );
     const agodaCards = agodaStays.map(mapAgodaStay);
-    return mergeStayCards(myrealtripCards, agodaCards);
-  }, [agodaStays, currentState, stays]);
-  const visibleStays = useMemo(
-    () => mergedStays.filter((stay) => matchesFilter(stay, activeFilter)),
-    [activeFilter, mergedStays],
-  );
+    return mergeStayCards(
+      myrealtripCards.filter((stay) => matchesFilter(stay, activeFilter)),
+      agodaCards.filter((stay) => matchesFilter(stay, activeFilter)),
+      activeFilter,
+    );
+  }, [activeFilter, agodaStays, currentState, stays]);
   const filterLabel =
     activeFilter.id === "all" ? "" : ` · ${activeFilter.label}`;
   const hasAnyResult = resultOk || agodaStays.length > 0;
