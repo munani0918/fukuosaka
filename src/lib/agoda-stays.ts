@@ -111,7 +111,9 @@ export async function fetchAgodaHotelsForStays({
   url.searchParams.set("city", city);
   url.searchParams.set("checkIn", state.checkIn);
   url.searchParams.set("checkOut", state.checkOut);
-  url.searchParams.set("travelers", String(Math.max(1, state.adultCount)));
+  url.searchParams.set("adults", String(Math.max(1, state.adultCount)));
+  url.searchParams.set("children", String(Math.max(0, state.childCount)));
+  url.searchParams.set("rooms", String(Math.max(1, state.roomCount)));
   url.searchParams.set("maxResult", String(maxResult));
 
   try {

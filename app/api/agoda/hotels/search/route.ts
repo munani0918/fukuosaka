@@ -113,6 +113,13 @@ function parsePositiveInt(value: string | null, fallback: number, max: number) {
   return Math.min(parsed, max);
 }
 
+function parseNonNegativeInt(value: string | null, fallback: number, max: number) {
+  if (value === null || value === "") return fallback;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) return null;
+  return Math.min(parsed, max);
+}
+
 function endpointHost(endpoint: string | undefined): string | null {
   if (!endpoint) return null;
   try {
@@ -140,24 +147,52 @@ function sanitizeAgodaErrorBody(body: string, apiKey: string | undefined): strin
   return redacted.slice(0, 1000);
 }
 
-function buildAgodaPartnerUrl(siteId: string, hotelId: string, checkIn: string, checkOut: string, travelers: number): string {
+function buildAgodaPartnerUrl(
+  siteId: string,
+  hotelId: string,
+  checkIn: string,
+  checkOut: string,
+  adults: number,
+  children: number,
+  rooms: number,
+): string {
   const params = new URLSearchParams({
     cid: siteId,
     hid: hotelId,
     currency: "KRW",
     checkin: checkIn,
     checkout: checkOut,
-    NumberofAdults: String(travelers),
-    NumberofChildren: "0",
-    Rooms: "1",
+    NumberofAdults: String(adults),
+    NumberofChildren: String(children),
+    Rooms: String(rooms),
   });
   return `https://www.agoda.com/partners/partnersearch.aspx?${params.toString()}`;
 }
 
-function appendAgodaLocaleParams(url: string | null): string | null {
+function appendAgodaBookingParams(
+  url: string | null,
+  {
+    checkIn,
+    checkOut,
+    adults,
+    children,
+    rooms,
+  }: {
+    checkIn: string;
+    checkOut: string;
+    adults: number;
+    children: number;
+    rooms: number;
+  },
+): string | null {
   if (!url) return null;
   try {
     const parsed = new URL(url);
+    parsed.searchParams.set("checkin", checkIn);
+    parsed.searchParams.set("checkout", checkOut);
+    parsed.searchParams.set("NumberofAdults", String(adults));
+    parsed.searchParams.set("NumberofChildren", String(children));
+    parsed.searchParams.set("Rooms", String(rooms));
     parsed.searchParams.set("language", "ko-kr");
     parsed.searchParams.set("locale", "ko-kr");
     return parsed.toString();
@@ -178,6 +213,9 @@ function bookingUrlDebug(url: string | null) {
       hasAdults: params.has("NumberofAdults"),
       hasChildren: params.has("NumberofChildren"),
       hasRooms: params.has("Rooms"),
+      adults: params.get("NumberofAdults"),
+      children: params.get("NumberofChildren"),
+      rooms: params.get("Rooms"),
       currency: params.get("currency"),
       language: params.get("language"),
       locale: params.get("locale"),
@@ -216,7 +254,7 @@ function debugRawHotel(raw: unknown) {
       stringValue(readPath(hotel, [["dailyRate"], ["rate"], ["rates_from"], ["price"]])),
     currency: stringValue(readPath(hotel, [["currency"], ["price", "currency"], ["pricing", "currency"]])) || "KRW",
   };
-  return { firstResultKeys, firstResultSample, bookingUrlDebug: bookingUrlDebug(appendAgodaLocaleParams(landingURL)) };
+  return { firstResultKeys, firstResultSample };
 }
 
 function findHotelArray(payload: unknown): unknown[] {
@@ -260,7 +298,16 @@ function findHotelArray(payload: unknown): unknown[] {
   return [];
 }
 
-function normalizeHotel(raw: unknown, nights: number, siteId: string, checkIn: string, checkOut: string, travelers: number): NormalizedHotelResult | null {
+function normalizeHotel(
+  raw: unknown,
+  nights: number,
+  siteId: string,
+  checkIn: string,
+  checkOut: string,
+  adults: number,
+  children: number,
+  rooms: number,
+): NormalizedHotelResult | null {
   if (!raw || typeof raw !== "object") return null;
   const hotel = raw as Record<string, unknown>;
   const landingUrl = normalizeUrl(readPath(hotel, [["landingURL"], ["landingUrl"], ["landingurl"], ["url"], ["hotelURL"], ["hotelUrl"]]));
@@ -276,7 +323,13 @@ function normalizeHotel(raw: unknown, nights: number, siteId: string, checkIn: s
     dailyRate !== null
       ? Math.round(dailyRate * nights)
       : numberValue(readPath(hotel, [["totalPrice"], ["total_price"], ["price", "total"], ["pricing", "total"]]));
-  const bookingUrl = appendAgodaLocaleParams(landingUrl || (hotelId ? buildAgodaPartnerUrl(siteId, hotelId, checkIn, checkOut, travelers) : null));
+  const bookingUrl = appendAgodaBookingParams(
+    landingUrl ||
+      (hotelId
+        ? buildAgodaPartnerUrl(siteId, hotelId, checkIn, checkOut, adults, children, rooms)
+        : null),
+    { checkIn, checkOut, adults, children, rooms },
+  );
 
   return {
     hotel: {
@@ -314,7 +367,9 @@ export async function GET(request: NextRequest) {
   const city = searchParams.get("city")?.toLowerCase() as AgodaCity | undefined;
   const checkIn = stringValue(searchParams.get("checkIn"));
   const checkOut = stringValue(searchParams.get("checkOut"));
-  const travelers = parsePositiveInt(searchParams.get("travelers"), 2, 10);
+  const adults = parsePositiveInt(searchParams.get("adults") ?? searchParams.get("travelers"), 2, 10);
+  const children = parseNonNegativeInt(searchParams.get("children"), 0, 6);
+  const rooms = parsePositiveInt(searchParams.get("rooms"), 1, 4);
   const maxResult = parsePositiveInt(searchParams.get("maxResult"), 10, 50);
   const debugRelaxed = searchParams.get("debugRelaxed") === "1";
   const shouldDebugRaw = searchParams.get("debugRaw") === "1";
@@ -329,7 +384,9 @@ export async function GET(request: NextRequest) {
   if (nights <= 0) {
     return errorJson("invalid_stay_period", "checkOut은 checkIn 이후 날짜여야 합니다.");
   }
-  if (travelers === null) return errorJson("invalid_travelers", "travelers는 1 이상의 숫자여야 합니다.");
+  if (adults === null) return errorJson("invalid_adults", "adults/travelers는 1 이상의 숫자여야 합니다.");
+  if (children === null) return errorJson("invalid_children", "children은 0 이상의 숫자여야 합니다.");
+  if (rooms === null) return errorJson("invalid_rooms", "rooms는 1 이상의 숫자여야 합니다.");
   if (maxResult === null) return errorJson("invalid_max_result", "maxResult는 1 이상의 숫자여야 합니다.");
 
   const cityId = AGODA_CITY_IDS[city];
@@ -347,8 +404,9 @@ export async function GET(request: NextRequest) {
         minimumStarRating: debugRelaxed ? 0 : 3,
         discountOnly: false,
         occupancy: {
-          numberOfAdult: travelers,
-          numberOfChildren: 0,
+          numberOfAdult: adults,
+          numberOfChildren: children,
+          numberOfRooms: rooms,
         },
         sortBy: "Recommended",
       },
@@ -389,7 +447,7 @@ export async function GET(request: NextRequest) {
 
     const rawHotels = findHotelArray(payload);
     const normalizedHotels = rawHotels
-      .map((hotel) => normalizeHotel(hotel, nights, siteId, checkIn, checkOut, travelers))
+      .map((hotel) => normalizeHotel(hotel, nights, siteId, checkIn, checkOut, adults, children, rooms))
       .filter((hotel): hotel is NormalizedHotelResult => Boolean(hotel))
       .slice(0, resultLimit);
     const hotels = normalizedHotels.map(({ hotel }) => hotel);
@@ -400,7 +458,12 @@ export async function GET(request: NextRequest) {
       missingBookingUrlCount: normalizedHotels.filter((hotel) => hotel.missingBookingUrl).length,
       generatedFallbackBookingUrlCount: normalizedHotels.filter((hotel) => hotel.generatedFallbackBookingUrl).length,
     };
-    const debugRaw = shouldDebugRaw ? debugRawHotel(rawHotels[0]) : undefined;
+    const debugRaw = shouldDebugRaw
+      ? {
+          ...debugRawHotel(rawHotels[0]),
+          bookingUrlDebug: bookingUrlDebug(hotels[0]?.bookingUrl ?? null),
+        }
+      : undefined;
 
     if (!hotels.length) {
       return json({

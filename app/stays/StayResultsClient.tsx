@@ -283,7 +283,7 @@ export function StayResultsClient({
           {resultMessage}
         </p>
         <p className="mt-1 text-[11px] font-semibold text-[#8f776f]">
-          요금은 예약 시점에 따라 달라질 수 있어요.
+          요금은 예약 시점과 인원 조건에 따라 달라질 수 있어요.
         </p>
       </section>
 
