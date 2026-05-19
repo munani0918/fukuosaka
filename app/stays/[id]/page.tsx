@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
 
 import { BottomTabBar } from "@/src/components/home/BottomTabBar";
 import { Artwork } from "@/src/components/home/Artwork";
 import { StarIcon } from "@/src/components/home/icons";
+import { ReturnLink } from "../ReturnLink";
 import {
   buildAccommodationBookUrl,
   fetchAccommodationImageUrl,
@@ -87,6 +87,19 @@ function compactDateRange(checkIn: string, checkOut: string) {
   return `${inYear}.${inMonth}.${inDay} - ${outMonth}.${outDay}`;
 }
 
+function safeRelativeReturnUrl(value: string | string[] | undefined) {
+  const raw = toNullableString(value);
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
+
+  try {
+    const url = new URL(raw, "https://fukuosaka.local");
+    if (url.origin !== "https://fukuosaka.local") return null;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return null;
+  }
+}
+
 export default async function StayDetailPage({
   params,
   searchParams,
@@ -150,7 +163,11 @@ export default async function StayDetailPage({
     notFound();
   }
 
-  const backHref = buildStayResultsHref(state);
+  const returnUrl = safeRelativeReturnUrl(resolvedSearchParams.returnUrl);
+  const backHref = returnUrl ?? buildStayResultsHref(state);
+  const backLabel = returnUrl?.includes("planner-result.html")
+    ? "결과 화면으로 돌아가기"
+    : "검색 결과로 돌아가기";
   const stickyHref = primaryRoom?.bookUrl ?? stay.bookUrl;
   const stickyPrice =
     formatStayDetailPriceText(
@@ -172,15 +189,15 @@ export default async function StayDetailPage({
       <div className="mx-auto min-h-dvh max-w-[430px] pb-[calc(env(safe-area-inset-bottom)+132px)]">
         <header className="sticky top-0 z-30 border-b border-[#f0e4dd] bg-[#fffaf6]/95 px-5 pb-4 pt-[calc(env(safe-area-inset-top)+14px)] backdrop-blur-xl">
           <div className="flex items-center gap-3">
-            <Link
+            <ReturnLink
               href={backHref}
+              label={backLabel}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#7f6f69] shadow-[0_8px_18px_rgba(78,42,29,0.07)] ring-1 ring-[#efe3db]"
-              aria-label="검색 결과로 돌아가기"
             >
               <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M12.5 4.5 7 10l5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </Link>
+            </ReturnLink>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold tracking-[-0.02em] text-[#a58f86]">
                 {state.keyword} 숙소 상세
@@ -467,15 +484,16 @@ export default async function StayDetailPage({
         </section>
 
         <div className="px-5 pt-5">
-          <Link
+          <ReturnLink
             href={backHref}
+            label={backLabel}
             className="inline-flex items-center gap-2 text-[12px] font-bold text-[#8d7b73]"
           >
             <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M12.5 4.5 7 10l5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            검색 결과로 돌아가기
-          </Link>
+            {backLabel}
+          </ReturnLink>
         </div>
       </div>
 

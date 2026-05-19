@@ -2168,6 +2168,50 @@ function buildAgodaBridgeHrefForResult(item = {}){
   return `/stays/agoda/${encodeURIComponent(hotelId)}?${params.toString()}`;
 }
 
+function myrealtripDetailValue(value, fallback = ''){
+  return value === undefined || value === null || value === '' ? fallback : String(value);
+}
+
+function buildMyRealTripStayDetailHrefForResult(item = {}){
+  if(hotelSource(item) === 'agoda') return '';
+  const bookUrl = firstValidHotelUrl(item);
+  const productId = myrealtripDetailValue(hotelProductId(item)).trim();
+  if(!/^\d+$/.test(productId) || !bookUrl) return '';
+
+  const city = currentCity() || P.city || '';
+  const keyword = city === 'fukuoka' ? '후쿠오카' : '오사카';
+  const checkIn = myrealtripDetailValue(P.date);
+  const checkOut = myrealtripDetailValue(P.returnDate || addDays(P.date, P.nights));
+  const adults = Math.max(1, Number(P.adults || PLAN_SUMMARY?.totalTravelers || 2) || 2);
+  const children = Math.max(0, Number(P.children || 0) || 0);
+  const rooms = Math.max(1, Number(P.rooms || PLAN_SUMMARY?.budget?.rooms || 1) || 1);
+  if(!city || !checkIn || !checkOut) return '';
+
+  const salePrice = Number(item.salePrice || item.pricePerNight) || parsePrice(item.price) || '';
+  const params = new URLSearchParams({
+    city,
+    keyword,
+    checkIn,
+    checkOut,
+    adultCount: String(adults),
+    childCount: String(children),
+    roomCount: String(rooms),
+    adults: String(adults),
+    children: String(children),
+    rooms: String(rooms),
+    isDomestic: 'false',
+    budget: myrealtripDetailValue(P.hotelBudget || P.stayBudget || P.budget, 'all'),
+    name: myrealtripDetailValue(item.name || item.itemName),
+    salePrice: salePrice ? String(salePrice) : '',
+    reviewScore: myrealtripDetailValue(item.reviewScore || item.ratingValue || item.rating),
+    reviewCount: myrealtripDetailValue(item.reviewCount),
+    imageUrl: myrealtripDetailValue(item.imageUrl || item.img),
+    bookUrl,
+    returnUrl: agodaResultReturnUrl(),
+  });
+  return `/stays/${encodeURIComponent(productId)}?${params.toString()}`;
+}
+
 function normalizeAgodaHotelForResult(item){
   const bookingUrl = normalizeImageUrl(item?.bookingUrl || item?.landingURL || item?.landingUrl || item?.url || '');
   if(!isValidAgodaHotelUrl(bookingUrl)) return null;
@@ -4159,9 +4203,11 @@ function renderHotels(stays){
   const cards = displayItems.map(s=>{
     const isAgoda = hotelSource(s) === 'agoda';
     const bridgeUrl = isAgoda ? buildAgodaBridgeHrefForResult(s) : '';
-    const url = bridgeUrl || firstValidHotelUrl(s);
+    const stayDetailUrl = !isAgoda ? buildMyRealTripStayDetailHrefForResult(s) : '';
+    const url = bridgeUrl || stayDetailUrl || firstValidHotelUrl(s);
     const urlAttr = escapeAttr(url);
-    const linkAttrs = isAgoda && bridgeUrl ? '' : ' target="_blank" rel="noopener noreferrer"';
+    const isInternalStayUrl = Boolean(bridgeUrl || stayDetailUrl);
+    const linkAttrs = isInternalStayUrl ? '' : ' target="_blank" rel="noopener noreferrer"';
     const image = getHotelImageUrl(s);
     const ratingText = hotelRatingText(s);
     const priceInfo = hotelPriceInfo(s);
