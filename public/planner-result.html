@@ -2120,6 +2120,54 @@ function agodaSearchCity(){
   return city === 'osaka' || city === 'fukuoka' ? city : '';
 }
 
+function agodaResultReturnUrl(){
+  try {
+    const relative = `${window.location.pathname}${window.location.search || ''}`;
+    return relative.startsWith('/') && !relative.startsWith('//') ? relative : '';
+  } catch(e) {
+    return '';
+  }
+}
+
+function agodaBridgeValue(value, fallback = ''){
+  return value === undefined || value === null || value === '' ? fallback : String(value);
+}
+
+function buildAgodaBridgeHrefForResult(item = {}){
+  const bookingUrl = firstValidHotelUrl(item);
+  const hotelId = agodaBridgeValue(
+    item.hotelIdFromUrl || item.hotelId || item.HotelId || item.hotelID || item.hotel_id || hotelProductId({ bookingUrl }) || item.id,
+  ).trim();
+  const city = agodaSearchCity() || currentCity() || P.city || '';
+  const checkIn = agodaBridgeValue(P.date);
+  const checkOut = agodaBridgeValue(P.returnDate || addDays(P.date, P.nights));
+  const adults = Math.max(1, Number(P.adults || PLAN_SUMMARY?.totalTravelers || 2) || 2);
+  const children = Math.max(0, Number(P.children || 0) || 0);
+  const rooms = Math.max(1, Number(P.rooms || PLAN_SUMMARY?.budget?.rooms || 1) || 1);
+  if(!hotelId || !city || !checkIn || !checkOut) return '';
+
+  const params = new URLSearchParams({
+    city,
+    checkIn,
+    checkOut,
+    adults: String(adults),
+    children: String(children),
+    rooms: String(rooms),
+    budget: agodaBridgeValue(P.hotelBudget || P.stayBudget || P.budget, 'all'),
+    name: agodaBridgeValue(item.name || item.hotelName),
+    imageUrl: agodaBridgeValue(item.imageUrl || item.img),
+    pricePerNight: agodaBridgeValue(item.pricePerNight),
+    totalPrice: agodaBridgeValue(item.totalPrice),
+    rating: agodaBridgeValue(item.reviewScore || item.ratingValue || item.rating),
+    reviewCount: agodaBridgeValue(item.reviewCount),
+    starRating: agodaBridgeValue(item.starRating),
+    currency: agodaBridgeValue(item.currency, 'KRW'),
+    bookingUrl: agodaBridgeValue(bookingUrl || item.bookingUrl || item.affiliateUrl),
+    returnUrl: agodaResultReturnUrl(),
+  });
+  return `/stays/agoda/${encodeURIComponent(hotelId)}?${params.toString()}`;
+}
+
 function normalizeAgodaHotelForResult(item){
   const bookingUrl = normalizeImageUrl(item?.bookingUrl || item?.landingURL || item?.landingUrl || item?.url || '');
   if(!isValidAgodaHotelUrl(bookingUrl)) return null;
@@ -4056,8 +4104,11 @@ function renderHotels(stays){
   const notice = styleFallbackNoticeFinal('hotel', items);
   const hasAgoda = displayItems.some((item) => item.source === 'agoda');
   const cards = displayItems.map(s=>{
-    const url = firstValidHotelUrl(s);
+    const isAgoda = hotelSource(s) === 'agoda';
+    const bridgeUrl = isAgoda ? buildAgodaBridgeHrefForResult(s) : '';
+    const url = bridgeUrl || firstValidHotelUrl(s);
     const urlAttr = escapeAttr(url);
+    const linkAttrs = isAgoda && bridgeUrl ? '' : ' target="_blank" rel="noopener noreferrer"';
     const image = getHotelImageUrl(s);
     const ratingText = hotelRatingText(s);
     const priceInfo = hotelPriceInfo(s);
@@ -4066,7 +4117,7 @@ function renderHotels(stays){
         + `<div class="prod-ph" style="display:none">🏨</div>`
       : `<div class="prod-ph">🏨</div>`;
     const action = s.isBookable && url
-      ? `<a href="${urlAttr}" target="_blank" rel="noopener noreferrer" class="prod-btn" onclick="event.stopPropagation()">예약하기</a>`
+      ? `<a href="${urlAttr}"${linkAttrs} class="prod-btn" onclick="event.stopPropagation()">예약하기</a>`
       : `<button type="button" class="prod-btn" onclick="event.stopPropagation();setActiveTab('hotels', true)">숙소 다시 조회</button>`;
     return `<div class="prod-card">
       ${imgH}

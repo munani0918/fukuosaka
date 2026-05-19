@@ -90,6 +90,19 @@ function buildReturnHref(
   return `${url.pathname}?${url.searchParams.toString()}`;
 }
 
+function safeRelativeReturnUrl(value: string | string[] | undefined) {
+  const raw = nullableString(value);
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
+
+  try {
+    const url = new URL(raw, "https://fukuosaka.local");
+    if (url.origin !== "https://fukuosaka.local") return null;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return null;
+  }
+}
+
 function totalPriceLabel(value: number | null) {
   if (!value || value <= 0) return "예약 페이지에서 확인";
   return `${value.toLocaleString("ko-KR")}원`;
@@ -140,7 +153,11 @@ export default async function AgodaStayBridgePage({
   });
   const liveStay = agodaStays.find((stay) => stay.id === id) ?? null;
   const stay = liveStay ?? snapshot;
-  const backHref = buildReturnHref(city, buildStayResultsHref(state));
+  const returnUrl = safeRelativeReturnUrl(resolvedSearchParams.returnUrl);
+  const backHref = returnUrl ?? buildReturnHref(city, buildStayResultsHref(state));
+  const backLabel = returnUrl?.includes("planner-result.html")
+    ? "결과 화면으로 돌아가기"
+    : "리스트로 돌아가기";
   const bookingUrl = stay?.bookingUrl || "";
   const bookingDebug = bookingUrl ? bookingUrlDebug(bookingUrl) : null;
   const priceLabel = formatStayPriceLabel(stay?.pricePerNight ?? null);
@@ -159,7 +176,7 @@ export default async function AgodaStayBridgePage({
             <Link
               href={backHref}
               className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[#7f6f69] shadow-[0_8px_18px_rgba(78,42,29,0.07)] ring-1 ring-[#efe3db]"
-              aria-label="숙소 리스트로 돌아가기"
+              aria-label={backLabel}
             >
               <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M12.5 4.5 7 10l5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -276,7 +293,7 @@ export default async function AgodaStayBridgePage({
             <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M12.5 4.5 7 10l5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            리스트로 돌아가기
+            {backLabel}
           </Link>
         </div>
       </div>
