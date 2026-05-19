@@ -164,6 +164,9 @@ export function StayResultsClient({
               후보 중 선택한 1박 예산에 맞는 숙소를 우선 보여드려요.
             </p>
           ) : null}
+          <p className="mt-3 rounded-[14px] bg-[#fff8f4] px-3 py-2 text-[12px] font-semibold leading-5 text-[#9a7469]">
+            예약 가능한 제휴 숙소를 모아봤어요. 요금은 예약 시점에 따라 달라질 수 있어요.
+          </p>
         </div>
       </section>
 
@@ -173,9 +176,9 @@ export function StayResultsClient({
             <Link
               key={stay.itemId}
               href={buildStayDetailHref(stay, currentState)}
-              className="flex overflow-hidden rounded-[24px] bg-white shadow-[0_14px_26px_rgba(85,42,28,0.06)] ring-1 ring-[#efe3db]"
+              className="flex overflow-hidden rounded-[24px] bg-white shadow-[0_14px_26px_rgba(85,42,28,0.06)] ring-1 ring-[#efe3db] transition active:scale-[0.99]"
             >
-              <div className="relative h-[148px] w-[126px] shrink-0 overflow-hidden bg-[#f5e8df]">
+              <div className="relative h-[144px] w-[138px] shrink-0 overflow-hidden bg-[#f5e8df]">
                 {stay.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -204,9 +207,6 @@ export function StayResultsClient({
                       <span className="inline-flex rounded-full bg-[#fff4f0] px-2 py-0.5 text-[10px] font-black text-[#cb4b42] ring-1 ring-[#f1d7cf]">
                         마이리얼트립
                       </span>
-                      <span className="text-[11px] font-bold text-[#b48577]">
-                        {state.keyword} 추천
-                      </span>
                     </div>
                     <h3 className="mt-1 text-[16px] font-black leading-[1.35] tracking-[-0.04em] text-[#221a17] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
                       {stay.itemName}
@@ -224,17 +224,12 @@ export function StayResultsClient({
                 </div>
 
                 <div className="mt-auto flex items-end justify-between gap-3 border-t border-[#f3e7df] pt-3">
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-medium text-[#8d7c74]">
-                        마이리얼트립 실시간 숙소
-                      </p>
-                      <p className="mt-1 truncate whitespace-nowrap text-[16px] font-black tracking-[-0.04em] text-[#201b19]">
-                        {formatStayPriceLabel(stay.salePrice)}
-                      </p>
-                    </div>
-                    <span className="inline-flex h-8 min-w-[66px] shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#fff4f0] px-2.5 text-[11px] font-black leading-none text-[#cb4b42] ring-1 ring-[#f1d7cf]">
-                      자세히보기
-                    </span>
+                  <p className="min-w-0 truncate whitespace-nowrap text-[16px] font-black tracking-[-0.04em] text-[#201b19]">
+                    {formatStayPriceLabel(stay.salePrice)}
+                  </p>
+                  <span className="shrink-0 text-[11px] font-black text-[#cb4b42]">
+                    보기
+                  </span>
                 </div>
               </div>
             </Link>
@@ -242,11 +237,17 @@ export function StayResultsClient({
         ) : (
           <div className="rounded-[24px] bg-white p-5 text-center shadow-[0_14px_26px_rgba(85,42,28,0.06)] ring-1 ring-[#efe3db]">
             <p className="text-[17px] font-black tracking-[-0.04em] text-[#271d18]">
-              아직 보여드릴 숙소가 없어요
+              조건에 맞는 숙소를 찾지 못했어요
             </p>
             <p className="mt-2 text-[13px] leading-6 text-[#7f6f69]">
-              다른 1박 예산을 선택하거나 지역명을 조금 넓게 바꿔 다시 찾아보세요.
+              날짜나 예산을 바꿔 다시 검색해보세요.
             </p>
+            <a
+              href="#stay-search-form"
+              className="mt-4 inline-flex h-9 items-center justify-center rounded-full bg-[#fff4f0] px-4 text-[12px] font-black text-[#cb4b42] ring-1 ring-[#f1d7cf]"
+            >
+              조건 변경하기
+            </a>
           </div>
         )}
       </section>

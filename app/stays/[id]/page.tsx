@@ -24,7 +24,7 @@ function bottomTabs() {
     { id: "home", label: "홈", href: "/", icon: "home" as const },
     { id: "planner", label: "예산플래너", href: "/planner-wizard.html", icon: "planner" as const },
     { id: "stay", label: "숙소", href: "/stays", icon: "stay" as const, active: true },
-    { id: "tour", label: "투어", href: "/tours", icon: "tour" as const },
+    { id: "tour", label: "투어·티켓", href: "/tours", icon: "tour" as const },
     { id: "my", label: "마이", href: "#top", icon: "my" as const },
   ];
 }
@@ -75,6 +75,16 @@ function formatStayDetailPriceText(value: string | null | undefined) {
   }
 
   return cleaned;
+}
+
+function compactDateRange(checkIn: string, checkOut: string) {
+  const [inYear, inMonth, inDay] = checkIn.split("-");
+  const [, outMonth, outDay] = checkOut.split("-");
+  if (!inYear || !inMonth || !inDay || !outMonth || !outDay) {
+    return `${checkIn} - ${checkOut}`;
+  }
+
+  return `${inYear}.${inMonth}.${inDay} - ${outMonth}.${outDay}`;
 }
 
 export default async function StayDetailPage({
@@ -245,49 +255,45 @@ export default async function StayDetailPage({
                 </div>
               </div>
 
-              <div className="grid gap-4 rounded-[22px] bg-[#fcf6f2] p-4 ring-1 ring-[#f0e4dc]">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[12px] font-black tracking-[-0.03em] text-[#2a1e19]">
-                      날짜 바꾸기
-                    </p>
-                    <p className="mt-1 text-[12px] leading-5 text-[#7e6d66]">
-                      체크인과 체크아웃을 바꾸면 같은 숙소의 객실 타입과 요금이 다시 계산돼요.
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-[#b18778] ring-1 ring-[#efddd5]">
-                    성인 {state.adultCount} · 아동 {state.childCount} · 객실 {state.roomCount}
+              <details className="group rounded-[22px] bg-[#fcf6f2] p-3 ring-1 ring-[#f0e4dc]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-[16px] bg-white px-3 py-2.5 text-[12px] font-black text-[#2a1e19] ring-1 ring-[#efddd5] [&::-webkit-details-marker]:hidden">
+                  <span className="min-w-0 truncate">
+                    📅 {compactDateRange(state.checkIn, state.checkOut)} · 성인 {state.adultCount} · 아동 {state.childCount} · 객실 {state.roomCount}
                   </span>
-                </div>
-
+                  <span className="shrink-0 rounded-full bg-[#fff4f0] px-2.5 py-1 text-[10px] font-black text-[#cb4b42]">
+                    수정
+                  </span>
+                </summary>
                 <form
                   action={`/stays/${id}`}
                   method="get"
-                  className="grid gap-3 sm:grid-cols-2"
+                  className="mt-3 grid gap-2 sm:grid-cols-2"
                 >
-                  <label className="space-y-1.5">
+                  <label className="space-y-1">
                     <span className="text-[11px] font-bold text-[#8f776f]">체크인</span>
                     <input
                       type="date"
                       name="checkIn"
                       defaultValue={state.checkIn}
-                      className="h-11 w-full rounded-[16px] border border-[#eadcd3] bg-white px-3 text-[13px] font-semibold text-[#241b17] outline-none"
+                      className="h-10 w-full rounded-[14px] border border-[#eadcd3] bg-white px-3 text-[12px] font-semibold text-[#241b17] outline-none"
                     />
                   </label>
-                  <label className="space-y-1.5">
+                  <label className="space-y-1">
                     <span className="text-[11px] font-bold text-[#8f776f]">체크아웃</span>
                     <input
                       type="date"
                       name="checkOut"
                       min={minCheckOut}
                       defaultValue={state.checkOut}
-                      className="h-11 w-full rounded-[16px] border border-[#eadcd3] bg-white px-3 text-[13px] font-semibold text-[#241b17] outline-none"
+                      className="h-10 w-full rounded-[14px] border border-[#eadcd3] bg-white px-3 text-[12px] font-semibold text-[#241b17] outline-none"
                     />
                   </label>
 
                   <input type="hidden" name="keyword" value={state.keyword} />
                   <input type="hidden" name="adultCount" value={state.adultCount} />
+                  <input type="hidden" name="adults" value={state.adultCount} />
                   <input type="hidden" name="childCount" value={state.childCount} />
+                  <input type="hidden" name="children" value={state.childCount} />
                   <input type="hidden" name="roomCount" value={state.roomCount} />
                   <input type="hidden" name="rooms" value={state.roomCount} />
                   <input type="hidden" name="isDomestic" value={String(state.isDomestic)} />
@@ -300,12 +306,12 @@ export default async function StayDetailPage({
 
                   <button
                     type="submit"
-                    className="inline-flex h-11 items-center justify-center rounded-[16px] bg-[#cb4b42] px-4 text-[13px] font-black text-white sm:col-span-2"
+                    className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-[14px] bg-[#cb4b42] px-4 text-[12px] font-black text-white sm:col-span-2"
                   >
                     객실 타입 다시 조회하기
                   </button>
                 </form>
-              </div>
+              </details>
 
               <div className="space-y-3">
                 <div className="flex items-end justify-between gap-3">
@@ -334,8 +340,8 @@ export default async function StayDetailPage({
                         </div>
                       ) : null}
 
-                      <div className="flex gap-3 p-4">
-                        <div className="h-[98px] w-[98px] shrink-0 overflow-hidden rounded-[18px] bg-[#f3e7df]">
+                      <div className="flex gap-3 p-3">
+                        <div className="h-[90px] w-[90px] shrink-0 overflow-hidden rounded-[18px] bg-[#f3e7df]">
                           {room.imageUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -379,17 +385,19 @@ export default async function StayDetailPage({
                           </div>
 
                           {room.attributes.length > 0 ? (
-                            <ul className="mt-3 space-y-1.5 text-[12px] leading-5 text-[#6c5c56]">
-                              {room.attributes.slice(0, 4).map((attribute) => (
-                                <li key={attribute} className="flex gap-2">
-                                  <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#cb4b42]" />
-                                  <span>{attribute}</span>
-                                </li>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {room.attributes.slice(0, 3).map((attribute) => (
+                                <span
+                                  key={attribute}
+                                  className="rounded-full bg-[#fbf2ed] px-2 py-1 text-[10px] font-bold text-[#7a6862]"
+                                >
+                                  {attribute}
+                                </span>
                               ))}
-                            </ul>
+                            </div>
                           ) : null}
 
-                          <div className="mt-3 border-t border-[#f3e7df] pt-3">
+                          <div className="mt-2 border-t border-[#f3e7df] pt-2.5">
                             <div className="flex items-end justify-between gap-3">
                               <div className="min-w-0">
                                 <p className="text-[11px] font-semibold text-[#9b8780]">
@@ -412,7 +420,7 @@ export default async function StayDetailPage({
                                 href={room.bookUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex h-9 shrink-0 items-center justify-center rounded-full bg-[#cb4b42] px-4 text-[11px] font-black text-white"
+                                className="inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#cb4b42] px-3.5 text-[11px] font-black text-white"
                               >
                                 예약하기
                               </a>
@@ -475,11 +483,14 @@ export default async function StayDetailPage({
         <div className="pointer-events-auto w-full max-w-[398px] rounded-[24px] bg-white/96 p-3 shadow-[0_18px_40px_rgba(71,34,26,0.18)] ring-1 ring-[#f0dfd6] backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="truncate text-[12px] font-bold text-[#2a1f1a]">
-                {primaryRoom?.title ?? stay.itemName}
+              <p className="text-[10px] font-black text-[#cb4b42]">
+                최저가 객실
               </p>
-              <p className="mt-1 truncate whitespace-nowrap text-[11px] font-medium text-[#8b7a73]">
-                {stickyPrice} · 마이리얼트립 예약 연동
+              <p className="mt-0.5 truncate whitespace-nowrap text-[14px] font-black tracking-[-0.04em] text-[#2a1f1a]">
+                {stickyPrice}
+              </p>
+              <p className="truncate text-[10px] font-medium text-[#8b7a73]">
+                {primaryRoom?.title ?? stay.itemName}
               </p>
             </div>
             <a

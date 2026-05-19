@@ -27,14 +27,12 @@ function compactDateRange(checkIn: string, checkOut: string) {
 
 function CounterControl({
   label,
-  name,
   value,
   min,
   max,
   onChange,
 }: {
   label: string;
-  name: string;
   value: number;
   min: number;
   max: number;
@@ -69,7 +67,6 @@ function CounterControl({
         >
           +
         </button>
-        <input type="hidden" name={name} value={value} />
       </div>
     </div>
   );
@@ -82,10 +79,15 @@ export function StaySearchForm({ state, quickKeywords }: StaySearchFormProps) {
   const [adultCount, setAdultCount] = useState(state.adultCount);
   const [childCount, setChildCount] = useState(state.childCount);
   const [roomCount, setRoomCount] = useState(state.roomCount);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
   const minCheckOut = useMemo(() => addStayDays(checkIn, 1), [checkIn]);
   const summary = `${keyword || "숙소"} · ${compactDateRange(checkIn, checkOut)}`;
 
   function handleCheckInChange(nextCheckIn: string) {
+    if (!nextCheckIn) {
+      setCheckIn(nextCheckIn);
+      return;
+    }
     const nextMinCheckOut = addStayDays(nextCheckIn, 1);
     setCheckIn(nextCheckIn);
     setCheckOut((current) => (current > nextCheckIn ? current : nextMinCheckOut));
@@ -96,7 +98,7 @@ export function StaySearchForm({ state, quickKeywords }: StaySearchFormProps) {
   }
 
   return (
-    <form action="/stays" method="get" className="mt-4 space-y-2.5">
+    <form id="stay-search-form" action="/stays" method="get" className="mt-4 space-y-2.5">
       <div className="flex h-12 items-center gap-2 rounded-[18px] border border-[#eadcd3] bg-white px-3.5 shadow-[0_10px_20px_rgba(92,50,38,0.05)]">
         <SearchIcon className="h-[18px] w-[18px] shrink-0 text-[#a28f88]" />
         <input
@@ -133,67 +135,108 @@ export function StaySearchForm({ state, quickKeywords }: StaySearchFormProps) {
           </button>
         </div>
 
-        <details className="group mt-2">
-          <summary className="flex cursor-pointer list-none items-center justify-between rounded-[14px] bg-[#fbf2ed] px-3 py-2 text-[11px] font-black text-[#8c746a] [&::-webkit-details-marker]:hidden">
-            <span>조건 변경</span>
-            <span className="transition group-open:rotate-180">⌄</span>
-          </summary>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <label className="space-y-1">
-              <span className="text-[10px] font-bold text-[#8f776f]">체크인</span>
-              <input
-                type="date"
-                name="checkIn"
-                value={checkIn}
-                onChange={(event) => handleCheckInChange(event.target.value)}
-                className="h-10 w-full rounded-[14px] border border-[#eadcd3] bg-white px-2.5 text-[12px] font-semibold text-[#241b17] outline-none"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-[10px] font-bold text-[#8f776f]">체크아웃</span>
-              <input
-                type="date"
-                name="checkOut"
-                min={minCheckOut}
-                value={checkOut}
-                onChange={(event) => handleCheckOutChange(event.target.value)}
-                className="h-10 w-full rounded-[14px] border border-[#eadcd3] bg-white px-2.5 text-[12px] font-semibold text-[#241b17] outline-none"
-              />
-            </label>
-            <div className="col-span-2 grid gap-2">
-              <CounterControl
-                label="성인"
-                name="adultCount"
-                value={adultCount}
-                min={1}
-                max={8}
-                onChange={setAdultCount}
-              />
-              <CounterControl
-                label="아동"
-                name="childCount"
-                value={childCount}
-                min={0}
-                max={6}
-                onChange={setChildCount}
-              />
-              <CounterControl
-                label="객실"
-                name="roomCount"
-                value={roomCount}
-                min={1}
-                max={4}
-                onChange={setRoomCount}
-              />
-            </div>
-          </div>
-        </details>
+        <button
+          type="button"
+          onClick={() => setIsPanelOpen(true)}
+          className="mt-2 flex w-full items-center justify-between rounded-[14px] bg-[#fbf2ed] px-3 py-2 text-[11px] font-black text-[#8c746a]"
+        >
+          <span>조건 변경</span>
+          <span aria-hidden="true">⌃</span>
+        </button>
       </div>
 
+      {isPanelOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(35,24,19,0.38)] px-3">
+          <button
+            type="button"
+            aria-label="조건 변경 닫기"
+            className="absolute inset-0 cursor-default"
+            onClick={() => setIsPanelOpen(false)}
+          />
+          <div className="relative w-full max-w-[430px] rounded-t-[28px] bg-[#fffaf6] px-4 pb-[calc(env(safe-area-inset-bottom)+18px)] pt-4 shadow-[0_-18px_44px_rgba(42,23,18,0.20)] ring-1 ring-[#efe3db]">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#e5d5cb]" />
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[16px] font-black tracking-[-0.04em] text-[#241b17]">
+                  숙소 조건 변경
+                </p>
+                <p className="mt-0.5 text-[11px] font-semibold text-[#8f776f]">
+                  {summary}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPanelOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[18px] font-black text-[#8c746a] ring-1 ring-[#eadcd3]"
+                aria-label="닫기"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <label className="space-y-1">
+                <span className="text-[10px] font-bold text-[#8f776f]">체크인</span>
+                <input
+                  type="date"
+                  value={checkIn}
+                  onChange={(event) => handleCheckInChange(event.target.value)}
+                  className="h-10 w-full rounded-[14px] border border-[#eadcd3] bg-white px-2.5 text-[12px] font-semibold text-[#241b17] outline-none"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-[10px] font-bold text-[#8f776f]">체크아웃</span>
+                <input
+                  type="date"
+                  min={minCheckOut}
+                  value={checkOut}
+                  onChange={(event) => handleCheckOutChange(event.target.value)}
+                  className="h-10 w-full rounded-[14px] border border-[#eadcd3] bg-white px-2.5 text-[12px] font-semibold text-[#241b17] outline-none"
+                />
+              </label>
+              <div className="col-span-2 grid gap-2">
+                <CounterControl
+                  label="성인"
+                  value={adultCount}
+                  min={1}
+                  max={8}
+                  onChange={setAdultCount}
+                />
+                <CounterControl
+                  label="아동"
+                  value={childCount}
+                  min={0}
+                  max={6}
+                  onChange={setChildCount}
+                />
+                <CounterControl
+                  label="객실"
+                  value={roomCount}
+                  min={1}
+                  max={4}
+                  onChange={setRoomCount}
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="mt-3 flex h-11 w-full items-center justify-center rounded-[16px] bg-[#cb4b42] text-[13px] font-black text-white"
+            >
+              조건 적용하기
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <input type="hidden" name="checkIn" value={checkIn} />
+      <input type="hidden" name="checkOut" value={checkOut} />
+      <input type="hidden" name="adultCount" value={adultCount} />
+      <input type="hidden" name="childCount" value={childCount} />
+      <input type="hidden" name="roomCount" value={roomCount} />
       <input type="hidden" name="adults" value={adultCount} />
       <input type="hidden" name="children" value={childCount} />
       <input type="hidden" name="rooms" value={roomCount} />
-      <input type="hidden" name="childCount" value={childCount} />
       <input type="hidden" name="isDomestic" value={String(state.isDomestic)} />
       <input type="hidden" name="hotelPriceMin" value={state.hotelPriceMin ?? ""} />
       <input type="hidden" name="hotelPriceMax" value={state.hotelPriceMax ?? ""} />
