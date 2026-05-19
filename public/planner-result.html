@@ -4187,7 +4187,7 @@ function renderHotels(stays){
     </div>`;
   }).join('');
   const agodaNotice = hasAgoda
-    ? '<div class="reason-box">표시된 요금은 예약 시점과 인원 조건에 따라 달라질 수 있어요.</div>'
+    ? '<div class="reason-box">요금은 예약 시점과 인원 조건에 따라 달라질 수 있어요.</div>'
     : '';
   el.innerHTML = `<div class="reason-box">${stayReasonFinal()}${notice ? `<br>${notice}` : ''}</div>${cards}${agodaNotice}`;
 }
