@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { headers } from "next/headers";
 import { connection } from "next/server";
 
 import { Artwork } from "@/src/components/home/Artwork";
 import { BottomTabBar } from "@/src/components/home/BottomTabBar";
 import { StarIcon } from "@/src/components/home/icons";
+import { AgodaBridgeBackLink } from "./AgodaBridgeBackLink";
 import {
   type AgodaStayCardItem,
   fetchAgodaHotelsForStays,
@@ -173,15 +173,15 @@ export default async function AgodaStayBridgePage({
       <div className="mx-auto min-h-dvh max-w-[430px] pb-[calc(env(safe-area-inset-bottom)+132px)]">
         <header className="sticky top-0 z-30 border-b border-[#f0e4dd] bg-[#fffaf6]/95 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+12px)] backdrop-blur-xl">
           <div className="flex items-start gap-3">
-            <Link
+            <AgodaBridgeBackLink
               href={backHref}
               className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[#7f6f69] shadow-[0_8px_18px_rgba(78,42,29,0.07)] ring-1 ring-[#efe3db]"
-              aria-label={backLabel}
+              label={backLabel}
             >
               <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M12.5 4.5 7 10l5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </Link>
+            </AgodaBridgeBackLink>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold tracking-[-0.02em] text-[#a58f86]">
                 아고다 예약 전 확인
@@ -286,15 +286,16 @@ export default async function AgodaStayBridgePage({
         </section>
 
         <div className="px-5 pb-5 pt-4">
-          <Link
+          <AgodaBridgeBackLink
             href={backHref}
+            label={backLabel}
             className="inline-flex items-center gap-2 text-[12px] font-bold text-[#8d7b73]"
           >
             <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M12.5 4.5 7 10l5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             {backLabel}
-          </Link>
+          </AgodaBridgeBackLink>
         </div>
       </div>
 
