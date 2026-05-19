@@ -66,6 +66,36 @@ function clampInt(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, Math.round(value)));
 }
 
+function budgetQueryToPriceRange(value: string | undefined) {
+  switch (value) {
+    case "100000":
+      return { min: null, max: 100000 };
+    case "200000":
+      return { min: null, max: 200000 };
+    case "300000":
+      return { min: null, max: 300000 };
+    case "premium":
+    case "300000-plus":
+      return { min: 300000, max: null };
+    case "all":
+      return { min: null, max: null };
+    default:
+      return undefined;
+  }
+}
+
+function priceRangeToBudgetQuery(
+  state: Pick<StaySearchState, "hotelPriceMin" | "hotelPriceMax">,
+) {
+  if (state.hotelPriceMin === 300000 && state.hotelPriceMax === null) {
+    return "premium";
+  }
+  if (state.hotelPriceMax === 300000) return "300000";
+  if (state.hotelPriceMax === 200000) return "200000";
+  if (state.hotelPriceMax === 100000) return "100000";
+  return "all";
+}
+
 export function futureStayDate(offsetDays: number, now = new Date()) {
   const target = new Date(now);
   target.setDate(target.getDate() + offsetDays);
@@ -122,6 +152,13 @@ export function coerceStaySearchState(
   const adultCount = toInt(pick(input.adultCount) ?? pick(input.adults), 2);
   const childCount = toInt(pick(input.childCount) ?? pick(input.children), 0);
   const roomCount = toInt(pick(input.roomCount) ?? pick(input.rooms), 1);
+  const budgetRange = budgetQueryToPriceRange(pick(input.budget));
+  const hotelPriceMin = toNullableInt(
+    pick(input.hotelPriceMin) ?? pick(input.minPrice),
+  );
+  const hotelPriceMax = toNullableInt(
+    pick(input.hotelPriceMax) ?? pick(input.maxPrice),
+  );
 
   return getDefaultStaySearchState(pick(input.keyword)?.trim() || fallbackKeyword, {
     checkIn: pick(input.checkIn) || futureStayDate(35),
@@ -130,12 +167,8 @@ export function coerceStaySearchState(
     childCount,
     roomCount,
     isDomestic: pick(input.isDomestic) === "true",
-    hotelPriceMin: toNullableInt(
-      pick(input.hotelPriceMin) ?? pick(input.minPrice),
-    ),
-    hotelPriceMax: toNullableInt(
-      pick(input.hotelPriceMax) ?? pick(input.maxPrice),
-    ),
+    hotelPriceMin: hotelPriceMin ?? budgetRange?.min ?? null,
+    hotelPriceMax: hotelPriceMax ?? budgetRange?.max ?? null,
     page: toInt(pick(input.page), 0),
     size: toInt(pick(input.size), 12),
   });
@@ -145,6 +178,8 @@ function appendHotelPriceParams(
   params: URLSearchParams,
   state: Pick<StaySearchState, "hotelPriceMin" | "hotelPriceMax">,
 ) {
+  params.set("budget", priceRangeToBudgetQuery(state));
+
   if (state.hotelPriceMin !== null) {
     params.set("hotelPriceMin", String(state.hotelPriceMin));
   }

@@ -10,11 +10,11 @@ type StaySearchFormProps = {
 };
 
 const STAY_BUDGET_OPTIONS = [
-  { id: "all", label: "전체", summary: "1박 전체", min: null, max: null },
-  { id: "under-100k", label: "10만↓", summary: "1박 10만원 이하", min: null, max: 100000 },
-  { id: "under-200k", label: "20만↓", summary: "1박 20만원 이하", min: null, max: 200000 },
-  { id: "under-300k", label: "30만↓", summary: "1박 30만원 이하", min: null, max: 300000 },
-  { id: "over-300k", label: "30만+", summary: "1박 30만원 이상", min: 300000, max: null },
+  { id: "all", label: "전체", summary: "1박 전체", queryValue: "all", min: null, max: null },
+  { id: "under-100k", label: "10만↓", summary: "1박 10만원 이하", queryValue: "100000", min: null, max: 100000 },
+  { id: "under-200k", label: "20만↓", summary: "1박 20만원 이하", queryValue: "200000", min: null, max: 200000 },
+  { id: "under-300k", label: "30만↓", summary: "1박 30만원 이하", queryValue: "300000", min: null, max: 300000 },
+  { id: "over-300k", label: "30만+", summary: "1박 30만원 이상", queryValue: "premium", min: 300000, max: null },
 ] as const;
 
 type StayBudgetOption = (typeof STAY_BUDGET_OPTIONS)[number];
@@ -106,6 +106,12 @@ export function StaySearchForm({ state }: StaySearchFormProps) {
   const minCheckOut = useMemo(() => addStayDays(checkIn, 1), [checkIn]);
   const summary = `${keyword || "숙소"} · ${compactDateRange(checkIn, checkOut)}`;
   const guestSummary = `성인 ${adultCount} · 아동 ${childCount} · 객실 ${roomCount}`;
+  const budgetIndex = Math.max(
+    0,
+    STAY_BUDGET_OPTIONS.findIndex((option) => option.id === budgetOption.id),
+  );
+  const budgetProgress =
+    (budgetIndex / (STAY_BUDGET_OPTIONS.length - 1)) * 100;
 
   useEffect(() => {
     const openPanel = () => setIsPanelOpen(true);
@@ -125,6 +131,11 @@ export function StaySearchForm({ state }: StaySearchFormProps) {
 
   function handleCheckOutChange(nextCheckOut: string) {
     setCheckOut(nextCheckOut > checkIn ? nextCheckOut : minCheckOut);
+  }
+
+  function handleBudgetIndexChange(nextIndex: number) {
+    const nextOption = STAY_BUDGET_OPTIONS[nextIndex] ?? STAY_BUDGET_OPTIONS[0];
+    setBudgetOption(nextOption);
   }
 
   return (
@@ -255,24 +266,66 @@ export function StaySearchForm({ state }: StaySearchFormProps) {
                 <p className="mb-1.5 text-[11px] font-black text-[#6c5650]">
                   1박 예산
                 </p>
-                <div className="grid grid-cols-5 gap-1.5 rounded-[16px] bg-[#fbf2ed] p-1">
-                  {STAY_BUDGET_OPTIONS.map((option) => {
-                    const selected = option.id === budgetOption.id;
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() => setBudgetOption(option)}
-                        className={`h-9 rounded-[12px] text-[11px] font-black ${
-                          selected
-                            ? "bg-[#cb4b42] text-white shadow-[0_8px_14px_rgba(203,75,66,0.16)]"
-                            : "text-[#8c746a]"
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    );
-                  })}
+                <div className="rounded-[18px] bg-white px-3 pb-3 pt-2 ring-1 ring-[#eadcd3]">
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-[#8f776f]">
+                      {budgetOption.summary}
+                    </span>
+                    <span className="rounded-full bg-[#fff4f0] px-2 py-0.5 text-[10px] font-black text-[#cb4b42]">
+                      스냅 선택
+                    </span>
+                  </div>
+                  <div className="relative px-1 pt-2">
+                    <div className="absolute left-1 right-1 top-[20px] h-2 rounded-full bg-[#eadcd3]" />
+                    <div
+                      className="absolute left-1 top-[20px] h-2 rounded-full bg-[#cb4b42]"
+                      style={{ width: budgetProgress === 0 ? 0 : `${budgetProgress}%` }}
+                    />
+                    <div className="absolute left-1 right-1 top-[16px] flex justify-between">
+                      {STAY_BUDGET_OPTIONS.map((option, index) => (
+                        <span
+                          key={option.id}
+                          className={`h-4 w-4 rounded-full border-2 ${
+                            index <= budgetIndex
+                              ? "border-[#cb4b42] bg-[#cb4b42]"
+                              : "border-[#dcc8bd] bg-white"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={4}
+                      step={1}
+                      value={budgetIndex}
+                      onChange={(event) =>
+                        handleBudgetIndexChange(Number(event.target.value))
+                      }
+                      aria-label="1박 예산"
+                      className="relative z-10 h-10 w-full cursor-pointer accent-[#cb4b42]"
+                      style={{ accentColor: "#cb4b42" }}
+                    />
+                  </div>
+                  <div className="mt-1 grid grid-cols-5 gap-1">
+                    {STAY_BUDGET_OPTIONS.map((option) => {
+                      const selected = option.id === budgetOption.id;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => setBudgetOption(option)}
+                          className={`h-7 whitespace-nowrap rounded-[10px] text-[10px] font-black ${
+                            selected
+                              ? "bg-[#fff4f0] text-[#cb4b42]"
+                              : "text-[#8c746a]"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
@@ -300,6 +353,7 @@ export function StaySearchForm({ state }: StaySearchFormProps) {
       <input type="hidden" name="children" value={childCount} />
       <input type="hidden" name="rooms" value={roomCount} />
       <input type="hidden" name="isDomestic" value={String(state.isDomestic)} />
+      <input type="hidden" name="budget" value={budgetOption.queryValue} />
       <input type="hidden" name="hotelPriceMin" value={budgetOption.min ?? ""} />
       <input type="hidden" name="hotelPriceMax" value={budgetOption.max ?? ""} />
       <input type="hidden" name="page" value="0" />
