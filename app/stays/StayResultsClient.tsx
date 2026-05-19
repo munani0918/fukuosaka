@@ -331,7 +331,9 @@ function StayCard({
   const className =
     "flex overflow-hidden rounded-[24px] bg-white shadow-[0_14px_26px_rgba(85,42,28,0.06)] ring-1 ring-[#efe3db] transition active:scale-[0.99]";
 
-  if (stay.isExternal) {
+  const shouldOpenExternally = stay.isExternal && stay.source !== "agoda";
+
+  if (shouldOpenExternally) {
     return (
       <a
         href={stay.href}
