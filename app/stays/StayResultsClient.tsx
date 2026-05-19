@@ -8,6 +8,7 @@ import { StarIcon } from "@/src/components/home/icons";
 import type { AgodaStayCardItem } from "@/src/lib/agoda-stays";
 import type { AccommodationSearchItem } from "@/src/lib/myrealtrip";
 import {
+  buildAgodaStayBridgeHref,
   buildStayDetailHref,
   formatStayPriceLabel,
   type StayPriceFilterOption,
@@ -99,7 +100,10 @@ function mapMyRealTripStay(
   };
 }
 
-function mapAgodaStay(stay: AgodaStayCardItem): UnifiedStayCardItem {
+function mapAgodaStay(
+  stay: AgodaStayCardItem,
+  state: StaySearchState,
+): UnifiedStayCardItem {
   return {
     id: stay.id,
     key: `agoda-${stay.id}`,
@@ -111,8 +115,8 @@ function mapAgodaStay(stay: AgodaStayCardItem): UnifiedStayCardItem {
     ratingScale: 10,
     reviewCount: stay.reviewCount,
     pricePerNight: stay.pricePerNight,
-    href: stay.bookingUrl,
-    isExternal: true,
+    href: buildAgodaStayBridgeHref(stay, state),
+    isExternal: false,
   };
 }
 
@@ -370,7 +374,9 @@ export function StayResultsClient({
     const myrealtripCards = stays.map((stay) =>
       mapMyRealTripStay(stay, currentState),
     );
-    const agodaCards = agodaStays.map(mapAgodaStay);
+    const agodaCards = agodaStays.map((stay) =>
+      mapAgodaStay(stay, currentState),
+    );
     return mergeStayCards(
       myrealtripCards.filter((stay) => matchesFilter(stay, activeFilter)),
       agodaCards.filter((stay) => matchesFilter(stay, activeFilter)),

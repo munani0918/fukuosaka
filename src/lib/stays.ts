@@ -1,4 +1,5 @@
 import type { AccommodationSearchItem } from "@/src/lib/myrealtrip";
+import type { AgodaStayCardItem } from "@/src/lib/agoda-stays";
 
 export type StayPriceFilterOption = {
   id: string;
@@ -240,6 +241,46 @@ export function buildStayDetailHref(
   appendHotelPriceParams(params, normalized);
 
   return `/stays/${snapshot.itemId}?${params.toString()}`;
+}
+
+function cityQueryFromKeyword(keyword: string) {
+  return keyword.includes("후쿠오카") || keyword.includes("하카타")
+    ? "fukuoka"
+    : "osaka";
+}
+
+export function buildAgodaStayBridgeHref(
+  snapshot: AgodaStayCardItem,
+  state: Partial<StaySearchState> & { keyword: string },
+) {
+  const normalized = getDefaultStaySearchState(state.keyword, state);
+  const params = new URLSearchParams({
+    city: cityQueryFromKeyword(normalized.keyword),
+    keyword: normalized.keyword,
+    checkIn: normalized.checkIn,
+    checkOut: normalized.checkOut,
+    adultCount: String(normalized.adultCount),
+    childCount: String(normalized.childCount),
+    roomCount: String(normalized.roomCount),
+    adults: String(normalized.adultCount),
+    children: String(normalized.childCount),
+    rooms: String(normalized.roomCount),
+    name: snapshot.name,
+    imageUrl: snapshot.imageUrl ?? "",
+    pricePerNight:
+      snapshot.pricePerNight !== null ? String(snapshot.pricePerNight) : "",
+    totalPrice: snapshot.totalPrice !== null ? String(snapshot.totalPrice) : "",
+    rating: snapshot.rating !== null ? String(snapshot.rating) : "",
+    reviewCount:
+      snapshot.reviewCount !== null ? String(snapshot.reviewCount) : "",
+    starRating:
+      snapshot.starRating !== null ? String(snapshot.starRating) : "",
+    currency: snapshot.currency,
+    bookingUrl: snapshot.bookingUrl,
+  });
+  appendHotelPriceParams(params, normalized);
+
+  return `/stays/agoda/${snapshot.id}?${params.toString()}`;
 }
 
 export function formatStayPriceLabel(price: number | null) {
