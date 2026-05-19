@@ -275,23 +275,28 @@ export function StaySearchForm({ state }: StaySearchFormProps) {
                       스냅 선택
                     </span>
                   </div>
-                  <div className="relative px-1 pt-2">
-                    <div className="absolute left-1 right-1 top-[20px] h-2 rounded-full bg-[#eadcd3]" />
-                    <div
-                      className="absolute left-1 top-[20px] h-2 rounded-full bg-[#cb4b42]"
-                      style={{ width: budgetProgress === 0 ? 0 : `${budgetProgress}%` }}
-                    />
-                    <div className="absolute left-1 right-1 top-[16px] flex justify-between">
-                      {STAY_BUDGET_OPTIONS.map((option, index) => (
-                        <span
-                          key={option.id}
-                          className={`h-4 w-4 rounded-full border-2 ${
-                            index <= budgetIndex
-                              ? "border-[#cb4b42] bg-[#cb4b42]"
-                              : "border-[#dcc8bd] bg-white"
-                          }`}
-                        />
-                      ))}
+                  <div className="relative mt-3 h-14 px-2">
+                    <div className="absolute left-2 right-2 top-5 h-2.5 rounded-full bg-[#ead6cc] shadow-inner">
+                      <div
+                        className="h-full rounded-full bg-[#cb4b42] shadow-[0_4px_10px_rgba(203,75,66,0.22)]"
+                        style={{ width: `${budgetProgress}%` }}
+                      />
+                      <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-between">
+                        {STAY_BUDGET_OPTIONS.map((option, index) => (
+                          <span
+                            key={option.id}
+                            className={`h-2.5 w-2.5 rounded-full ring-2 ring-white ${
+                              index <= budgetIndex
+                                ? "bg-[#cb4b42]"
+                                : "bg-[#d8c3b7]"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span
+                        className="absolute top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-white bg-[#cb4b42] shadow-[0_8px_18px_rgba(203,75,66,0.34)]"
+                        style={{ left: `${budgetProgress}%` }}
+                      />
                     </div>
                     <input
                       type="range"
@@ -303,11 +308,11 @@ export function StaySearchForm({ state }: StaySearchFormProps) {
                         handleBudgetIndexChange(Number(event.target.value))
                       }
                       aria-label="1박 예산"
-                      className="relative z-10 h-10 w-full cursor-pointer accent-[#cb4b42]"
-                      style={{ accentColor: "#cb4b42" }}
+                      aria-valuetext={budgetOption.summary}
+                      className="absolute inset-x-0 top-0 z-20 h-12 w-full cursor-pointer appearance-none bg-transparent opacity-0"
                     />
                   </div>
-                  <div className="mt-1 grid grid-cols-5 gap-1">
+                  <div className="grid grid-cols-5 gap-1">
                     {STAY_BUDGET_OPTIONS.map((option) => {
                       const selected = option.id === budgetOption.id;
                       return (
@@ -315,10 +320,10 @@ export function StaySearchForm({ state }: StaySearchFormProps) {
                           key={option.id}
                           type="button"
                           onClick={() => setBudgetOption(option)}
-                          className={`h-7 whitespace-nowrap rounded-[10px] text-[10px] font-black ${
+                          className={`h-7 whitespace-nowrap text-[10px] ${
                             selected
-                              ? "bg-[#fff4f0] text-[#cb4b42]"
-                              : "text-[#8c746a]"
+                              ? "font-black text-[#cb4b42]"
+                              : "font-bold text-[#9b847b]"
                           }`}
                         >
                           {option.label}
