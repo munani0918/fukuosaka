@@ -41,8 +41,6 @@ export default async function StaysPage({
     : [];
   const totalCount = result.ok ? result.totalCount : 0;
 
-  const quickKeywords = ["오사카", "후쿠오카", "난바", "하카타"];
-
   return (
     <main
       id="top"
@@ -62,15 +60,15 @@ export default async function StaysPage({
             </Link>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold tracking-[-0.02em] text-[#a58f86]">
-                FUKUOSAKA STAYS
+                1박 예산에 맞춰 숙소를 비교해보세요.
               </p>
               <h1 className="text-[21px] font-black tracking-[-0.05em] text-[#241b17]">
-                숙소 검색
+                예산에 맞는 숙소
               </h1>
             </div>
           </div>
 
-          <StaySearchForm state={state} quickKeywords={quickKeywords} />
+          <StaySearchForm state={state} />
         </header>
 
         <StayResultsClient

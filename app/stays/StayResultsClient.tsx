@@ -1,15 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 
 import { Artwork } from "@/src/components/home/Artwork";
 import { StarIcon } from "@/src/components/home/icons";
 import type { AccommodationSearchItem } from "@/src/lib/myrealtrip";
 import {
-  STAY_PRICE_FILTERS,
   buildStayDetailHref,
-  buildStayResultsHref,
   formatStayPriceLabel,
   type StayPriceFilterOption,
   type StaySearchState,
@@ -22,7 +20,13 @@ const ALL_PRICE_FILTER: StayPriceFilterOption = {
   max: null,
 };
 
-const RESULT_PRICE_FILTERS = [ALL_PRICE_FILTER, ...STAY_PRICE_FILTERS];
+const RESULT_PRICE_FILTERS: StayPriceFilterOption[] = [
+  ALL_PRICE_FILTER,
+  { id: "under-100k", label: "10만원 이하", min: null, max: 100000 },
+  { id: "under-200k", label: "20만원 이하", min: null, max: 200000 },
+  { id: "under-300k", label: "30만원 이하", min: null, max: 300000 },
+  { id: "over-300k", label: "30만원+", min: 300000, max: null },
+];
 
 type StayResultsClientProps = {
   state: StaySearchState;
@@ -32,10 +36,12 @@ type StayResultsClientProps = {
 };
 
 function initialFilterId(state: StaySearchState) {
-  const matched = STAY_PRICE_FILTERS.find(
+  const matched = RESULT_PRICE_FILTERS.find(
     (filter) =>
       filter.min === state.hotelPriceMin && filter.max === state.hotelPriceMax,
   );
+  if (!matched && state.hotelPriceMax === 200000) return "under-200k";
+  if (!matched && state.hotelPriceMax === 300000) return "under-300k";
   return matched?.id ?? "all";
 }
 
@@ -49,25 +55,12 @@ function matchesFilter(stay: AccommodationSearchItem, filter: StayPriceFilterOpt
   return true;
 }
 
-function compactDateRange(checkIn: string, checkOut: string) {
-  const [, inMonth, inDay] = checkIn.split("-");
-  const [, outMonth, outDay] = checkOut.split("-");
-  if (!inMonth || !inDay || !outMonth || !outDay) {
-    return `${checkIn} ~ ${checkOut}`;
-  }
-
-  return `${Number(inMonth)}.${Number(inDay)} - ${Number(outMonth)}.${Number(outDay)}`;
-}
-
 export function StayResultsClient({
   state,
   stays,
   resultOk,
-  totalCount,
 }: StayResultsClientProps) {
-  const [activeFilterId, setActiveFilterId] = useState(() =>
-    initialFilterId(state),
-  );
+  const activeFilterId = initialFilterId(state);
   const activeFilter =
     RESULT_PRICE_FILTERS.find((filter) => filter.id === activeFilterId) ??
     ALL_PRICE_FILTER;
@@ -86,88 +79,19 @@ export function StayResultsClient({
   );
   const filterLabel =
     activeFilter.id === "all" ? "" : ` · ${activeFilter.label}`;
-
-  function handleFilterClick(filter: StayPriceFilterOption) {
-    setActiveFilterId(filter.id);
-    const minInput = document.querySelector<HTMLInputElement>(
-      'input[name="hotelPriceMin"]',
-    );
-    const maxInput = document.querySelector<HTMLInputElement>(
-      'input[name="hotelPriceMax"]',
-    );
-    if (minInput) minInput.value = filter.min !== null ? String(filter.min) : "";
-    if (maxInput) maxInput.value = filter.max !== null ? String(filter.max) : "";
-
-    const nextState = {
-      ...state,
-      hotelPriceMin: filter.min,
-      hotelPriceMax: filter.max,
-      page: 0,
-    };
-    window.history.replaceState(null, "", buildStayResultsHref(nextState));
-  }
+  const resultMessage = resultOk
+    ? `예산 조건 숙소 ${visibleStays.length.toLocaleString("ko-KR")}개${filterLabel}`
+    : "지금은 숙소 결과를 불러오지 못했어요";
 
   return (
     <>
-      <section className="px-5 pb-3 pt-4">
-        <div className="rounded-[22px] bg-white/80 p-3 shadow-[0_12px_22px_rgba(85,42,28,0.05)] ring-1 ring-[#efe3db]">
-          <p className="px-1 text-[12px] font-black tracking-[-0.02em] text-[#6c5650]">
-            1박 예산
-          </p>
-          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {RESULT_PRICE_FILTERS.map((filter) => {
-              const selected = filter.id === activeFilter.id;
-
-              return (
-                <button
-                  key={filter.id}
-                  type="button"
-                  onClick={() => handleFilterClick(filter)}
-                  className={`h-[32px] shrink-0 rounded-full px-3 text-[12px] font-black transition ${
-                    selected
-                      ? "bg-[#cb4b42] text-white shadow-[0_8px_16px_rgba(203,75,66,0.16)]"
-                      : "bg-[#fbf2ed] text-[#8c746a] ring-1 ring-[#f0dfd6]"
-                  }`}
-                  aria-pressed={selected}
-                >
-                  {filter.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="px-5 pb-6 pt-1">
-        <div className="rounded-[24px] bg-white/88 p-4 shadow-[0_14px_26px_rgba(85,42,28,0.06)] ring-1 ring-[#efe3db]">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[12px] font-semibold text-[#a58f86]">
-                {compactDateRange(state.checkIn, state.checkOut)} · 성인 {state.adultCount} · 아동 {state.childCount} · 객실 {state.roomCount}
-              </p>
-              <h2 className="mt-1 text-[24px] font-black tracking-[-0.05em] text-[#251b17]">
-                {state.keyword}
-              </h2>
-              <p className="mt-1 text-[13px] font-medium text-[#7d6f69]">
-                {resultOk
-                  ? `${visibleStays.length.toLocaleString("ko-KR")}개 숙소${filterLabel} 결과를 보여드려요`
-                  : "지금은 숙소 결과를 불러오지 못했어요"}
-              </p>
-            </div>
-            <span className="rounded-full bg-[#fbf2ed] px-3 py-1.5 text-[11px] font-black text-[#cb4b42]">
-              숙소 검색
-            </span>
-          </div>
-          {resultOk && activeFilter.id !== "all" ? (
-            <p className="mt-3 rounded-[14px] bg-[#fff8f4] px-3 py-2 text-[12px] font-semibold text-[#9a7469]">
-              전체 {Math.max(totalCount, stays.length).toLocaleString("ko-KR")}개
-              후보 중 선택한 1박 예산에 맞는 숙소를 우선 보여드려요.
-            </p>
-          ) : null}
-          <p className="mt-3 rounded-[14px] bg-[#fff8f4] px-3 py-2 text-[12px] font-semibold leading-5 text-[#9a7469]">
-            예약 가능한 제휴 숙소를 모아봤어요. 요금은 예약 시점에 따라 달라질 수 있어요.
-          </p>
-        </div>
+      <section className="px-5 pb-2 pt-3">
+        <p className="text-[13px] font-black tracking-[-0.03em] text-[#3a2b25]">
+          {resultMessage}
+        </p>
+        <p className="mt-1 text-[11px] font-semibold text-[#8f776f]">
+          요금은 예약 시점에 따라 달라질 수 있어요.
+        </p>
       </section>
 
       <section className="space-y-3 px-5">
@@ -237,17 +161,20 @@ export function StayResultsClient({
         ) : (
           <div className="rounded-[24px] bg-white p-5 text-center shadow-[0_14px_26px_rgba(85,42,28,0.06)] ring-1 ring-[#efe3db]">
             <p className="text-[17px] font-black tracking-[-0.04em] text-[#271d18]">
-              조건에 맞는 숙소를 찾지 못했어요
+              예산에 맞는 숙소를 찾지 못했어요
             </p>
             <p className="mt-2 text-[13px] leading-6 text-[#7f6f69]">
-              날짜나 예산을 바꿔 다시 검색해보세요.
+              날짜나 1박 예산을 바꿔 다시 검색해보세요.
             </p>
-            <a
-              href="#stay-search-form"
+            <button
+              type="button"
+              onClick={() =>
+                window.dispatchEvent(new Event("open-stay-search-panel"))
+              }
               className="mt-4 inline-flex h-9 items-center justify-center rounded-full bg-[#fff4f0] px-4 text-[12px] font-black text-[#cb4b42] ring-1 ring-[#f1d7cf]"
             >
               조건 변경하기
-            </a>
+            </button>
           </div>
         )}
       </section>
