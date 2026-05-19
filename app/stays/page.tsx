@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { connection } from "next/server";
 
 import { BottomTabBar } from "@/src/components/home/BottomTabBar";
+import { fetchAgodaHotelsForStays } from "@/src/lib/agoda-stays";
 import {
   hydrateAccommodationImages,
   searchAccommodationsSmart,
@@ -27,6 +29,11 @@ export default async function StaysPage({
 }) {
   await connection();
 
+  const requestHeaders = await headers();
+  const host =
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
+  const origin = host ? `${protocol}://${host}` : null;
   const resolvedSearchParams = await searchParams;
   const state = coerceStaySearchState(resolvedSearchParams);
   const searchState = {
@@ -35,7 +42,10 @@ export default async function StaysPage({
     hotelPriceMax: null,
     size: Math.max(state.size, 48),
   };
-  const result = await searchAccommodationsSmart(searchState);
+  const [result, agodaStays] = await Promise.all([
+    searchAccommodationsSmart(searchState),
+    fetchAgodaHotelsForStays({ origin, state, maxResult: 10 }),
+  ]);
   const stays = result.ok
     ? await hydrateAccommodationImages(result.items, searchState, 24)
     : [];
@@ -74,6 +84,7 @@ export default async function StaysPage({
         <StayResultsClient
           state={state}
           stays={stays}
+          agodaStays={agodaStays}
           resultOk={result.ok}
           totalCount={totalCount}
         />

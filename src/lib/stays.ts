@@ -152,6 +152,10 @@ export function coerceStaySearchState(
   const adultCount = toInt(pick(input.adultCount) ?? pick(input.adults), 2);
   const childCount = toInt(pick(input.childCount) ?? pick(input.children), 0);
   const roomCount = toInt(pick(input.roomCount) ?? pick(input.rooms), 1);
+  const city = pick(input.city)?.trim().toLowerCase();
+  const keyword =
+    pick(input.keyword)?.trim() ||
+    (city === "fukuoka" ? "후쿠오카" : city === "osaka" ? "오사카" : fallbackKeyword);
   const budgetRange = budgetQueryToPriceRange(pick(input.budget));
   const hotelPriceMin = toNullableInt(
     pick(input.hotelPriceMin) ?? pick(input.minPrice),
@@ -160,7 +164,7 @@ export function coerceStaySearchState(
     pick(input.hotelPriceMax) ?? pick(input.maxPrice),
   );
 
-  return getDefaultStaySearchState(pick(input.keyword)?.trim() || fallbackKeyword, {
+  return getDefaultStaySearchState(keyword, {
     checkIn: pick(input.checkIn) || futureStayDate(35),
     checkOut: pick(input.checkOut) || futureStayDate(38),
     adultCount,
