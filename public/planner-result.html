@@ -96,6 +96,7 @@
       border-bottom:none; display:flex; gap:5px; flex-wrap:nowrap;
       overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
     }
+    .chip-bar:empty { display:none; }
     .chip-bar::-webkit-scrollbar { display:none; }
     .cchip {
       flex-shrink:0; display:inline-flex; align-items:center; height:26px;
@@ -1150,13 +1151,6 @@ function renderHeader(){
   const city   = CITY_NAME[P.cityCode] || P.cityCode;
   const origin = ORIGIN_NAME[P.origin] || P.origin;
   const totalTravelers = travelerCount();
-  const packageLabelMap = {
-    flight_hotel_tour:'항공 + 숙소 + 투어',
-    flight_hotel:'항공 + 숙소',
-    hotel_tour:'숙소 + 투어',
-    flight_only:'항공 + 숙소 + 투어',
-    hotel_only:'항공 + 숙소 + 투어',
-  };
   document.getElementById('hdr-trip').textContent   = `${city} ${P.nights}박${P.nights+1}일`;
   document.getElementById('hdr-detail').textContent = `${totalTravelers}명 기준 · ${origin} 출발 · 여행 예산 ${(+P.budget).toLocaleString()}원`;
   const statusEl = document.getElementById('hdr-status');
@@ -1167,17 +1161,9 @@ function renderHeader(){
     statusEl.className = `res-status ${meta.cls}`;
   }
 
-  // Condition chips
-  const chips = [
-    budgetChipLabel(),
-    routeStyleLabel(),
-    city,
-    `${P.nights}박${P.nights+1}일`,
-    ...(Array.isArray(P.styles) ? P.styles.map(s=>STYLE_NAME[s]||s) : []),
-    packageLabelMap[currentPackageType()] || '',
-  ].filter(Boolean);
-  document.getElementById('chip-bar').innerHTML =
-    chips.map(c=>`<span class="cchip">${c}</span>`).join('');
+  // Header keywords duplicated the summary copy and tab labels, so keep this area compact.
+  const chipBar = document.getElementById('chip-bar');
+  if(chipBar) chipBar.innerHTML = '';
 }
 P.styles = normalizeStyles(P.styles);
 if(PLAN_INPUT?.travelStyles) PLAN_INPUT.travelStyles = normalizeStyles(PLAN_INPUT.travelStyles);
@@ -2135,7 +2121,6 @@ async function applyBudgetAlternative(id){
     P.returnDate = nextReturnDate;
     PLAN_INPUT = null;
     PLAN_SUMMARY = null;
-    RESULT_DATA = { flights: [], stays: [], agodaStays: [], tnas: [] };
     activeTab = 'summary';
     RESULT_FILTERS.hotels = null;
     RESULT_FILTERS.tours = null;
@@ -4740,12 +4725,10 @@ async function applyEditChanges(){
   });
   PLAN_INPUT = null;
   PLAN_SUMMARY = null;
-  RESULT_DATA = { flights: [], stays: [], agodaStays: [], tnas: [] };
   RESULT_FILTERS.hotels = null;
   RESULT_FILTERS.tours = null;
   RESULT_FILTERS.flights = null;
   activeTab = 'summary';
-  resetRenderedResults();
   try {
     sessionStorage.setItem('plannerConditions', JSON.stringify(P));
     sessionStorage.removeItem('plannerPlanInput');
