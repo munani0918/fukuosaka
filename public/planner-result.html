@@ -548,14 +548,56 @@
 
     /* ── Loading overlay ───────────────────────── */
     #page-loading {
-      position:fixed; top:0; bottom:0; left:50%; transform:translateX(-50%); z-index:240; background:#2B1E19;
-      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;
-      width:100%; max-width:430px; min-height:100vh; min-height:100dvh; padding:32px; color:#fff;
+      position:fixed; top:0; bottom:0; left:50%; transform:translateX(-50%); z-index:240;
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;
+      width:100%; max-width:430px; min-height:100vh; min-height:100dvh; padding:32px; color:#2C221D;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at 50% 38%, rgba(255, 203, 185, .44) 0%, rgba(255, 241, 234, .44) 34%, rgba(255, 248, 244, 0) 66%),
+        linear-gradient(180deg, #fffaf6 0%, #fff3ed 54%, #f8ebe2 100%);
     }
-    .page-spinner { width:84px; height:84px; border-radius:50%; border:4px solid rgba(244,108,103,.22); border-top-color:#F46C67; animation:spin 1s linear infinite; }
-    @keyframes spin { to{transform:rotate(360deg)} }
-    .page-loading-txt { font-size:22px; line-height:30px; font-weight:900; color:#fff; text-align:center; }
-    .page-loading-sub { max-width:290px; font-size:14px; line-height:22px; font-weight:500; color:rgba(255,255,255,.72); text-align:center; white-space:pre-line; }
+    .plan-loader {
+      position:relative; width:124px; height:78px; display:flex; align-items:center; justify-content:center;
+    }
+    .plan-loader::before {
+      content:""; position:absolute; inset:12px 8px; border-radius:999px;
+      background:rgba(244,108,103,.16); filter:blur(18px); animation:planGlow 1.9s ease-in-out infinite;
+    }
+    .plan-orbit {
+      position:relative; width:72px; height:42px; border-radius:999px;
+      border:1.5px solid rgba(244,108,103,.26); background:rgba(255,255,255,.68);
+      box-shadow:0 14px 30px rgba(111,58,49,.08);
+    }
+    .plan-orbit::before,
+    .plan-orbit::after {
+      content:""; position:absolute; top:50%; width:9px; height:9px; margin-top:-4.5px;
+      border-radius:999px; background:#F46C67; box-shadow:0 0 0 6px rgba(244,108,103,.12);
+      animation:planPulse 1.35s ease-in-out infinite;
+    }
+    .plan-orbit::before { left:16px; }
+    .plan-orbit::after { right:16px; animation-delay:.28s; }
+    .plan-route {
+      position:absolute; left:30px; right:30px; top:50%; height:2px; transform:translateY(-50%);
+      border-radius:999px; background:linear-gradient(90deg, rgba(244,108,103,.18), rgba(244,108,103,.72), rgba(244,108,103,.18));
+      animation:planRoute 1.35s ease-in-out infinite;
+    }
+    @keyframes planGlow { 0%,100%{opacity:.62; transform:scale(.98)} 50%{opacity:1; transform:scale(1.05)} }
+    @keyframes planPulse { 0%,100%{transform:scale(.86); opacity:.7} 50%{transform:scale(1.08); opacity:1} }
+    @keyframes planRoute { 0%,100%{opacity:.46; transform:translateY(-50%) scaleX(.72)} 50%{opacity:1; transform:translateY(-50%) scaleX(1)} }
+    .page-loading-txt {
+      font-size:22px; line-height:29px; font-weight:900; color:#2C221D; text-align:center;
+      letter-spacing:-.04em; word-break:keep-all;
+    }
+    .page-loading-sub {
+      max-width:310px; font-size:14px; line-height:21px; font-weight:650; color:#7E7067;
+      text-align:center; white-space:pre-line; word-break:keep-all;
+    }
+    .page-loading-progress {
+      min-height:34px; display:inline-flex; align-items:center; justify-content:center;
+      padding:8px 13px; border-radius:999px; background:rgba(255,255,255,.72);
+      border:1px solid rgba(244,108,103,.16); color:#C95B50; font-size:12px; line-height:17px;
+      font-weight:900; text-align:center; box-shadow:0 10px 22px rgba(111,58,49,.06); word-break:keep-all;
+    }
 
     /* ── Empty state ───────────────────────────── */
     .empty-card { margin:0 16px 12px; padding:24px; background:var(--card); border-radius:16px; text-align:center; color:var(--muted); font-size:13px; }
@@ -597,10 +639,14 @@
 
   <!-- Loading overlay (shown while fetching) -->
   <div id="page-loading">
-    <div class="page-spinner"></div>
-    <div class="page-loading-txt" id="page-loading-title">여행 플랜을 계산하고 있어요</div>
-    <div class="page-loading-sub" id="page-loading-sub">항공·숙소·추천 티켓을
-예산에 맞춰 정리 중입니다.</div>
+    <div class="plan-loader" aria-hidden="true">
+      <div class="plan-orbit">
+        <div class="plan-route"></div>
+      </div>
+    </div>
+    <div class="page-loading-txt" id="page-loading-title">예산에 맞는 여행 조합을 찾고 있어요</div>
+    <div class="page-loading-sub">항공권, 숙소, 투어·티켓을 함께 비교하고 있어요</div>
+    <div class="page-loading-progress" id="page-loading-sub">항공권 후보를 확인하는 중</div>
   </div>
 
   <!-- ── Sticky header ─────────────────────────── -->
@@ -4573,20 +4619,59 @@ function updateUrlFromConditions(){
   window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
 }
 
-const PLAN_LOADING_MESSAGE = '항공·숙소·추천 티켓을\n예산에 맞춰 정리 중입니다.';
+const PLAN_LOADING_TITLE = '예산에 맞는 여행 조합을 찾고 있어요';
+const PLAN_LOADING_MESSAGE = '항공권, 숙소, 투어·티켓을 함께 비교하고 있어요';
+const PLAN_LOADING_STEPS = [
+  '항공권 후보를 확인하는 중',
+  '숙소 예산 균형을 맞추는 중',
+  '투어·티켓 추천을 정리하는 중',
+  '일정 뼈대를 만드는 중',
+];
+let pageLoadingTimer = null;
+
+function plannerLoadingMarkup(){
+  return `<div class="plan-loader" aria-hidden="true">
+      <div class="plan-orbit">
+        <div class="plan-route"></div>
+      </div>
+    </div>
+    <div class="page-loading-txt" id="page-loading-title">${PLAN_LOADING_TITLE}</div>
+    <div class="page-loading-sub">${PLAN_LOADING_MESSAGE}</div>
+    <div class="page-loading-progress" id="page-loading-sub">${PLAN_LOADING_STEPS[0]}</div>`;
+}
+
+function startPageLoadingProgress(){
+  const sub = document.getElementById('page-loading-sub');
+  let loadingIndex = 0;
+  if(sub) sub.textContent = PLAN_LOADING_STEPS[loadingIndex];
+  if(pageLoadingTimer) window.clearInterval(pageLoadingTimer);
+  pageLoadingTimer = window.setInterval(() => {
+    loadingIndex = (loadingIndex + 1) % PLAN_LOADING_STEPS.length;
+    const current = document.getElementById('page-loading-sub');
+    if(current) current.textContent = PLAN_LOADING_STEPS[loadingIndex];
+  }, 1250);
+}
+
+function stopPageLoadingProgress(){
+  if(pageLoadingTimer) {
+    window.clearInterval(pageLoadingTimer);
+    pageLoadingTimer = null;
+  }
+}
 
 function showPageLoading(message = PLAN_LOADING_MESSAGE){
   const loading = document.getElementById('page-loading');
   if(loading && !document.getElementById('page-loading-title')) {
-    loading.innerHTML = `<div class="page-spinner"></div>
-      <div class="page-loading-txt" id="page-loading-title">여행 플랜을 계산하고 있어요</div>
-      <div class="page-loading-sub" id="page-loading-sub"></div>`;
+    loading.innerHTML = plannerLoadingMarkup();
   }
   const title = document.getElementById('page-loading-title');
-  const sub = document.getElementById('page-loading-sub');
-  if(title) title.textContent = '여행 플랜을 계산하고 있어요';
-  if(sub) sub.textContent = PLAN_LOADING_MESSAGE;
-  if(loading) loading.style.display = 'flex';
+  if(title) title.textContent = PLAN_LOADING_TITLE;
+  const helper = loading?.querySelector('.page-loading-sub');
+  if(helper) helper.textContent = message;
+  if(loading) {
+    loading.style.display = 'flex';
+    startPageLoadingProgress();
+  }
 }
 
 async function applyEditChanges(){
@@ -4652,6 +4737,7 @@ function validateCurrentPlanDates(){
 }
 
 function showDateValidationError(message){
+  stopPageLoadingProgress();
   const loading = document.getElementById('page-loading');
   if(!loading) return;
   loading.innerHTML = `<div style="max-width:300px;text-align:center;padding:32px">
@@ -4774,21 +4860,24 @@ async function fetchAndRender(){
     renderCost(flights, stays, tourItems);
 
     // Hide loading, show content
+    stopPageLoadingProgress();
     document.getElementById('page-loading').style.display = 'none';
     document.getElementById('page-content').style.display = 'block';
     setActiveTab(activeTab || 'summary');
   } catch(e){
+    stopPageLoadingProgress();
     document.getElementById('page-loading').innerHTML =
       `<div style="text-align:center;padding:32px">
          <div style="font-size:32px;margin-bottom:12px">⚠️</div>
-         <div style="font-size:17px;font-weight:900;color:#fff;margin-bottom:8px">데이터를 불러오지 못했어요</div>
-         <div style="font-size:13px;color:rgba(255,255,255,.72);margin-bottom:20px">${e.message || '네트워크 오류'}</div>
-         <button onclick="fetchAndRender()" style="padding:12px 24px;border-radius:14px;background:#F46C67;color:#fff;border:none;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">다시 시도</button>
+         <div style="font-size:17px;font-weight:900;color:#2C221D;margin-bottom:8px">데이터를 불러오지 못했어요</div>
+         <div style="font-size:13px;color:#7E7067;margin-bottom:20px">${e.message || '네트워크 오류'}</div>
+         <button onclick="showPageLoading();fetchAndRender()" style="padding:12px 24px;border-radius:14px;background:#F46C67;color:#fff;border:none;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">다시 시도</button>
        </div>`;
   }
 }
 
 // Boot
+startPageLoadingProgress();
 fetchAndRender();
 </script>
 </body>

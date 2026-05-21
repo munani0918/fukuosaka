@@ -828,13 +828,16 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 22px;
+      gap: 20px;
       padding: 32px;
       width: 100%;
       max-width: 430px;
       min-height: 100vh;
       min-height: 100dvh;
-      background: #2B1E19;
+      background:
+        radial-gradient(circle at 50% 38%, rgba(255, 203, 185, .44) 0%, rgba(255, 241, 234, .44) 34%, rgba(255, 248, 244, 0) 66%),
+        linear-gradient(180deg, #fffaf6 0%, #fff3ed 54%, #f8ebe2 100%);
+      color: #2C221D;
       opacity: 0;
       pointer-events: none;
       transition: opacity .24s ease;
@@ -844,40 +847,119 @@
       opacity: 1;
       pointer-events: auto;
     }
-    .loader-ring {
-      width: 84px;
-      height: 84px;
-      border-radius: 999px;
-      border: 4px solid rgba(244, 108, 103, .22);
-      border-top-color: var(--primary);
-      animation: spin 1s linear infinite;
+    .plan-loader {
+      position: relative;
+      width: 124px;
+      height: 78px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .plan-loader::before {
+      content: "";
+      position: absolute;
+      inset: 12px 8px;
+      border-radius: 999px;
+      background: rgba(244, 108, 103, .16);
+      filter: blur(18px);
+      animation: planGlow 1.9s ease-in-out infinite;
+    }
+    .plan-orbit {
+      position: relative;
+      width: 72px;
+      height: 42px;
+      border-radius: 999px;
+      border: 1.5px solid rgba(244, 108, 103, .26);
+      background: rgba(255,255,255,.68);
+      box-shadow: 0 14px 30px rgba(111, 58, 49, .08);
+    }
+    .plan-orbit::before,
+    .plan-orbit::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 9px;
+      height: 9px;
+      margin-top: -4.5px;
+      border-radius: 999px;
+      background: #F46C67;
+      box-shadow: 0 0 0 6px rgba(244, 108, 103, .12);
+      animation: planPulse 1.35s ease-in-out infinite;
+    }
+    .plan-orbit::before { left: 16px; }
+    .plan-orbit::after { right: 16px; animation-delay: .28s; }
+    .plan-route {
+      position: absolute;
+      left: 30px;
+      right: 30px;
+      top: 50%;
+      height: 2px;
+      transform: translateY(-50%);
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(244,108,103,.18), rgba(244,108,103,.72), rgba(244,108,103,.18));
+      animation: planRoute 1.35s ease-in-out infinite;
+    }
+    @keyframes planGlow {
+      0%, 100% { opacity: .62; transform: scale(.98); }
+      50% { opacity: 1; transform: scale(1.05); }
+    }
+    @keyframes planPulse {
+      0%, 100% { transform: scale(.86); opacity: .7; }
+      50% { transform: scale(1.08); opacity: 1; }
+    }
+    @keyframes planRoute {
+      0%, 100% { opacity: .46; transform: translateY(-50%) scaleX(.72); }
+      50% { opacity: 1; transform: translateY(-50%) scaleX(1); }
+    }
     .ld-title {
-      color: #fff;
+      color: #2C221D;
       font-size: 22px;
-      line-height: 30px;
-      font-weight: 800;
+      line-height: 29px;
+      font-weight: 900;
       text-align: center;
+      letter-spacing: -.04em;
+      word-break: keep-all;
     }
     .ld-sub {
-      max-width: 290px;
-      color: rgba(255, 255, 255, .72);
+      max-width: 310px;
+      color: #7E7067;
       font-size: 14px;
-      line-height: 22px;
-      font-weight: 500;
+      line-height: 21px;
+      font-weight: 650;
       text-align: center;
       white-space: pre-line;
+      word-break: keep-all;
+    }
+    .ld-progress {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 13px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.72);
+      border: 1px solid rgba(244,108,103,.16);
+      color: #C95B50;
+      font-size: 12px;
+      line-height: 17px;
+      font-weight: 900;
+      text-align: center;
+      box-shadow: 0 10px 22px rgba(111,58,49,.06);
+      word-break: keep-all;
     }
   </style>
 </head>
 <body>
   <div id="app">
     <div id="loading-screen">
-      <div class="loader-ring"></div>
-      <div class="ld-title" id="ld-title">여행 플랜을 계산하고 있어요</div>
-      <div class="ld-sub" id="ld-sub">항공·숙소·추천 티켓을
-예산에 맞춰 정리 중입니다.</div>
+      <div class="plan-loader" aria-hidden="true">
+        <div class="plan-orbit">
+          <div class="plan-route"></div>
+        </div>
+      </div>
+      <div class="ld-title" id="ld-title">예산에 맞는 여행 조합을 찾고 있어요</div>
+      <div class="ld-sub">항공권, 숙소, 투어·티켓을 함께 비교하고 있어요</div>
+      <div class="ld-progress" id="ld-sub">항공권 후보를 확인하는 중</div>
     </div>
 
     <div id="wizard">
@@ -2278,14 +2360,15 @@
         if (!proceed) return;
       }
       const loadingMessages = [
-        "예산 구성을 계산하고 있어요",
-        "항공권과 숙소 후보를 찾고 있어요",
-        "추천 티켓과 일정을 정리하고 있어요",
+        "항공권 후보를 확인하는 중",
+        "숙소 예산 균형을 맞추는 중",
+        "투어·티켓 추천을 정리하는 중",
+        "일정 뼈대를 만드는 중",
       ];
       let loadingIndex = 0;
       const loadingTitle = document.getElementById("ld-title");
       const loadingSub = document.getElementById("ld-sub");
-      loadingTitle.textContent = "여행 플랜을 계산하고 있어요";
+      loadingTitle.textContent = "예산에 맞는 여행 조합을 찾고 있어요";
       loadingSub.textContent = loadingMessages[loadingIndex];
 
       const conditions = {
@@ -2319,7 +2402,7 @@
       const loadingTimer = window.setInterval(() => {
         loadingIndex = (loadingIndex + 1) % loadingMessages.length;
         loadingSub.textContent = loadingMessages[loadingIndex];
-      }, 650);
+      }, 1250);
       try {
         const summaryRequest = fetch("/api/planner/summary", {
           method: "POST",
