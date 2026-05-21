@@ -536,6 +536,33 @@
     .edit-submit { border:none; background:#F46C67; color:#fff; box-shadow:0 8px 18px rgba(244,108,103,.20); }
     .edit-submit:disabled { background:#E9E1D8; color:#A2958B; box-shadow:none; cursor:not-allowed; }
     body.edit-open { overflow:hidden; }
+    .refresh-status {
+      position:fixed; left:50%; top:calc(env(safe-area-inset-top) + 12px); z-index:260;
+      width:calc(100% - 32px); max-width:398px; transform:translate(-50%, -12px);
+      display:none; align-items:center; gap:11px; padding:12px 14px;
+      border-radius:20px; background:rgba(255,250,246,.96); border:1px solid rgba(244,108,103,.18);
+      box-shadow:0 14px 34px rgba(92,50,38,.12); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+      opacity:0; pointer-events:none; transition:opacity .18s ease, transform .18s ease;
+    }
+    .refresh-status.show { display:flex; opacity:1; transform:translate(-50%, 0); }
+    .refresh-dot {
+      position:relative; width:34px; height:34px; flex:0 0 34px; border-radius:999px;
+      background:#FFF0EA; border:1px solid #F5D3C8;
+    }
+    .refresh-dot::before,
+    .refresh-dot::after {
+      content:""; position:absolute; top:50%; width:7px; height:7px; margin-top:-3.5px;
+      border-radius:999px; background:#F46C67; animation:refreshPulse 1.2s ease-in-out infinite;
+    }
+    .refresh-dot::before { left:8px; }
+    .refresh-dot::after { right:8px; animation-delay:.25s; }
+    .refresh-copy { min-width:0; }
+    .refresh-title { font-size:13px; line-height:18px; font-weight:900; color:#2C221D; letter-spacing:-.035em; }
+    .refresh-sub { margin-top:2px; font-size:11.5px; line-height:16px; font-weight:700; color:#8C766D; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    @keyframes refreshPulse {
+      0%,100% { transform:scale(.78); opacity:.62; }
+      50% { transform:scale(1.1); opacity:1; }
+    }
     @media (max-width: 370px) {
       .edit-grid { grid-template-columns:1fr; }
       .edit-sheet-title { font-size:25px; line-height:31px; }
@@ -650,6 +677,14 @@
   </div>
 
   <!-- ── Sticky header ─────────────────────────── -->
+  <div id="refresh-status" class="refresh-status" aria-live="polite">
+    <div class="refresh-dot" aria-hidden="true"></div>
+    <div class="refresh-copy">
+      <div class="refresh-title">조건을 다시 반영하고 있어요</div>
+      <div class="refresh-sub" id="refresh-status-sub">기존 결과를 유지한 채 새 조합을 준비 중이에요</div>
+    </div>
+  </div>
+
   <div class="res-header">
     <div class="res-hdr-top">
       <button class="res-back" onclick="window.location.href='/main-home.html'">←</button>
@@ -2105,7 +2140,6 @@ async function applyBudgetAlternative(id){
     RESULT_FILTERS.hotels = null;
     RESULT_FILTERS.tours = null;
     RESULT_FILTERS.flights = null;
-    resetRenderedResults();
     try {
       sessionStorage.setItem('plannerConditions', JSON.stringify(P));
       sessionStorage.removeItem('plannerPlanInput');
@@ -2113,9 +2147,9 @@ async function applyBudgetAlternative(id){
     } catch(e){}
     updateUrlFromConditions();
     renderHeader();
-    showPageLoading();
-    document.getElementById('page-content').style.display = 'none';
-    await fetchAndRender();
+    showRefreshStatus();
+    document.getElementById('page-content').style.display = 'block';
+    await fetchAndRender({ softRefresh: true });
   }
 }
 
@@ -4674,6 +4708,18 @@ function showPageLoading(message = PLAN_LOADING_MESSAGE){
   }
 }
 
+function showRefreshStatus(message = '기존 결과를 유지한 채 새 조합을 준비 중이에요'){
+  const status = document.getElementById('refresh-status');
+  const sub = document.getElementById('refresh-status-sub');
+  if(sub) sub.textContent = message;
+  if(status) status.classList.add('show');
+}
+
+function hideRefreshStatus(){
+  const status = document.getElementById('refresh-status');
+  if(status) status.classList.remove('show');
+}
+
 async function applyEditChanges(){
   if(!editDraft) return;
   const validation = validateEditDraft();
@@ -4708,9 +4754,9 @@ async function applyEditChanges(){
   updateUrlFromConditions();
   renderHeader();
   closeEditPanel();
-  showPageLoading();
-  document.getElementById('page-content').style.display = 'none';
-  await fetchAndRender();
+  showRefreshStatus();
+  document.getElementById('page-content').style.display = 'block';
+  await fetchAndRender({ softRefresh: true });
 }
 
 ['edit-city','edit-origin','edit-date','edit-return-date','edit-adults','edit-budget'].forEach((id) => {
@@ -4750,21 +4796,24 @@ function showDateValidationError(message){
 }
 
 // ═══ FETCH & RENDER ═══════════════════════════
-async function fetchAndRender(){
+async function fetchAndRender(options = {}){
+  const softRefresh = Boolean(options.softRefresh);
   try {
     const dateValidation = validateCurrentPlanDates();
     if(!dateValidation.valid){
       showDateValidationError(dateValidation.message);
       return;
     }
-    showPageLoading();
-    resetRenderedResults();
+    if(softRefresh) showRefreshStatus('새 조건으로 항공·숙소·투어를 다시 맞추는 중이에요');
+    else showPageLoading();
+    if(!softRefresh) resetRenderedResults();
     syncPackageTabs();
     await ensurePlanSummary();
     applyResultBudgetFeasibility();
     sanitizePlanSummaryForPackage();
     renderHeader();
-    showPageLoading();
+    if(softRefresh) showRefreshStatus('추천 후보를 다시 정리하고 있어요');
+    else showPageLoading();
     const params = new URLSearchParams({
       cityCode: P.cityCode,
       date:     P.date,
@@ -4784,8 +4833,10 @@ async function fetchAndRender(){
     if(PLAN_INPUT?.routeStyle || P.routeStyle) params.set('routeStyle', PLAN_INPUT?.routeStyle || P.routeStyle);
     if(PLAN_INPUT?.planType || P.planType) params.set('planType', PLAN_INPUT?.planType || P.planType);
     params.set('_ts', String(Date.now()));
+    const agodaPromise = flags.hotel ? fetchAgodaHotelsForResult() : Promise.resolve([]);
     const res  = await fetch(`/api/planner?${params}`, { cache:'no-store' });
-    showPageLoading();
+    if(softRefresh) showRefreshStatus('결과 화면에 새 조건을 반영하고 있어요');
+    else showPageLoading();
     const data = await res.json();
 
     if(flags.hotel && !(data.stays || []).length) {
@@ -4816,7 +4867,7 @@ async function fetchAndRender(){
 
     let flights = flags.flight ? prepareFlightResults(data.flights || []) : [];
     const rawStays = flags.hotel ? (data.stays || []) : [];
-    const agodaStays = flags.hotel ? await fetchAgodaHotelsForResult() : [];
+    const agodaStays = await agodaPromise;
     const shouldShowSupportTickets = flags.tour || supportTicketsAllowed();
     const rawTnas = shouldShowSupportTickets ? (data.tnas || []) : [];
     let stays = flags.hotel ? prepareHotelResults(rawStays) : [];
@@ -4861,11 +4912,18 @@ async function fetchAndRender(){
 
     // Hide loading, show content
     stopPageLoadingProgress();
+    hideRefreshStatus();
     document.getElementById('page-loading').style.display = 'none';
     document.getElementById('page-content').style.display = 'block';
     setActiveTab(activeTab || 'summary');
   } catch(e){
     stopPageLoadingProgress();
+    hideRefreshStatus();
+    if(softRefresh) {
+      showRefreshStatus('새 조건을 반영하지 못했어요. 잠시 후 다시 시도해주세요');
+      window.setTimeout(hideRefreshStatus, 2400);
+      return;
+    }
     document.getElementById('page-loading').innerHTML =
       `<div style="text-align:center;padding:32px">
          <div style="font-size:32px;margin-bottom:12px">⚠️</div>
