@@ -17,7 +17,17 @@ export function ProductCarousel({
   viewAllHref,
   items,
 }: ProductCarouselProps) {
-  const compactMeta = (label: string) => label.split("·").at(-1)?.trim() || label;
+  const compactMeta = (label: string) => {
+    const normalized = label.trim();
+    if (
+      normalized.startsWith("마이리얼트립") ||
+      normalized.startsWith("아고다")
+    ) {
+      return normalized;
+    }
+
+    return normalized.split("·").at(-1)?.trim() || normalized;
+  };
 
   return (
     <section id={id} className="px-5">
@@ -83,7 +93,6 @@ export function ProductCarousel({
                   <StarIcon className="h-3 w-3 shrink-0 text-[#d69b2d]" />
                   <span>{item.rating}</span>
                 </div>
-
               </div>
             </div>
           </a>

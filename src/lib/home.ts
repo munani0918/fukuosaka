@@ -8,6 +8,7 @@ import {
 } from "@/src/data/home";
 import {
   type AccommodationSearchItem,
+  type TnaSearchItem,
   fetchAccommodationImageUrl,
   searchTnaProductsViaApi,
   searchAccommodationsSmart,
@@ -288,7 +289,7 @@ function fallbackRating(value: string) {
   return value || "4.5";
 }
 
-function parseRatingValue(value: string | null | undefined) {
+function parseRatingValue(value: string | number | null | undefined) {
   const parsed = Number.parseFloat(String(value ?? "").replace(/[^\d.]/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
 }
@@ -335,6 +336,69 @@ function pickDailyHighRatedStay(
 
   const topCandidates = candidates.slice(0, 5);
   return topCandidates[dailyIndex(namespace, topCandidates.length)];
+}
+
+function tourCategoryKey(item: TnaSearchItem) {
+  const normalized = `${item.category ?? ""} ${item.itemName}`
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+
+  if (/esim|유심|와이파이|wifi|sim|데이터/.test(normalized)) {
+    return "connectivity";
+  }
+
+  if (/라피트|공항|버스|철도|교통/.test(normalized)) {
+    return "transport";
+  }
+
+  if (/패스|입장권|티켓|전망대|usj|유니버설|유니버셜/.test(normalized)) {
+    return "ticket";
+  }
+
+  if (/교토|나라|고베|유후인|벳푸|다자이후|투어|가이드/.test(normalized)) {
+    return "tour";
+  }
+
+  return item.category || "recommendation";
+}
+
+function pickDailyHighRatedTour(
+  items: TnaSearchItem[],
+  namespace: string,
+  usedCategories: Set<string>,
+) {
+  const candidates = items
+    .filter((item) => item.itemName && item.productUrl)
+    .sort((a, b) => {
+      const ratingDiff =
+        parseRatingValue(b.reviewScore) - parseRatingValue(a.reviewScore);
+      if (Math.abs(ratingDiff) > 0.01) return ratingDiff;
+
+      const reviewDiff =
+        reviewCountValue(b.reviewCount) - reviewCountValue(a.reviewCount);
+      if (reviewDiff !== 0) return reviewDiff;
+
+      const imageDiff = Number(Boolean(b.imageUrl)) - Number(Boolean(a.imageUrl));
+      if (imageDiff !== 0) return imageDiff;
+
+      return (a.salePrice ?? Number.POSITIVE_INFINITY) -
+        (b.salePrice ?? Number.POSITIVE_INFINITY);
+    })
+    .slice(0, 8);
+
+  const start = dailyIndex(namespace, candidates.length);
+  const rotated = candidates.map(
+    (_, index) => candidates[(start + index) % candidates.length],
+  );
+  const selected =
+    rotated.find((item) => !usedCategories.has(tourCategoryKey(item))) ??
+    rotated[0];
+
+  if (selected) {
+    usedCategories.add(tourCategoryKey(selected));
+  }
+
+  return selected;
 }
 
 function keywordList(items: ProductCardData[], fallback: string[]) {
@@ -392,7 +456,7 @@ async function getLiveStayCards() {
           item.reviewCount !== null ? item.reviewCount.toLocaleString("ko-KR") : "",
         ),
         priceLabel: formatStayPriceFromNumber(item.salePrice),
-        metaLabel: `${config.city} · 마이리얼트립`,
+        metaLabel: `마이리얼트립 · ${config.city}`,
         href: buildStayDetailHref(item, {
           keyword: config.city,
           checkIn,
@@ -412,7 +476,7 @@ async function getLiveStayCards() {
 }
 
 async function getLiveTourCards() {
-  const entries: Array<ProductCardData | null> = await Promise.all(
+  const cityResults = await Promise.all(
     (Object.keys(HOME_CITY_CONFIG) as CityCode[]).map(async (cityCode) => {
       const config = HOME_CITY_CONFIG[cityCode];
       const result = await searchTnaProductsViaApi({
@@ -421,14 +485,26 @@ async function getLiveTourCards() {
         category: "all",
         sort: "selling_count_desc",
         page: 1,
-        perPage: 4,
+        perPage: 8,
       });
 
       if (!result.ok) return null;
 
+      return {
+        cityCode,
+        config,
+        items: result.data.items,
+      };
+    }),
+  );
+  const usedCategories = new Set<string>();
+  const entries: Array<ProductCardData | null> = cityResults
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+    .map(({ cityCode, config, items }) => {
       const item =
-        result.data.items.find((entry) => Boolean(entry.imageUrl)) ??
-        result.data.items[0];
+        pickDailyHighRatedTour(items, `home-tour-${cityCode}`, usedCategories) ??
+        items.find((entry) => Boolean(entry.imageUrl)) ??
+        items[0];
       if (!item?.itemName || !item.productUrl) return null;
 
       return {
@@ -452,8 +528,7 @@ async function getLiveTourCards() {
         imageUrl: item.imageUrl ? normalizeExternalUrl(item.imageUrl) : undefined,
         artVariant: config.tourArt,
       } satisfies ProductCardData;
-    }),
-  );
+    });
 
   return entries.filter((entry): entry is ProductCardData => entry !== null);
 }
