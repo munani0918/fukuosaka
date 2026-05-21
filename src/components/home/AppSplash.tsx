@@ -55,7 +55,7 @@ export function AppSplash() {
         }}
       />
       <div
-        className={`fukuosaka-splash fixed inset-0 z-[9999] items-center justify-center bg-[#fff7f1] ${
+        className={`fukuosaka-splash fixed inset-0 z-[9999] items-center justify-center overflow-hidden bg-[#fff7f1] ${
           phase === "hidden" ? "hidden" : "flex"
         }`}
         style={{
@@ -69,9 +69,12 @@ export function AppSplash() {
         role={phase === "hidden" ? undefined : "status"}
         suppressHydrationWarning
       >
-        <div className="relative animate-[fukuosakaSplashLogoFloat_1800ms_ease-in-out_520ms_infinite]">
-          <div className="absolute inset-x-2 top-1/2 h-3 -translate-y-1/2 rounded-full bg-[#f3c8bb]/55 blur-xl" />
-          <span className="relative block animate-[fukuosakaSplashLogoIn_560ms_cubic-bezier(0.22,1,0.36,1)_forwards] bg-[linear-gradient(120deg,#6f3a31_0%,#c15a4d_54%,#e39478_100%)] bg-clip-text text-[28px] font-semibold uppercase tracking-[0.18em] text-transparent opacity-0 drop-shadow-[0_10px_22px_rgba(166,91,72,0.13)]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_46%,rgba(255,207,190,0.54)_0%,rgba(255,236,226,0.42)_30%,rgba(255,247,241,0)_66%)]" />
+        <div className="absolute left-1/2 top-1/2 h-28 w-52 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#f6b7a8]/20 blur-3xl" />
+
+        <div className="relative animate-[fukuosakaSplashLogoFloat_1900ms_ease-in-out_620ms_infinite]">
+          <div className="absolute inset-x-1 top-1/2 h-4 -translate-y-1/2 rounded-full bg-[#efb6a6]/35 blur-xl" />
+          <span className="relative block animate-[fukuosakaSplashLogoIn_620ms_cubic-bezier(0.22,1,0.36,1)_forwards,fukuosakaSplashLogoSheen_2200ms_ease-in-out_620ms_infinite] bg-[linear-gradient(105deg,#7a4a3f_0%,#f35f5b_28%,#df806a_50%,#9b5e4f_72%,#f35f5b_100%)] bg-[length:220%_100%] bg-clip-text text-[30px] font-black uppercase tracking-[0.095em] text-transparent opacity-0 drop-shadow-[0_12px_24px_rgba(188,88,70,0.16)]">
             FUKUOSAKA
           </span>
         </div>
@@ -83,10 +86,12 @@ export function AppSplash() {
           @keyframes fukuosakaSplashLogoIn {
             from {
               opacity: 0;
-              transform: scale(0.96);
+              filter: blur(4px);
+              transform: scale(0.95);
             }
             to {
               opacity: 1;
+              filter: blur(0);
               transform: scale(1);
             }
           }
@@ -98,6 +103,16 @@ export function AppSplash() {
             }
             50% {
               transform: translateY(-2px);
+            }
+          }
+
+          @keyframes fukuosakaSplashLogoSheen {
+            0%,
+            100% {
+              background-position: 0% 50%;
+            }
+            50% {
+              background-position: 100% 50%;
             }
           }
 
