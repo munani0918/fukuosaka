@@ -41,7 +41,6 @@ export default async function ToursPage({
 
   const tours = result.ok ? result.data.items : [];
   const categories = categoryResult.ok ? categoryResult.data.categories : [];
-  const quickKeywords = ["오사카", "라피트", "유니버설", "후쿠오카", "패스"];
   const categoryChips = [
     { name: "전체", value: "all" },
     ...categories.filter((category) => category.value !== "all").slice(0, 8),
@@ -74,7 +73,7 @@ export default async function ToursPage({
             </div>
           </div>
 
-          <form action="/tours" method="get" className="mt-3 space-y-2.5">
+          <form action="/tours" method="get" className="mt-3">
             <div className="flex h-11 items-center gap-2 rounded-[17px] border border-[#eadcd3] bg-white px-3.5 shadow-[0_10px_20px_rgba(92,50,38,0.05)]">
               <SearchIcon className="h-[18px] w-[18px] shrink-0 text-[#a28f88]" />
               <input
@@ -95,31 +94,10 @@ export default async function ToursPage({
                 검색
               </button>
             </div>
-
-            <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
-              {quickKeywords.map((keyword) => (
-                <Link
-                  key={keyword}
-                  href={buildTourResultsHref({
-                    ...state,
-                    keyword,
-                    city: keyword.includes("후쿠오카") ? "후쿠오카" : state.city,
-                    page: 1,
-                  })}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold ${
-                    keyword === state.keyword
-                      ? "bg-[#cb4b42] text-white"
-                      : "bg-[#f7eee8] text-[#89756d] ring-1 ring-[#eadbd2]"
-                  }`}
-                >
-                  {keyword}
-                </Link>
-              ))}
-            </div>
           </form>
         </header>
 
-        <section className="px-5 pb-2.5 pt-2.5">
+        <section className="px-5 pb-2.5 pt-2">
           {categoryChips.length > 1 ? (
             <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1">
               {categoryChips.map((category) => (
