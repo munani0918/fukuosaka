@@ -40,7 +40,7 @@ export function ProductCarousel({
             className="group block h-[232px] w-[188px] shrink-0 overflow-hidden rounded-[22px] bg-white shadow-[0_12px_22px_rgba(87,44,31,0.055)] ring-1 ring-[#eadfd8] transition active:scale-[0.99]"
           >
             <div className="flex h-full flex-col">
-              <div className="relative h-[126px] shrink-0 overflow-hidden bg-[#f4eee8]">
+              <div className="relative h-[114px] shrink-0 overflow-hidden bg-[#f4eee8]">
                 {item.imageUrl ? (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -70,16 +70,16 @@ export function ProductCarousel({
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(44,34,29,0.12)_100%)]" />
               </div>
 
-              <div className="flex min-h-0 flex-1 flex-col p-3">
-                <span className="mb-1.5 inline-flex w-fit max-w-full items-center rounded-full bg-[#f4efe9] px-2 py-1 text-[10px] font-bold tracking-[-0.03em] text-[#74665f]">
+              <div className="flex min-h-0 flex-1 flex-col px-3 py-2.5">
+                <span className="mb-1 inline-flex w-fit max-w-full items-center rounded-full bg-[#f4efe9] px-1.5 py-0.5 text-[9.5px] font-bold tracking-[-0.03em] text-[#74665f]">
                   {compactMeta(item.metaLabel)}
                 </span>
 
-                <h3 className="overflow-hidden text-[13.5px] font-black leading-[1.28] tracking-[-0.045em] text-[#2c221d] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                <h3 className="overflow-hidden text-[14px] font-black leading-[1.34] tracking-[-0.045em] text-[#2c221d] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
                   {item.name}
                 </h3>
 
-                <div className="mt-1.5 flex min-w-0 items-center gap-1 text-[10.5px] font-semibold text-[#7f726c]">
+                <div className="mt-1 flex min-w-0 items-center gap-1 text-[10.5px] font-semibold text-[#7f726c]">
                   <StarIcon className="h-3 w-3 shrink-0 text-[#d69b2d]" />
                   <span>{item.rating}</span>
                   <span className="truncate">· 후기 {item.reviewCount}개</span>

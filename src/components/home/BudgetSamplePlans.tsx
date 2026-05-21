@@ -22,18 +22,18 @@ function planIcon(icon: BudgetTemplate["icon"]) {
 
 function planAccent(slug: string) {
   if (slug.includes("osaka") && slug.includes("budget")) {
-    return "bg-[#fff0ea] text-[#9b5b48] ring-1 ring-[#f1d7ca]";
+    return "bg-[#fff0eb] text-[#f05f5b] ring-1 ring-[#f6d6cc]";
   }
 
   if (slug.includes("osaka")) {
-    return "bg-[#fff4df] text-[#80633d] ring-1 ring-[#ead9b9]";
+    return "bg-[#fff3e8] text-[#eb6b52] ring-1 ring-[#f3dacd]";
   }
 
   if (slug.includes("onsen")) {
-    return "bg-[#eaf4ef] text-[#4f715f] ring-1 ring-[#d0e4d9]";
+    return "bg-[#fff0f4] text-[#df6577] ring-1 ring-[#f2d3dc]";
   }
 
-  return "bg-[#f7edf0] text-[#86515e] ring-1 ring-[#ead5dc]";
+  return "bg-[#fff0eb] text-[#f05f5b] ring-1 ring-[#f6d6cc]";
 }
 
 export function BudgetSamplePlans({ items }: BudgetSamplePlansProps) {
@@ -50,7 +50,7 @@ export function BudgetSamplePlans({ items }: BudgetSamplePlansProps) {
           <Link
             key={item.slug}
             href={`/budget-plans/${item.slug}`}
-            className="group relative min-h-[100px] rounded-[22px] border border-[#eadfd8] bg-white px-3.5 py-2.5 shadow-[0_10px_20px_rgba(88,67,55,0.05)] transition active:scale-[0.99]"
+            className="group relative min-h-[100px] rounded-[22px] border border-[#f0e0d8] bg-white px-3.5 py-2.5 shadow-[0_12px_24px_rgba(115,72,59,0.06)] transition active:scale-[0.99]"
           >
             <div className="flex items-start justify-between gap-2">
               <span
@@ -65,7 +65,7 @@ export function BudgetSamplePlans({ items }: BudgetSamplePlansProps) {
             <h3 className="mt-2 whitespace-nowrap text-[14px] font-black leading-5 tracking-[-0.05em] text-[#2c211d]">
               {item.miniTitle}
             </h3>
-            <p className="mt-1 text-[12px] font-extrabold tracking-[-0.04em] text-[#3a302b]">
+            <p className="mt-1 text-[12px] font-black tracking-[-0.04em] text-[#f05f5b]">
               {item.miniBudgetLabel}
             </p>
             <p className="mt-1 text-[11px] font-semibold tracking-[-0.03em] text-[#86766f]">
