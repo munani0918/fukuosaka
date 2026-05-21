@@ -36,13 +36,7 @@ export function TravelBenefitBanners({ items }: TravelBenefitBannersProps) {
   }
 
   return (
-    <section className="px-5">
-      <div className="mb-3">
-        <h2 className="text-[18px] font-black tracking-[-0.05em] text-[#2c211d]">
-          여행 준비 혜택
-        </h2>
-      </div>
-
+    <section className="px-5 pt-1">
       <div
         ref={scrollerRef}
         onScroll={syncActiveSlide}

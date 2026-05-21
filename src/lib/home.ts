@@ -268,13 +268,13 @@ function parseWidgetItems(data: Record<string, unknown> | null, limit: number) {
 function formatStayPriceFromNumber(price: number | null) {
   if (!price || price <= 0) return "1박 요금 확인";
 
-  return `1박 최저 ${price.toLocaleString("ko-KR")}원~`;
+  return `1박 ${price.toLocaleString("ko-KR")}원~`;
 }
 
 function formatTourPrice(rawPrice: string) {
   const cleaned = rawPrice.trim();
-  if (!cleaned) return "성인 요금 확인";
-  return cleaned.startsWith("성인") ? cleaned : `성인 ${cleaned}`;
+  if (!cleaned) return "요금 확인";
+  return cleaned.replace(/^성인\s*/, "");
 }
 
 function fallbackReviewCount(value: string) {
@@ -313,7 +313,9 @@ async function getLiveStayCards() {
 
       if (!result.ok) return null;
 
-      const item = result.items[0];
+      const item =
+        result.items.find((entry) => Boolean(entry.imageUrl)) ??
+        result.items[0];
       if (!item?.itemName || !item.bookUrl) return null;
 
       const imageUrl =
@@ -343,7 +345,7 @@ async function getLiveStayCards() {
           childCount: 0,
           isDomestic: false,
         }),
-        ctaLabel: "예약하기",
+        ctaLabel: "상세 보기",
         imageUrl: imageUrl ? normalizeExternalUrl(imageUrl) : undefined,
         artVariant: config.stayArt,
       } satisfies ProductCardData;
@@ -368,7 +370,9 @@ async function getLiveTourCards() {
 
       if (!result.ok) return null;
 
-      const item = result.data.items[0];
+      const item =
+        result.data.items.find((entry) => Boolean(entry.imageUrl)) ??
+        result.data.items[0];
       if (!item?.itemName || !item.productUrl) return null;
 
       return {
