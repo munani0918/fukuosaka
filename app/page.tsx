@@ -2,6 +2,7 @@ import { connection } from "next/server";
 
 import { BottomTabBar } from "@/src/components/home/BottomTabBar";
 import { BudgetSamplePlans } from "@/src/components/home/BudgetSamplePlans";
+import { AppSplash } from "@/src/components/home/AppSplash";
 import { HeroSection } from "@/src/components/home/HeroSection";
 import { QuickSearchLinks } from "@/src/components/home/QuickSearchLinks";
 import { StayCardCarousel } from "@/src/components/home/StayCardCarousel";
@@ -18,6 +19,7 @@ export default async function HomePage() {
 
   return (
     <main id="top" className="min-h-dvh bg-[#fff8f5] text-[#2c211d]">
+      <AppSplash />
       <div className="mx-auto min-h-dvh max-w-[430px] bg-[linear-gradient(180deg,#fffdfb_0%,#fff7f3_48%,#fff1ec_100%)] pb-32 md:my-6 md:min-h-[calc(100dvh-3rem)] md:overflow-hidden md:rounded-[40px] md:shadow-[0_30px_70px_rgba(126,74,61,0.14)]">
         <TopAppBar />
         <HeroSection hero={homeData.hero} />
