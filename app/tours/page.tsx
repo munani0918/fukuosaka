@@ -25,10 +25,6 @@ function bottomTabs() {
   ];
 }
 
-function cityLabel(city: string) {
-  return city.includes("후쿠오카") ? "후쿠오카" : "오사카";
-}
-
 export default async function ToursPage({
   searchParams,
 }: {
@@ -57,7 +53,7 @@ export default async function ToursPage({
       className="min-h-dvh bg-[linear-gradient(180deg,#fff8f3_0%,#fcf2eb_48%,#f6ede6_100%)] text-[#241b17]"
     >
       <div className="mx-auto min-h-dvh max-w-[430px] pb-[calc(env(safe-area-inset-bottom)+92px)]">
-        <header className="sticky top-0 z-30 border-b border-[#f0e4dd] bg-[#fffaf6]/95 px-5 pb-4 pt-[calc(env(safe-area-inset-top)+14px)] backdrop-blur-xl">
+        <header className="sticky top-0 z-30 border-b border-[#f0e4dd] bg-[#fffaf6]/95 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+12px)] backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <Link
               href="/"
@@ -69,17 +65,17 @@ export default async function ToursPage({
               </svg>
             </Link>
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold tracking-[-0.02em] text-[#a58f86]">
-                FUKUOSAKA TOURS
-              </p>
-              <h1 className="text-[21px] font-black tracking-[-0.05em] text-[#241b17]">
+              <h1 className="text-[22px] font-black tracking-[-0.055em] text-[#241b17]">
                 투어·티켓 검색
               </h1>
+              <p className="mt-1 max-w-[320px] text-[12px] font-semibold leading-[1.45] tracking-[-0.03em] text-[#8b7770]">
+                eSIM, 교통패스, 입장권, 현지투어를 한 번에 확인해보세요.
+              </p>
             </div>
           </div>
 
-          <form action="/tours" method="get" className="mt-4 space-y-3">
-            <div className="flex h-12 items-center gap-2 rounded-[18px] border border-[#eadcd3] bg-white px-3.5 shadow-[0_10px_20px_rgba(92,50,38,0.05)]">
+          <form action="/tours" method="get" className="mt-3 space-y-2.5">
+            <div className="flex h-11 items-center gap-2 rounded-[17px] border border-[#eadcd3] bg-white px-3.5 shadow-[0_10px_20px_rgba(92,50,38,0.05)]">
               <SearchIcon className="h-[18px] w-[18px] shrink-0 text-[#a28f88]" />
               <input
                 type="search"
@@ -94,13 +90,13 @@ export default async function ToursPage({
               <input type="hidden" name="perPage" value={state.perPage} />
               <button
                 type="submit"
-                className="rounded-full bg-[#cb4b42] px-3.5 py-1.5 text-[11px] font-black text-white"
+                className="rounded-full bg-[#cb4b42] px-3.5 py-1.5 text-[11px] font-black text-white shadow-[0_7px_14px_rgba(203,75,66,0.18)]"
               >
                 검색
               </button>
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
+            <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
               {quickKeywords.map((keyword) => (
                 <Link
                   key={keyword}
@@ -110,10 +106,10 @@ export default async function ToursPage({
                     city: keyword.includes("후쿠오카") ? "후쿠오카" : state.city,
                     page: 1,
                   })}
-                  className={`rounded-full px-3 py-1.5 text-[11px] font-semibold ${
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold ${
                     keyword === state.keyword
                       ? "bg-[#cb4b42] text-white"
-                      : "bg-[#f8ede6] text-[#8c746a]"
+                      : "bg-[#f7eee8] text-[#89756d] ring-1 ring-[#eadbd2]"
                   }`}
                 >
                   {keyword}
@@ -123,9 +119,9 @@ export default async function ToursPage({
           </form>
         </header>
 
-        <section className="px-5 pb-3 pt-3">
+        <section className="px-5 pb-2.5 pt-2.5">
           {categoryChips.length > 1 ? (
-            <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+            <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1">
               {categoryChips.map((category) => (
                 <Link
                   key={category.value}
@@ -134,10 +130,10 @@ export default async function ToursPage({
                     category: category.value,
                     page: 1,
                   })}
-                  className={`shrink-0 rounded-full px-3.5 py-2 text-[11px] font-black ${
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-black ${
                     category.value === state.category
-                      ? "bg-[#cb4b42] text-white"
-                      : "bg-white text-[#8c746a] ring-1 ring-[#efe3db]"
+                      ? "bg-[#cb4b42] text-white shadow-[0_7px_14px_rgba(203,75,66,0.14)]"
+                      : "bg-[#fffdfa] text-[#84716a] ring-1 ring-[#efe3db]"
                   }`}
                 >
                   {category.name}
@@ -147,15 +143,15 @@ export default async function ToursPage({
           ) : null}
         </section>
 
-        <section className="space-y-3 px-5">
+        <section className="space-y-2.5 px-5">
           {tours.length > 0 ? (
             tours.map((tour) => (
               <Link
                 key={tour.gid}
                 href={buildTourDetailHref(tour, state)}
-                className="flex overflow-hidden rounded-[24px] bg-white shadow-[0_14px_26px_rgba(85,42,28,0.06)] ring-1 ring-[#efe3db]"
+                className="flex overflow-hidden rounded-[22px] bg-white shadow-[0_12px_22px_rgba(85,42,28,0.055)] ring-1 ring-[#efe3db] transition active:scale-[0.99]"
               >
-                <div className="relative h-[148px] w-[126px] shrink-0 overflow-hidden bg-[#f5e8df]">
+                <div className="relative h-[136px] w-[118px] shrink-0 overflow-hidden bg-[#f5e8df]">
                   {tour.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -173,44 +169,37 @@ export default async function ToursPage({
                   <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(50,26,18,0.12)_100%)]" />
                 </div>
 
-                <div className="flex min-w-0 flex-1 flex-col p-4">
-                  <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-1 flex-col p-3.5">
+                  <div className="flex min-w-0 flex-1 flex-col">
                     <div className="min-w-0">
-                      <p className="text-[11px] font-bold text-[#b48577]">
+                      <p className="inline-flex max-w-full items-center rounded-full bg-[#f7eee8] px-2 py-1 text-[10px] font-black leading-none text-[#9a7368]">
                         {tour.category || "투어&티켓"}
                       </p>
-                      <h3 className="mt-1 text-[16px] font-black leading-[1.35] tracking-[-0.04em] text-[#221a17] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
+                      <h3 className="mt-2 min-h-[42px] overflow-hidden pb-0.5 text-[15px] font-black leading-[1.38] tracking-[-0.045em] text-[#221a17] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
                         {tour.itemName}
                       </h3>
                     </div>
-                    <svg className="mt-1 h-4 w-4 shrink-0 text-[#b19c94]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
-                      <path d="M7.5 4.5 13 10l-5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
 
-                  <div className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-[#7a6862]">
-                    <StarIcon className="h-3.5 w-3.5 text-[#ffb627]" />
-                    <span className="text-[#d45c3b]">
-                      {tour.reviewScore ? tour.reviewScore.toFixed(1).replace(/\.0$/, "") : "-"}
-                    </span>
-                    <span>리뷰 {tour.reviewCount?.toLocaleString("ko-KR") ?? 0}개</span>
-                  </div>
-
-                  <p className="mt-2 text-[11px] font-medium leading-5 text-[#88766e] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
-                    {tour.description || `${cityLabel(state.city)}에서 바로 예약 가능한 상품이에요.`}
-                  </p>
-
-                  <div className="mt-auto flex items-end justify-between gap-3 border-t border-[#f3e7df] pt-3">
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-medium text-[#8d7c74]">
-                        마이리얼트립 실시간 상품
-                      </p>
-                      <p className="mt-1 truncate whitespace-nowrap text-[16px] font-black tracking-[-0.04em] text-[#201b19]">
-                        {formatTourPriceLabel(tour.priceDisplay, tour.salePrice)}
-                      </p>
+                    <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-bold text-[#766761]">
+                      <StarIcon className="h-3.5 w-3.5 text-[#ffb627]" />
+                      <span className="text-[#a85e47]">
+                        {tour.reviewScore ? tour.reviewScore.toFixed(1).replace(/\.0$/, "") : "-"}
+                      </span>
+                      <span className="min-w-0 truncate">
+                        후기 {tour.reviewCount?.toLocaleString("ko-KR") ?? 0}
+                      </span>
                     </div>
-                    <span className="inline-flex h-8 min-w-[62px] shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#fff4f0] px-2.5 text-[11px] font-black leading-none text-[#cb4b42] ring-1 ring-[#f1d7cf]">
+                  </div>
+
+                  <div className="mt-2.5 flex items-end justify-between gap-2 border-t border-[#f4e9e2] pt-2.5">
+                    <p className="min-w-0 truncate whitespace-nowrap text-[14px] font-black tracking-[-0.04em] text-[#201b19]">
+                      {formatTourPriceLabel(tour.priceDisplay, tour.salePrice)}
+                    </p>
+                    <span className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap text-[11px] font-black text-[#b95248]">
                       상세보기
+                      <svg className="h-3 w-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M7.5 4.5 13 10l-5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                     </span>
                   </div>
                 </div>
@@ -219,10 +208,10 @@ export default async function ToursPage({
           ) : (
             <div className="rounded-[24px] bg-white p-5 text-center shadow-[0_14px_26px_rgba(85,42,28,0.06)] ring-1 ring-[#efe3db]">
               <p className="text-[17px] font-black tracking-[-0.04em] text-[#271d18]">
-                아직 보여드릴 투어&티켓이 없어요
+                조건에 맞는 투어·티켓을 찾지 못했어요
               </p>
               <p className="mt-2 text-[13px] leading-6 text-[#7f6f69]">
-                라피트 · 유니버설 · 패스처럼 더 구체적인 상품명으로 다시 찾아보세요.
+                카테고리나 검색어를 바꿔 다시 확인해보세요.
               </p>
             </div>
           )}
