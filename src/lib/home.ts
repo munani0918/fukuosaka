@@ -7,6 +7,7 @@ import {
   type SearchTabData,
 } from "@/src/data/home";
 import {
+  type AccommodationSearchItem,
   fetchAccommodationImageUrl,
   searchTnaProductsViaApi,
   searchAccommodationsSmart,
@@ -105,6 +106,8 @@ const HOME_CITY_CONFIG = {
     fallbackFlightOffset: 42,
   },
 } as const;
+
+const HOME_STAY_RECOMMENDATION_ORDER: CityCode[] = ["KIX", "FUK"];
 
 function futureDate(offsetDays: number) {
   const target = new Date();
@@ -285,6 +288,55 @@ function fallbackRating(value: string) {
   return value || "4.5";
 }
 
+function parseRatingValue(value: string | null | undefined) {
+  const parsed = Number.parseFloat(String(value ?? "").replace(/[^\d.]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function reviewCountValue(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function dailyIndex(namespace: string, length: number, offset = 0) {
+  if (length <= 0) return 0;
+
+  const todayKey = Math.floor(Date.now() / 86_400_000);
+  const seed = [...namespace].reduce(
+    (sum, char) => sum + char.charCodeAt(0),
+    todayKey + offset,
+  );
+
+  return seed % length;
+}
+
+function pickDailyHighRatedStay(
+  items: AccommodationSearchItem[],
+  namespace: string,
+) {
+  const candidates = items
+    .filter((item) => item.itemName && item.bookUrl)
+    .sort((a, b) => {
+      const ratingDiff =
+        parseRatingValue(b.reviewScore) - parseRatingValue(a.reviewScore);
+      if (Math.abs(ratingDiff) > 0.01) return ratingDiff;
+
+      const reviewDiff =
+        reviewCountValue(b.reviewCount) - reviewCountValue(a.reviewCount);
+      if (reviewDiff !== 0) return reviewDiff;
+
+      const imageDiff = Number(Boolean(b.imageUrl)) - Number(Boolean(a.imageUrl));
+      if (imageDiff !== 0) return imageDiff;
+
+      return (
+        (a.salePrice ?? Number.POSITIVE_INFINITY) -
+        (b.salePrice ?? Number.POSITIVE_INFINITY)
+      );
+    });
+
+  const topCandidates = candidates.slice(0, 5);
+  return topCandidates[dailyIndex(namespace, topCandidates.length)];
+}
+
 function keywordList(items: ProductCardData[], fallback: string[]) {
   const names = items
     .map((item) => item.name.split(" ").slice(0, 2).join(" ").trim())
@@ -295,7 +347,7 @@ function keywordList(items: ProductCardData[], fallback: string[]) {
 
 async function getLiveStayCards() {
   const entries: Array<ProductCardData | null> = await Promise.all(
-    (Object.keys(HOME_CITY_CONFIG) as CityCode[]).map(async (cityCode) => {
+    HOME_STAY_RECOMMENDATION_ORDER.map(async (cityCode) => {
       const config = HOME_CITY_CONFIG[cityCode];
       const checkIn = futureDate(config.stayOffset);
       const checkOut = futureDate(config.stayOffset + 1);
@@ -308,12 +360,16 @@ async function getLiveStayCards() {
         childCount: 0,
         isDomestic: false,
         page: 0,
-        size: 4,
+        size: 5,
       });
 
       if (!result.ok) return null;
 
       const item =
+        pickDailyHighRatedStay(
+          result.items,
+          `home-stay-${cityCode}`,
+        ) ??
         result.items.find((entry) => Boolean(entry.imageUrl)) ??
         result.items[0];
       if (!item?.itemName || !item.bookUrl) return null;
@@ -451,6 +507,23 @@ function mergeProductCards(
   }));
 }
 
+function mergeStayCardsByCity(
+  liveCards: ProductCardData[],
+  fallbackCards: ProductCardData[],
+) {
+  if (!liveCards.length) return fallbackCards;
+
+  return fallbackCards.map((fallback) => {
+    const live = liveCards.find((card) => card.artVariant === fallback.artVariant);
+
+    return {
+      ...fallback,
+      ...(live ?? {}),
+      artVariant: live?.artVariant ?? fallback.artVariant,
+    };
+  });
+}
+
 function pickDailyRecommendations(
   items: ProductCardData[],
   count: number,
@@ -541,11 +614,7 @@ export async function getHomePageData(): Promise<HomePageData> {
     liveTourCardsResult.status === "fulfilled" ? liveTourCardsResult.value : [];
 
   const flightDeals = await mergeFlightDeals(null);
-  const stayCards = pickDailyRecommendations(
-    mergeProductCards(liveStayCards, homeMockData.stayCards),
-    2,
-    "home-stays",
-  );
+  const stayCards = mergeStayCardsByCity(liveStayCards, homeMockData.stayCards);
   const tourCards = pickDailyRecommendations(
     mergeProductCards(liveTourCards, homeMockData.tourCards),
     2,

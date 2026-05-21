@@ -37,10 +37,10 @@ export function ProductCarousel({
             href={item.href}
             target={item.href.startsWith("http") ? "_blank" : undefined}
             rel={item.href.startsWith("http") ? "noreferrer" : undefined}
-            className="group block h-[232px] w-[188px] shrink-0 overflow-hidden rounded-[22px] bg-white shadow-[0_12px_22px_rgba(87,44,31,0.055)] ring-1 ring-[#eadfd8] transition active:scale-[0.99]"
+            className="group block h-[226px] w-[184px] shrink-0 overflow-hidden rounded-[22px] bg-white shadow-[0_12px_22px_rgba(87,44,31,0.055)] ring-1 ring-[#eadfd8] transition active:scale-[0.99]"
           >
             <div className="flex h-full flex-col">
-              <div className="relative h-[114px] shrink-0 overflow-hidden bg-[#f4eee8]">
+              <div className="relative h-[108px] shrink-0 overflow-hidden bg-[#f4eee8]">
                 {item.imageUrl ? (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -75,7 +75,7 @@ export function ProductCarousel({
                   {compactMeta(item.metaLabel)}
                 </span>
 
-                <h3 className="overflow-hidden text-[14px] font-black leading-[1.34] tracking-[-0.045em] text-[#2c221d] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                <h3 className="overflow-hidden pb-0.5 text-[13.5px] font-black leading-[1.4] tracking-[-0.045em] text-[#2c221d] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
                   {item.name}
                 </h3>
 
@@ -87,7 +87,7 @@ export function ProductCarousel({
 
                 <div className="mt-auto">
                   <div className="min-w-0">
-                    <p className="truncate text-[17px] font-black tracking-[-0.05em] text-[#2c221d]">
+                    <p className="truncate text-[15.5px] font-black tracking-[-0.05em] text-[#2c221d]">
                       {item.priceLabel}
                     </p>
                   </div>
