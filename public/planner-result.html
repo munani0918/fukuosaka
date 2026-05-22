@@ -3219,11 +3219,7 @@ function hotelUpgradeComparator(meta){
 
 function summaryRecommendedHotels(){
   if(!packageIncludes('hotel')) return [];
-  const myrealtripItems = prepareHotelResults(RESULT_DATA.stays || []);
-  const agodaItems = prepareHotelResults(RESULT_DATA.agodaStays || []);
-  const preparedItems = myrealtripItems.length >= 3
-    ? myrealtripItems
-    : mergeHotelDisplayItems(myrealtripItems, agodaItems);
+  const preparedItems = getRecommendedHotelCandidates();
   const reservationMeta = activeReservationHotelTargetMeta();
   const usageStatus = reservationMeta?.usageStatus || PLAN_SUMMARY?.budget?.reservationBudgetUsageStatus || 'fit';
   const isBudgetTight = budgetFirstMode() || usageStatus === 'over' || PLAN_SUMMARY?.budget?.status === 'over_budget';
@@ -3303,6 +3299,43 @@ function summaryRecommendedHotels(){
     }
   }
   return finishPicks();
+}
+
+function mergeRecommendedHotelCandidates(primaryItems, previousItems){
+  const merged = [];
+  const seen = new Set();
+  const add = (item) => {
+    if(!item) return;
+    const key = hotelUniqueKey(item) || item.name || item.id || item.productId || item.bookingUrl;
+    if(key && seen.has(key)) return;
+    if(key) seen.add(key);
+    merged.push(item);
+  };
+  (primaryItems || []).forEach(add);
+  (previousItems || []).forEach(add);
+  return merged.slice(0, 5);
+}
+
+function getRecommendedHotelCandidates(){
+  if(!packageIncludes('hotel')) return [];
+  const myrealtripItems = prepareHotelResults(RESULT_DATA.stays || []);
+  const agodaItems = Array.isArray(RESULT_DATA.agodaStays) ? RESULT_DATA.agodaStays : [];
+  const freshItems = myrealtripItems.length >= 3
+    ? myrealtripItems
+    : mergeHotelDisplayItems(myrealtripItems, agodaItems);
+  const pendingItems = (hotelFallbackInProgress || agodaHotelsInProgress) ? lastRecommendedHotelCandidates : [];
+  const candidates = mergeRecommendedHotelCandidates(freshItems, pendingItems);
+  if(freshItems.length) {
+    lastRecommendedHotelCandidates = candidates.slice(0, 5);
+  }
+  return candidates;
+}
+
+function hotelCandidateStatus(){
+  const candidates = getRecommendedHotelCandidates();
+  if(candidates.length) return { status:'ready', candidates };
+  if(hotelFallbackInProgress || agodaHotelsInProgress) return { status:'loading', candidates:[] };
+  return { status:'empty', candidates:[] };
 }
 /*
 
@@ -3444,8 +3477,9 @@ function renderFlightCandidateGroup(){
 
 function renderHotelCandidateGroup(){
   if(!packageIncludes('hotel')) return '';
+  const hotelState = hotelCandidateStatus();
   const hotels = summaryRecommendedHotels();
-  const isCheckingHotels = hotelFallbackInProgress || agodaHotelsInProgress;
+  const isCheckingHotels = hotelState.status === 'loading';
   const hasUpgrade = PLAN_SUMMARY?.budget?.hotelMatchStatus === 'target_matched'
     && hotels.some((hotel) => ['예산 활용','위치 업그레이드','성향 맞춤 업그레이드','여유 예산 추천','선택 업그레이드'].includes(hotel.previewBadge));
   const body = hotels.length
@@ -4268,10 +4302,11 @@ function renderHotels(stays){
   const items = prepareHotelResults(stays);
   const displayItems = mergeHotelDisplayItems(items, RESULT_DATA.agodaStays || []);
   if(!displayItems.length){
-    const fallbackNotice = (hotelFallbackInProgress || agodaHotelsInProgress)
+    const isCheckingHotels = hotelFallbackInProgress || agodaHotelsInProgress;
+    const fallbackNotice = isCheckingHotels
       ? '<div class="reason-box">숙소 후보를 보강하고 있어요.</div>'
       : '';
-    el.innerHTML = `<div class="reason-box">${stayReasonFinal()}</div>${fallbackNotice}<div class="empty-card">숙소 데이터를 불러오지 못했어요</div>`;
+    el.innerHTML = `<div class="reason-box">${stayReasonFinal()}</div>${fallbackNotice}<div class="empty-card">${isCheckingHotels ? '숙소 후보를 확인하고 있어요.' : '숙소 데이터를 불러오지 못했어요'}</div>`;
     return;
   }
   const notice = styleFallbackNoticeFinal('hotel', items);
@@ -4771,6 +4806,7 @@ function hideRefreshStatus(){
 let refreshRunSeq = 0;
 let hotelFallbackInProgress = false;
 let agodaHotelsInProgress = false;
+let lastRecommendedHotelCandidates = [];
 
 function createRefreshTimer(label = 'refresh'){
   const canMeasure = typeof performance !== 'undefined' && typeof performance.now === 'function';
@@ -5010,8 +5046,10 @@ async function runHotelFallbackInBackground(params, runId, timer){
 async function fetchAndRender(options = {}){
   const softRefresh = Boolean(options.softRefresh);
   const timer = options.timer || (softRefresh ? createRefreshTimer('soft refresh') : null);
-  const runId = softRefresh ? (options.runId || ++refreshRunSeq) : refreshRunSeq;
+  const runId = options.runId || ++refreshRunSeq;
   try {
+    hotelFallbackInProgress = false;
+    agodaHotelsInProgress = false;
     if(timer) timer.mark('fetchAndRender start');
     const dateValidation = validateCurrentPlanDates();
     if(!dateValidation.valid){
@@ -5049,7 +5087,7 @@ async function fetchAndRender(options = {}){
     if(PLAN_INPUT?.routeStyle || P.routeStyle) params.set('routeStyle', PLAN_INPUT?.routeStyle || P.routeStyle);
     if(PLAN_INPUT?.planType || P.planType) params.set('planType', PLAN_INPUT?.planType || P.planType);
     params.set('_ts', String(Date.now()));
-    agodaHotelsInProgress = softRefresh && flags.hotel;
+    agodaHotelsInProgress = flags.hotel;
     const agodaPromise = flags.hotel
       ? (async () => {
           if(timer) timer.mark('Agoda fetch start');
@@ -5067,38 +5105,10 @@ async function fetchAndRender(options = {}){
     if(timer) timer.mark('/api/planner json parsed');
 
     const needsHotelFallback = flags.hotel && !(data.stays || []).length;
-    if(needsHotelFallback && !softRefresh) {
-      const hotelParams = new URLSearchParams(params);
-      hotelParams.set('includeFlight', 'false');
-      hotelParams.set('includeHotel', 'true');
-      hotelParams.set('includeTour', 'false');
-      const maxHotelFallbackAttempts = 3;
-      for(let attempt = 0; attempt < maxHotelFallbackAttempts && !(data.stays || []).length; attempt += 1) {
-        hotelParams.set('_ts', String(Date.now() + attempt));
-        hotelParams.set('hotelRetry', String(attempt + 1));
-        if(timer) timer.mark(`hotel fallback ${attempt + 1} start`);
-        const hotelRes = await fetch(`/api/planner?${hotelParams}`, { cache:'no-store' });
-        if(timer) timer.mark(`hotel fallback ${attempt + 1} end`);
-        if(hotelRes.ok) {
-          const hotelData = await hotelRes.json();
-          const fallbackStays = hotelData.stays || [];
-          if(fallbackStays.length) {
-            data.stays = fallbackStays;
-            data.meta = {
-              ...(data.meta || {}),
-              hotelFallbackFetch: true,
-              hotelFallbackAttempt: attempt + 1,
-              hotelFallbackStayCandidateCount: hotelData?.meta?.stayCandidateCount || fallbackStays.length,
-              hotelFallbackKeywords: hotelData?.meta?.stayKeywords || [],
-            };
-          }
-        }
-      }
-    }
 
     let flights = flags.flight ? prepareFlightResults(data.flights || []) : [];
     const rawStays = flags.hotel ? (data.stays || []) : [];
-    const agodaStays = (!softRefresh && flags.hotel) ? await agodaPromise : [];
+    const agodaStays = [];
     const shouldShowSupportTickets = flags.tour || supportTicketsAllowed();
     const rawTnas = shouldShowSupportTickets ? (data.tnas || []) : [];
     let stays = flags.hotel ? prepareHotelResults(rawStays) : [];
@@ -5159,11 +5169,11 @@ async function fetchAndRender(options = {}){
     setActiveTab(activeTab || 'summary');
     if(timer) timer.mark('/api/planner base render complete');
 
-    if(softRefresh && needsHotelFallback) {
+    if(needsHotelFallback) {
       runHotelFallbackInBackground(params, runId, timer);
     }
 
-    if(softRefresh && flags.hotel) {
+    if(flags.hotel) {
       agodaPromise.then((nextAgodaStays) => {
         if(runId !== refreshRunSeq) return;
         RESULT_DATA.agodaStays = Array.isArray(nextAgodaStays) ? nextAgodaStays : [];
