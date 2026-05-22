@@ -1498,6 +1498,7 @@
         F.nights = MAX_NIGHTS;
         syncReturnFromNights();
       }
+      normalizeDateRange("init");
       F.styles = normalizeStyles(F.styles);
 
       renderStep(1, "forward");
@@ -1802,7 +1803,7 @@
           </label>
           <label>
             <div class="date-lbl">복귀일</div>
-            <input class="date-in" id="d-ret" type="date" value="${F.returnDate}" min="${minReturnDate()}" oninput="onReturnChange()">
+            <input class="date-in" id="d-ret" type="date" value="${F.returnDate}" min="${minReturnDate()}" max="${maxReturnDate()}" oninput="onReturnChange()">
             <div class="date-sub" id="ret-sub"></div>
           </label>
         </div>
@@ -2015,7 +2016,7 @@
           </label>
           <label>
             <div class="date-lbl">복귀일</div>
-            <input class="date-in" id="d-ret" type="date" value="${F.returnDate}" min="${minReturnDate()}" oninput="onReturnChange()">
+            <input class="date-in" id="d-ret" type="date" value="${F.returnDate}" min="${minReturnDate()}" max="${maxReturnDate()}" oninput="onReturnChange()">
             <div class="date-sub" id="ret-sub"></div>
           </label>
         </div>
@@ -2106,20 +2107,21 @@
     function onDepartChange() {
       F.departDate = document.getElementById("d-dep").value;
       if (isSamplePresetFlow()) syncReturnFromNights();
-      else if (F.departDate && F.returnDate) recalcNights();
+      else normalizeDateRange("depart-change");
       syncDateUI();
       refreshCta();
     }
 
     function onReturnChange() {
       F.returnDate = document.getElementById("d-ret").value;
+      syncReturnBounds();
       if (F.departDate && F.returnDate) recalcNights();
       syncDateUI();
       refreshCta();
     }
 
     function pickNights(nights) {
-      F.nights = nights;
+      F.nights = clampNights(nights);
       syncReturnFromNights();
       const returnInput = document.getElementById("d-ret");
       if (returnInput) returnInput.value = F.returnDate;
@@ -2139,6 +2141,7 @@
 
     function syncReturnFromNights() {
       if (!F.departDate) return;
+      F.nights = clampNights(F.nights);
       const [year, month, day] = F.departDate.split("-").map(Number);
       const date = new Date(Date.UTC(year, month - 1, day + F.nights));
       F.returnDate = date.toISOString().slice(0, 10);
@@ -2154,6 +2157,39 @@
 
     function minReturnDate() {
       return addDaysToDate(F.departDate, 1);
+    }
+
+    function maxReturnDate() {
+      return addDaysToDate(F.departDate, MAX_NIGHTS);
+    }
+
+    function clampNights(value) {
+      const nights = Number(value);
+      if (!Number.isFinite(nights) || nights < 1) return 1;
+      return Math.min(MAX_NIGHTS, Math.max(1, Math.round(nights)));
+    }
+
+    function syncReturnBounds() {
+      const returnInput = document.getElementById("d-ret");
+      if (!returnInput || !F.departDate) return;
+      returnInput.min = minReturnDate();
+      returnInput.max = maxReturnDate();
+    }
+
+    function normalizeDateRange(reason = "sync") {
+      if (!F.departDate) return;
+      const previousNights = clampNights(F.nights || 1);
+      let nextNights = previousNights;
+      if (reason !== "depart-change" && F.returnDate) {
+        const depart = dateToUtc(F.departDate);
+        const ret = dateToUtc(F.returnDate);
+        if (depart !== null && ret !== null) {
+          nextNights = clampNights(Math.round((ret - depart) / 86400000));
+        }
+      }
+      F.nights = nextNights;
+      syncReturnFromNights();
+      syncReturnBounds();
     }
 
     function dateToUtc(value) {
@@ -2211,6 +2247,7 @@
       if (departInput && departInput.value !== F.departDate) departInput.value = F.departDate;
       if (returnInput) {
         returnInput.min = minReturnDate();
+        returnInput.max = maxReturnDate();
         if (returnInput.value !== F.returnDate) returnInput.value = F.returnDate;
       }
       if (depSub) depSub.textContent = fmtDate(F.departDate);
@@ -2353,6 +2390,9 @@
     }
 
     async function startLoading() {
+      const dateValidation = getDateValidation();
+      if (!dateValidation.valid) return;
+      F.nights = dateValidation.diff;
       if (!F.styles.length) F.styles = ["sightseeing"];
       const feasibility = checkBudgetFeasibility({ scope: "current" });
       if (feasibility.status === "impossible") {
@@ -2424,6 +2464,7 @@
         const params = new URLSearchParams({
           cityCode: F.city,
           date: F.departDate,
+          returnDate: F.returnDate,
           nights: String(F.nights),
         });
         window.location.href = `/planner-result.html?${params.toString()}`;
