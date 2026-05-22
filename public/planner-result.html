@@ -4487,6 +4487,53 @@ function setBudgetInputValue(value){
   setInputValue('edit-budget', formatBudgetInput(value));
 }
 
+function clampEditNights(value){
+  const nights = Number(value);
+  if(!Number.isFinite(nights) || nights < 1) return 1;
+  return Math.min(MAX_NIGHTS, Math.max(1, Math.round(nights)));
+}
+
+function editDateInputs(){
+  return {
+    dateInput: document.getElementById('edit-date'),
+    returnInput: document.getElementById('edit-return-date'),
+  };
+}
+
+function syncEditReturnDateBounds(){
+  const { dateInput, returnInput } = editDateInputs();
+  const date = dateInput?.value || editDraft?.date || P.date;
+  if(!returnInput || !date) return;
+  returnInput.min = addDays(date, 1);
+  returnInput.max = addDays(date, MAX_NIGHTS);
+}
+
+function normalizeEditDateRange(reason = 'sync'){
+  if(!editDraft) return;
+  const { dateInput, returnInput } = editDateInputs();
+  const previousNights = clampEditNights(
+    editDraft.nights || calcNights(editDraft.date, editDraft.returnDate) || P.nights
+  );
+  const date = dateInput?.value || editDraft.date || P.date;
+  let returnDate = returnInput?.value || editDraft.returnDate || addDays(date, previousNights);
+
+  if(reason === 'open') {
+    const nights = calcNights(date, returnDate);
+    if(!Number.isFinite(nights) || nights <= 0) returnDate = addDays(date, previousNights);
+    else if(nights > MAX_NIGHTS) returnDate = addDays(date, MAX_NIGHTS);
+  }
+  if(reason === 'date-change') {
+    returnDate = addDays(date, previousNights);
+  }
+
+  editDraft.date = date;
+  editDraft.returnDate = returnDate;
+  editDraft.nights = calcNights(date, returnDate);
+  if(dateInput) dateInput.value = date;
+  if(returnInput) returnInput.value = returnDate;
+  syncEditReturnDateBounds();
+}
+
 function normalizeBudgetInput(){
   const input = document.getElementById('edit-budget');
   if(!input) return 0;
@@ -4539,12 +4586,14 @@ function openEditPanel(){
     budget: Number(P.budget) || 1200000,
     styles: normalizeStyles(Array.isArray(P.styles) ? P.styles : []),
     packageType: currentPackageType(),
+    nights: clampEditNights(calcNights(P.date, P.returnDate || addDays(P.date, P.nights)) || P.nights),
   };
   syncEditSoloStyle();
   setInputValue('edit-city', editDraft.cityCode);
   setInputValue('edit-origin', editDraft.origin);
   setInputValue('edit-date', editDraft.date);
   setInputValue('edit-return-date', editDraft.returnDate);
+  normalizeEditDateRange('open');
   setInputValue('edit-adults', String(editDraft.adults));
   setBudgetInputValue(editDraft.budget);
   document.getElementById('edit-overlay')?.classList.add('on');
@@ -4606,6 +4655,8 @@ function readEditFields(){
   editDraft.origin = document.getElementById('edit-origin')?.value || 'ICN';
   editDraft.date = document.getElementById('edit-date')?.value || P.date;
   editDraft.returnDate = document.getElementById('edit-return-date')?.value || addDays(editDraft.date, 3);
+  syncEditReturnDateBounds();
+  editDraft.nights = calcNights(editDraft.date, editDraft.returnDate);
   editDraft.adults = Math.max(1, Number(document.getElementById('edit-adults')?.value) || 1);
   editDraft.children = 0;
   editDraft.budget = parseBudgetInput(document.getElementById('edit-budget')?.value);
@@ -4859,14 +4910,22 @@ async function applyEditChanges(){
   await fetchAndRender({ softRefresh: true, timer, runId });
 }
 
+function handleEditFieldEvent(event, id){
+  const target = event.target;
+  if(!target) return;
+  if(target.id === 'edit-budget') normalizeBudgetInput();
+  if(target.id !== id) return;
+  if(target.id === 'edit-date') normalizeEditDateRange('date-change');
+  else if(target.id === 'edit-return-date') syncEditReturnDateBounds();
+  validateEditDraft();
+}
+
 ['edit-city','edit-origin','edit-date','edit-return-date','edit-adults','edit-budget'].forEach((id) => {
   document.addEventListener('input', (event) => {
-    if(event.target && event.target.id === 'edit-budget') normalizeBudgetInput();
-    if(event.target && event.target.id === id) validateEditDraft();
+    handleEditFieldEvent(event, id);
   });
   document.addEventListener('change', (event) => {
-    if(event.target && event.target.id === 'edit-budget') normalizeBudgetInput();
-    if(event.target && event.target.id === id) validateEditDraft();
+    handleEditFieldEvent(event, id);
   });
 });
 
