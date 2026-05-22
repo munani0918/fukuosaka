@@ -4705,10 +4705,97 @@ function hideRefreshStatus(){
   if(status) status.classList.remove('show');
 }
 
+let refreshRunSeq = 0;
+
+function createRefreshTimer(label = 'refresh'){
+  const canMeasure = typeof performance !== 'undefined' && typeof performance.now === 'function';
+  const start = canMeasure ? performance.now() : Date.now();
+  return {
+    mark(step){
+      const now = canMeasure ? performance.now() : Date.now();
+      const elapsed = Math.round((now - start) * 10) / 10;
+      console.info(`[planner-result] ${label} · ${step}: ${elapsed}ms`);
+    },
+  };
+}
+
+function currentEditComparisonState(){
+  return {
+    cityCode: P.cityCode || 'KIX',
+    date: P.date || '',
+    returnDate: P.returnDate || addDays(P.date, P.nights),
+    nights: Number(P.nights) || 0,
+    origin: P.origin || 'ICN',
+    adults: Number(P.adults) || 1,
+    budget: Number(P.budget) || 0,
+    stylesKey: normalizeStyles(Array.isArray(P.styles) ? P.styles : []).join('|'),
+    packageType: currentPackageType(),
+  };
+}
+
+function draftEditComparisonState(validation){
+  return {
+    cityCode: editDraft?.cityCode || 'KIX',
+    date: editDraft?.date || '',
+    returnDate: editDraft?.returnDate || addDays(editDraft?.date, validation?.nights || 1),
+    nights: Number(validation?.nights) || 0,
+    origin: editDraft?.origin || 'ICN',
+    adults: Number(editDraft?.adults) || 1,
+    budget: Number(editDraft?.budget) || 0,
+    stylesKey: normalizeStyles(editDraft?.styles || []).join('|'),
+    packageType: normalizePackageTypeValue(editDraft?.packageType),
+  };
+}
+
+function editRefreshMode(previous, next){
+  const fullRefreshKeys = ['cityCode', 'date', 'returnDate', 'nights', 'origin', 'adults', 'stylesKey', 'packageType'];
+  const needsFullRefresh = fullRefreshKeys.some((key) => String(previous[key] ?? '') !== String(next[key] ?? ''));
+  if(needsFullRefresh) return 'full';
+  if(Number(previous.budget) !== Number(next.budget)) return 'budget_only';
+  return 'none';
+}
+
+async function refreshBudgetOnly(timer = createRefreshTimer('budget-only refresh')){
+  try {
+    showRefreshStatus('예산 기준만 다시 계산하고 있어요');
+    timer.mark('budget-only summary start');
+    await ensurePlanSummary();
+    timer.mark('budget-only summary end');
+    applyResultBudgetFeasibility();
+    sanitizePlanSummaryForPackage();
+    if(packageIncludes('flight')) updatePlanSummaryFlightBudget(RESULT_DATA.flights || []);
+    if(packageIncludes('hotel')) updatePlanSummaryHotelBudget(RESULT_DATA.stays || []);
+    sanitizePlanSummaryForPackage();
+
+    timer.mark('render budget-only start');
+    renderHeader();
+    renderSummary();
+    renderFlights(RESULT_DATA.flights || []);
+    renderHotels(RESULT_DATA.stays || []);
+    renderTours(RESULT_DATA.tnas || []);
+    renderCost(RESULT_DATA.flights || [], RESULT_DATA.stays || [], RESULT_DATA.tnas || []);
+    setActiveTab(activeTab || 'summary');
+    timer.mark('render budget-only end');
+    hideRefreshStatus();
+    timer.mark('refresh complete');
+  } catch(e) {
+    hideRefreshStatus();
+    showRefreshStatus('예산 기준을 반영하지 못했어요. 잠시 후 다시 시도해주세요');
+    window.setTimeout(hideRefreshStatus, 2400);
+    timer.mark('budget-only failed');
+  }
+}
+
 async function applyEditChanges(){
   if(!editDraft) return;
   const validation = validateEditDraft();
   if(!validation.valid) return;
+  const previousState = currentEditComparisonState();
+  const nextState = draftEditComparisonState(validation);
+  const refreshMode = editRefreshMode(previousState, nextState);
+  const timer = createRefreshTimer(`edit ${refreshMode}`);
+  const runId = ++refreshRunSeq;
+  timer.mark('edit apply start');
   const packages = packagesFromPackageType(editDraft.packageType);
   Object.assign(P, {
     cityCode: editDraft.cityCode,
@@ -4737,9 +4824,19 @@ async function applyEditChanges(){
   updateUrlFromConditions();
   renderHeader();
   closeEditPanel();
+  if(refreshMode === 'none') {
+    showRefreshStatus('변경된 조건이 없어 기존 결과를 유지했어요');
+    window.setTimeout(hideRefreshStatus, 1600);
+    timer.mark('refresh skipped');
+    return;
+  }
   showRefreshStatus();
   document.getElementById('page-content').style.display = 'block';
-  await fetchAndRender({ softRefresh: true });
+  if(refreshMode === 'budget_only') {
+    await refreshBudgetOnly(timer);
+    return;
+  }
+  await fetchAndRender({ softRefresh: true, timer, runId });
 }
 
 ['edit-city','edit-origin','edit-date','edit-return-date','edit-adults','edit-budget'].forEach((id) => {
@@ -4781,7 +4878,10 @@ function showDateValidationError(message){
 // ═══ FETCH & RENDER ═══════════════════════════
 async function fetchAndRender(options = {}){
   const softRefresh = Boolean(options.softRefresh);
+  const timer = options.timer || (softRefresh ? createRefreshTimer('soft refresh') : null);
+  const runId = softRefresh ? (options.runId || ++refreshRunSeq) : refreshRunSeq;
   try {
+    if(timer) timer.mark('fetchAndRender start');
     const dateValidation = validateCurrentPlanDates();
     if(!dateValidation.valid){
       showDateValidationError(dateValidation.message);
@@ -4791,7 +4891,9 @@ async function fetchAndRender(options = {}){
     else showPageLoading();
     if(!softRefresh) resetRenderedResults();
     syncPackageTabs();
+    if(timer) timer.mark('plan summary start');
     await ensurePlanSummary();
+    if(timer) timer.mark('plan summary end');
     applyResultBudgetFeasibility();
     sanitizePlanSummaryForPackage();
     renderHeader();
@@ -4816,21 +4918,34 @@ async function fetchAndRender(options = {}){
     if(PLAN_INPUT?.routeStyle || P.routeStyle) params.set('routeStyle', PLAN_INPUT?.routeStyle || P.routeStyle);
     if(PLAN_INPUT?.planType || P.planType) params.set('planType', PLAN_INPUT?.planType || P.planType);
     params.set('_ts', String(Date.now()));
-    const agodaPromise = flags.hotel ? fetchAgodaHotelsForResult() : Promise.resolve([]);
+    const agodaPromise = flags.hotel
+      ? (async () => {
+          if(timer) timer.mark('Agoda fetch start');
+          const result = await fetchAgodaHotelsForResult();
+          if(timer) timer.mark('Agoda fetch end');
+          return result;
+        })()
+      : Promise.resolve([]);
+    if(timer) timer.mark('/api/planner fetch start');
     const res  = await fetch(`/api/planner?${params}`, { cache:'no-store' });
+    if(timer) timer.mark('/api/planner fetch end');
     if(softRefresh) showRefreshStatus('결과 화면에 새 조건을 반영하고 있어요');
     else showPageLoading();
     const data = await res.json();
+    if(timer) timer.mark('/api/planner json parsed');
 
     if(flags.hotel && !(data.stays || []).length) {
       const hotelParams = new URLSearchParams(params);
       hotelParams.set('includeFlight', 'false');
       hotelParams.set('includeHotel', 'true');
       hotelParams.set('includeTour', 'false');
-      for(let attempt = 0; attempt < 3 && !(data.stays || []).length; attempt += 1) {
+      const maxHotelFallbackAttempts = softRefresh ? 1 : 3;
+      for(let attempt = 0; attempt < maxHotelFallbackAttempts && !(data.stays || []).length; attempt += 1) {
         hotelParams.set('_ts', String(Date.now() + attempt));
         hotelParams.set('hotelRetry', String(attempt + 1));
+        if(timer) timer.mark(`hotel fallback ${attempt + 1} start`);
         const hotelRes = await fetch(`/api/planner?${hotelParams}`, { cache:'no-store' });
+        if(timer) timer.mark(`hotel fallback ${attempt + 1} end`);
         if(hotelRes.ok) {
           const hotelData = await hotelRes.json();
           const fallbackStays = hotelData.stays || [];
@@ -4850,7 +4965,7 @@ async function fetchAndRender(options = {}){
 
     let flights = flags.flight ? prepareFlightResults(data.flights || []) : [];
     const rawStays = flags.hotel ? (data.stays || []) : [];
-    const agodaStays = await agodaPromise;
+    const agodaStays = (!softRefresh && flags.hotel) ? await agodaPromise : [];
     const shouldShowSupportTickets = flags.tour || supportTicketsAllowed();
     const rawTnas = shouldShowSupportTickets ? (data.tnas || []) : [];
     let stays = flags.hotel ? prepareHotelResults(rawStays) : [];
@@ -4886,12 +5001,22 @@ async function fetchAndRender(options = {}){
       } catch(e){}
     }
 
+    if(timer) timer.mark('render summary start');
     renderHeader();
     renderSummary();
+    if(timer) timer.mark('render summary end');
+    if(timer) timer.mark('render flights start');
     renderFlights(flights);
+    if(timer) timer.mark('render flights end');
+    if(timer) timer.mark('render hotels start');
     renderHotels(stays);
+    if(timer) timer.mark('render hotels end');
+    if(timer) timer.mark('render tours start');
     renderTours(tourItems);
+    if(timer) timer.mark('render tours end');
+    if(timer) timer.mark('render cost start');
     renderCost(flights, stays, tourItems);
+    if(timer) timer.mark('render cost end');
 
     // Hide loading, show content
     stopPageLoadingProgress();
@@ -4899,6 +5024,19 @@ async function fetchAndRender(options = {}){
     document.getElementById('page-loading').style.display = 'none';
     document.getElementById('page-content').style.display = 'block';
     setActiveTab(activeTab || 'summary');
+    if(timer) timer.mark('base refresh complete');
+
+    if(softRefresh && flags.hotel) {
+      agodaPromise.then((nextAgodaStays) => {
+        if(runId !== refreshRunSeq) return;
+        RESULT_DATA.agodaStays = Array.isArray(nextAgodaStays) ? nextAgodaStays : [];
+        if(timer) timer.mark('Agoda post-render received');
+        renderHotels(RESULT_DATA.stays || []);
+        if(timer) timer.mark('render hotels with Agoda end');
+      }).catch(() => {
+        if(timer) timer.mark('Agoda post-render failed');
+      });
+    }
   } catch(e){
     stopPageLoadingProgress();
     hideRefreshStatus();
