@@ -9,6 +9,56 @@ const CORS = {
   'Cache-Control': 'no-store, max-age=0',
 };
 
+const SUFFICIENT_STAY_CANDIDATE_COUNT = 20;
+const HOTEL_KEYWORD_TIMEOUT_MS = 1800;
+const HOTEL_KEYWORD_TIMEOUT = Symbol('HOTEL_KEYWORD_TIMEOUT');
+
+type PlannerTimingMeta = Record<string, string | number | boolean | null | undefined>;
+type PlannerTimer = {
+  mark: (step: string, meta?: PlannerTimingMeta) => void;
+};
+
+function createPlannerTimer(enabled: boolean): PlannerTimer {
+  if (!enabled) {
+    return { mark: () => undefined };
+  }
+
+  const start = typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? performance.now()
+    : Date.now();
+  const now = () => (
+    typeof performance !== 'undefined' && typeof performance.now === 'function'
+      ? performance.now()
+      : Date.now()
+  );
+  const formatMeta = (meta?: PlannerTimingMeta) => {
+    if (!meta) return '';
+    const entries = Object.entries(meta)
+      .filter(([, value]) => value !== undefined)
+      .map(([key, value]) => `${key}=${String(value)}`);
+    return entries.length ? ` (${entries.join(', ')})` : '';
+  };
+  return {
+    mark(step, meta) {
+      const elapsed = Math.round((now() - start) * 10) / 10;
+      console.log(`[api/planner] ${step}: ${elapsed}ms${formatMeta(meta)}`);
+    },
+  };
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T | typeof HOTEL_KEYWORD_TIMEOUT> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<typeof HOTEL_KEYWORD_TIMEOUT>((resolve) => {
+    timeoutId = setTimeout(() => resolve(HOTEL_KEYWORD_TIMEOUT), timeoutMs);
+  });
+  return Promise.race([
+    promise.finally(() => {
+      if (timeoutId) clearTimeout(timeoutId);
+    }),
+    timeoutPromise,
+  ]);
+}
+
 async function callMrtMcp(toolName: string, args: Record<string, unknown>) {
   const body = JSON.stringify({
     jsonrpc: '2.0', id: Date.now(), method: 'tools/call',
@@ -189,6 +239,7 @@ async function searchStaysAcrossKeywords({
   returnDate,
   adults,
   children,
+  timer,
 }: {
   cityCode: string;
   cityKeyword: string;
@@ -196,25 +247,46 @@ async function searchStaysAcrossKeywords({
   returnDate: string;
   adults: number;
   children: number;
+  timer?: PlannerTimer;
 }) {
   const keywords = staySearchKeywords(cityCode, cityKeyword);
   const deduped = new Map<string, ReturnType<typeof extractFromItem> & { searchKeyword?: string }>();
   const errors: string[] = [];
   const batchSize = 3;
+  timer?.mark('hotel search keywords prepared', {
+    keywordCount: keywords.length,
+    batchSize,
+    earlyStopAt: SUFFICIENT_STAY_CANDIDATE_COUNT,
+  });
 
   for (let index = 0; index < keywords.length; index += batchSize) {
     const batch = keywords.slice(index, index + batchSize);
+    const batchNumber = Math.floor(index / batchSize) + 1;
+    timer?.mark('hotel search batch start', { batch: batchNumber, keywordCount: batch.length });
     const settled = await Promise.allSettled(batch.map(async (keyword) => {
       let parsed: ReturnType<typeof extractFromItem>[] = [];
       for (let attempt = 0; attempt < 2; attempt += 1) {
-        const data = await callMrtMcp('searchStays', {
-          keyword,
-          checkIn: date,
-          checkOut: returnDate,
-          adultCount: adults,
-          childCount: children,
-        });
+        timer?.mark('hotel keyword start', { keyword, attempt: attempt + 1 });
+        const data = await withTimeout(
+          callMrtMcp('searchStays', {
+            keyword,
+            checkIn: date,
+            checkOut: returnDate,
+            adultCount: adults,
+            childCount: children,
+          }),
+          HOTEL_KEYWORD_TIMEOUT_MS,
+        );
+        if (data === HOTEL_KEYWORD_TIMEOUT) {
+          timer?.mark('hotel keyword timeout', {
+            keyword,
+            attempt: attempt + 1,
+            timeoutMs: HOTEL_KEYWORD_TIMEOUT_MS,
+          });
+          break;
+        }
         parsed = parseStays(data as Record<string, unknown>);
+        timer?.mark('hotel keyword end', { keyword, attempt: attempt + 1, parsed: parsed.length });
         if (parsed.length) break;
         await sleep(120);
       }
@@ -232,7 +304,15 @@ async function searchStaysAcrossKeywords({
         deduped.set(key, stay);
       }
     }
-    if (deduped.size >= 60) break;
+    timer?.mark('hotel search batch end', { batch: batchNumber, candidateCount: deduped.size });
+    if (deduped.size >= SUFFICIENT_STAY_CANDIDATE_COUNT) {
+      timer?.mark('hotel search early stop', {
+        batch: batchNumber,
+        candidateCount: deduped.size,
+        threshold: SUFFICIENT_STAY_CANDIDATE_COUNT,
+      });
+      break;
+    }
   }
   return {
     stays: [...deduped.values()],
@@ -312,18 +392,30 @@ async function searchPlannerTnas(options: {
   templateTitle?: string;
   routeStyle?: string;
   planType?: string;
+  timer?: PlannerTimer;
 }) {
   const keywords = sampleTnaKeywords(options);
+  options.timer?.mark('tour search keywords prepared', { keywordCount: keywords.length });
   const results = await Promise.allSettled(
-    keywords.map((keyword) => searchTnaProductsViaApi({
-      keyword,
-      city: options.cityKeyword,
-      category: 'all',
-      sort: 'selling_count_desc',
-      page: 1,
-      perPage: 4,
-    })),
+    keywords.map(async (keyword) => {
+      options.timer?.mark('tour keyword start', { keyword });
+      const result = await searchTnaProductsViaApi({
+        keyword,
+        city: options.cityKeyword,
+        category: 'all',
+        sort: 'selling_count_desc',
+        page: 1,
+        perPage: 4,
+      });
+      options.timer?.mark('tour keyword end', {
+        keyword,
+        ok: result.ok,
+        itemCount: result.ok ? result.data.items.length : 0,
+      });
+      return result;
+    }),
   );
+  options.timer?.mark('tour normalize start');
   const seen = new Set<string>();
   const items: TnaSearchItem[] = [];
   for (const result of results) {
@@ -335,6 +427,7 @@ async function searchPlannerTnas(options: {
       items.push(item);
     }
   }
+  options.timer?.mark('tour normalize end', { candidateCount: items.length });
   return items.slice(0, 9);
 }
 
@@ -478,6 +571,8 @@ function getFallbackTnas(cityCode: string) {
 // ── Route Handler ─────────────────────────────────────────────────────────────
 export async function GET(request: NextRequest) {
   const p = request.nextUrl.searchParams;
+  const timer = createPlannerTimer(p.get('_debugPlanner') === '1');
+  timer.mark('request start');
   const cityCode = p.get('cityCode') ?? 'KIX';
   const date     = p.get('date')     ?? '2026-06-24';
   const nights   = parseInt(p.get('nights') ?? '3');
@@ -504,16 +599,45 @@ export async function GET(request: NextRequest) {
   const returnDate = requestReturnDate || `${d.getFullYear()}-${mm}-${dd}`;
 
   const cityKeyword = cityCode === 'KIX' ? '오사카' : '후쿠오카';
+  timer.mark('parse params', {
+    cityCode,
+    nights,
+    includeFlight,
+    includeHotel,
+    includeTour,
+    includeTna,
+  });
+  timer.mark('itinerary build start', { handledIn: 'planner-summary/client' });
+  timer.mark('itinerary build end', { skipped: true });
+  timer.mark('budget calculation start', { handledIn: 'planner-summary/client' });
+  timer.mark('budget calculation end', { skipped: true });
 
   try {
     const stayPromise = includeHotel
-      ? searchStaysAcrossKeywords({ cityCode, cityKeyword, date, returnDate, adults, children }).then(async (result) => {
-          if (result.candidateCount > 0) return result;
-          await sleep(250);
-          return searchStaysAcrossKeywords({ cityCode, cityKeyword, date, returnDate, adults, children });
-        })
+      ? (async () => {
+          timer.mark('hotel search start');
+          try {
+            const result = await searchStaysAcrossKeywords({ cityCode, cityKeyword, date, returnDate, adults, children, timer });
+            if (result.candidateCount > 0) {
+              timer.mark('hotel search end', { candidateCount: result.candidateCount, retried: false });
+              return result;
+            }
+            timer.mark('hotel search empty retry wait start');
+            await sleep(250);
+            timer.mark('hotel search empty retry start');
+            const retryResult = await searchStaysAcrossKeywords({ cityCode, cityKeyword, date, returnDate, adults, children, timer });
+            timer.mark('hotel search end', { candidateCount: retryResult.candidateCount, retried: true });
+            return retryResult;
+          } catch (error) {
+            timer.mark('hotel search end', { error: true });
+            throw error;
+          }
+        })()
       : Promise.resolve({ stays: [], keywords: [], candidateCount: 0, errors: [] });
-    const flightPromise = includeFlight ? callMrtMcp('searchInternationalFlights', {
+    const flightPromise = includeFlight ? (async () => {
+      timer.mark('flight search start');
+      try {
+        const result = await callMrtMcp('searchInternationalFlights', {
         origin, destination: cityCode,
         departDate: date,
         returnDate: tripType === 'ROUND_TRIP' ? returnDate : '',
@@ -529,31 +653,60 @@ export async function GET(request: NextRequest) {
         infants: 0,
         passengers: { adult: adults, child: children, infant: 0 },
         maxResults: 50,
-      }) : Promise.resolve(null);
+        });
+        timer.mark('flight search end');
+        return result;
+      } catch (error) {
+        timer.mark('flight search end', { error: true });
+        throw error;
+      }
+    })() : Promise.resolve(null);
     const tnaPromise = includeTna
-      ? searchPlannerTnas({ cityCode, cityKeyword, recommendedExtras, templateTitle, routeStyle, planType })
+      ? (async () => {
+          timer.mark('tour search start');
+          try {
+            const result = await searchPlannerTnas({ cityCode, cityKeyword, recommendedExtras, templateTitle, routeStyle, planType, timer });
+            timer.mark('tour search end', { candidateCount: result.length });
+            return result;
+          } catch (error) {
+            timer.mark('tour search end', { error: true });
+            throw error;
+          }
+        })()
       : Promise.resolve([]);
+    timer.mark('parallel searches await start');
     const [stayResult, flightData, tnaResult] = await Promise.all([
       stayPromise,
       flightPromise,
       tnaPromise,
     ]);
+    timer.mark('parallel searches await end');
 
+    timer.mark('result normalize start');
     const flights = includeFlight ? parseFlights(flightData as Record<string, unknown>) : [];
     const stays   = includeHotel ? stayResult.stays : [];
     const liveTnas = includeTna ? tnaResult.map(toPlannerTna) : [];
     const tnas    = includeTna ? (liveTnas.length ? liveTnas : getFallbackTnas(cityCode)) : [];
+    timer.mark('result normalize end', {
+      flightCount: flights.length,
+      stayCount: stays.length,
+      tourCount: tnas.length,
+    });
 
+    timer.mark('response ready');
     return NextResponse.json(
       { flights, stays, tnas, meta: { date, returnDate, nights, cityCode, cityKeyword, adults, children, tripType, includeFlight, includeHotel, includeTour, includeSupportTickets, includeTna, stayKeywords: stayResult.keywords, stayCandidateCount: stayResult.candidateCount, stayErrors: stayResult.errors } },
       { headers: CORS }
     );
   } catch (err) {
+    timer.mark('response fallback start');
+    const fallbackTnas = includeTna ? getFallbackTnas(cityCode) : [];
+    timer.mark('response ready', { fallback: true });
     return NextResponse.json(
       {
         flights: [],
         stays: [],
-        tnas: includeTna ? getFallbackTnas(cityCode) : [],
+        tnas: fallbackTnas,
         meta: { date, returnDate, nights, cityCode, cityKeyword, adults, children, tripType, includeFlight, includeHotel, includeTour, includeSupportTickets, includeTna, fallback: true, error: String(err) },
       },
       { headers: CORS },
