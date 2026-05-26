@@ -14,6 +14,7 @@ import {
   coerceTourSearchState,
   formatTourPriceLabel,
 } from "@/src/lib/tours";
+import { ReturnLink } from "../stays/ReturnLink";
 
 function bottomTabs() {
   return [
@@ -25,6 +26,16 @@ function bottomTabs() {
   ];
 }
 
+function pickSearchParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function safeRelativeReturnTo(value: string | undefined) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+  if (/^https?:\/\//i.test(value)) return null;
+  return value;
+}
+
 export default async function ToursPage({
   searchParams,
 }: {
@@ -34,6 +45,11 @@ export default async function ToursPage({
 
   const resolvedSearchParams = await searchParams;
   const state = coerceTourSearchState(resolvedSearchParams);
+  const returnTo = safeRelativeReturnTo(pickSearchParam(resolvedSearchParams.returnTo));
+  const backHref = returnTo ?? "/";
+  const backLabel = returnTo?.includes("planner-result.html")
+    ? "결과 화면으로 돌아가기"
+    : "홈으로 돌아가기";
   const [result, categoryResult] = await Promise.all([
     searchTnaProductsViaApi(state),
     searchTnaCategoriesViaApi({ city: state.city }),
@@ -54,15 +70,17 @@ export default async function ToursPage({
       <div className="mx-auto min-h-dvh max-w-[430px] pb-[calc(env(safe-area-inset-bottom)+92px)]">
         <header className="sticky top-0 z-30 border-b border-[#f0e4dd] bg-[#fffaf6]/95 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+12px)] backdrop-blur-xl">
           <div className="flex items-center gap-3">
-            <Link
-              href="/"
+            <ReturnLink
+              href={backHref}
+              label={backLabel}
+              preferHref
+              storageKey="fukuosaka_last_result_url"
               className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#7f6f69] shadow-[0_8px_18px_rgba(78,42,29,0.07)] ring-1 ring-[#efe3db]"
-              aria-label="홈으로 돌아가기"
             >
               <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M12.5 4.5 7 10l5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </Link>
+            </ReturnLink>
             <div className="min-w-0">
               <h1 className="text-[22px] font-black tracking-[-0.055em] text-[#241b17]">
                 투어·티켓 검색

@@ -7,13 +7,60 @@ type ReturnLinkProps = {
   label: string;
   className: string;
   children?: ReactNode;
+  preferHref?: boolean;
+  storageKey?: string;
 };
 
-export function ReturnLink({ href, label, className, children }: ReturnLinkProps) {
+function safeReturnTarget(value: string | null | undefined) {
+  if (!value) return null;
+  if (value.startsWith("/") && !value.startsWith("//")) return value;
+
+  try {
+    const url = new URL(value, window.location.origin);
+    if (url.origin !== window.location.origin) return null;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return null;
+  }
+}
+
+export function ReturnLink({
+  href,
+  label,
+  className,
+  children,
+  preferHref = false,
+  storageKey,
+}: ReturnLinkProps) {
+  function getStoredTarget() {
+    if (!storageKey) return null;
+    try {
+      return safeReturnTarget(window.sessionStorage.getItem(storageKey));
+    } catch {
+      return null;
+    }
+  }
+
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+    const storedTarget = getStoredTarget();
+    const hrefTarget = safeReturnTarget(href);
+
+    if (preferHref) {
+      event.preventDefault();
+      const preferredTarget = hrefTarget && hrefTarget !== "/" ? hrefTarget : storedTarget;
+      window.location.assign(preferredTarget || hrefTarget || "/");
+      return;
+    }
+
     if (window.history.length > 1) {
       event.preventDefault();
       window.history.back();
+      return;
+    }
+
+    if (storedTarget) {
+      event.preventDefault();
+      window.location.assign(storedTarget);
     }
   }
 
