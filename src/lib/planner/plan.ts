@@ -2,7 +2,7 @@ import {
   createItineraryOutline as createTemplateItineraryOutline,
   normalizeTravelStyle,
 } from "./itineraryTemplates";
-import { getFukuokaItineraryPreset } from "./itineraryPresets";
+import { getCityItineraryPreset } from "./itineraryPresets";
 
 export type BudgetPresetId = "budget" | "standard" | "premium";
 export type NearbyMode = "light" | "standard" | "comfort";
@@ -558,7 +558,7 @@ function createItineraryTemplateResult(input: PlanInput) {
     throw new Error("MAX_TRIP_DAYS_EXCEEDED");
   }
 
-  const preset = getFukuokaItineraryPreset(input);
+  const preset = getCityItineraryPreset(input);
   if (preset) {
     return {
       headline: preset.headline,
