@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchTnaProductsViaApi, type TnaSearchItem } from '@/src/lib/myrealtrip';
+import { getCityItineraryPreset } from '@/src/lib/planner/itineraryPresets';
 
 const MRT_MCP_URL = 'https://mcp-servers.myrealtrip.com/mcp';
 
@@ -365,6 +366,93 @@ function hasUsableTnaUrl(item: TnaSearchItem) {
   return Boolean(url) && !/undefined|null|#/.test(url);
 }
 
+const COMMON_TNA_KEYWORDS = [
+  'esim',
+  '이심',
+  '유심',
+  '로밍',
+  '일본 데이터',
+  '공항 픽업',
+  '여행자 보험',
+];
+
+const CITY_TNA_RULES = {
+  FUK: {
+    allow: ['후쿠오카', 'fukuoka', '하카타', 'hakata', '텐진', 'tenjin', '나카스', '다자이후', 'dazaifu', '오호리', '모모치', '유후인', 'yufuin', '벳푸', 'beppu', '산큐패스', 'sunq', '큐슈', 'kyushu'],
+    exclude: ['오사카', 'osaka', '간사이', 'kansai', '난바', 'namba', '도톤보리', 'dotonbori', '신사이바시', 'shinsaibashi', '우메다', 'umeda', '교토', 'kyoto', '나라', 'nara', '고베', 'kobe', 'usj', '유니버셜', '유니버설', 'universal', '라피트', 'rapit', '주유패스', 'amazing pass'],
+    defaults: ['후쿠오카 eSIM', '후쿠오카 지하철패스', '다자이후', '유후인 벳푸 투어', '산큐패스'],
+  },
+  KIX: {
+    allow: ['오사카', 'osaka', '간사이', 'kansai', '난바', 'namba', '도톤보리', 'dotonbori', '신사이바시', 'shinsaibashi', '우메다', 'umeda', '오사카성', '신세카이', '쓰텐카쿠', '교토', 'kyoto', '나라', 'nara', '고베', 'kobe', 'usj', '유니버셜', '유니버설', 'universal', '라피트', 'rapit', '주유패스', 'amazing pass'],
+    exclude: ['후쿠오카', 'fukuoka', '하카타', 'hakata', '텐진', 'tenjin', '나카스', '다자이후', 'dazaifu', '유후인', 'yufuin', '벳푸', 'beppu', '산큐패스', 'sunq', '큐슈', 'kyushu'],
+    defaults: ['오사카 주유패스', '라피트', 'USJ 입장권', '도톤보리 크루즈', '교토 나라 투어', '일본 eSIM'],
+  },
+} as const;
+
+function uniqueStrings(values: Array<string | null | undefined>) {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const text = String(value || '').trim();
+    const key = text.toLowerCase();
+    if (!text || seen.has(key)) continue;
+    seen.add(key);
+    result.push(text);
+  }
+  return result;
+}
+
+function normalizeSearchText(value: string) {
+  return value.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function includesAnyKeyword(text: string, keywords: readonly string[]) {
+  return keywords.some((keyword) => text.includes(normalizeSearchText(keyword)));
+}
+
+function tnaSearchText(item: TnaSearchItem) {
+  return normalizeSearchText([
+    item.itemName,
+    item.category,
+    item.description,
+    item.tags?.join(' '),
+    item.productUrl,
+  ].filter(Boolean).join(' '));
+}
+
+function isCommonTnaProduct(text: string) {
+  return includesAnyKeyword(text, COMMON_TNA_KEYWORDS);
+}
+
+function rankPlannerTna(item: TnaSearchItem, options: {
+  cityCode: string;
+  presetKeywords: string[];
+  preferenceKeywords: string[];
+}) {
+  const rules = options.cityCode === 'FUK' ? CITY_TNA_RULES.FUK : CITY_TNA_RULES.KIX;
+  const text = tnaSearchText(item);
+  const isCommon = isCommonTnaProduct(text);
+  const hasExcludedCity = includesAnyKeyword(text, rules.exclude);
+  const hasCityMatch = includesAnyKeyword(text, rules.allow);
+  const hasPresetMatch = includesAnyKeyword(text, options.presetKeywords);
+  const hasPreferenceMatch = includesAnyKeyword(text, options.preferenceKeywords);
+
+  if (hasExcludedCity && !isCommon) {
+    return { keep: false, score: -1000 };
+  }
+
+  let score = 0;
+  if (hasCityMatch) score += 120;
+  if (hasPresetMatch) score += 90;
+  if (hasPreferenceMatch) score += 35;
+  if (isCommon) score += 25;
+  if (!hasCityMatch && !isCommon) score -= 20;
+  score += Math.min(20, Math.max(0, Number(item.reviewScore || 0)) * 3);
+  score += Math.min(15, Math.log10(Math.max(1, Number(item.reviewCount || 0))) * 5);
+
+  return { keep: true, score };
+}
+
 function sampleTnaKeywords(options: {
   cityCode: string;
   recommendedExtras?: string;
@@ -385,16 +473,45 @@ function sampleTnaKeywords(options: {
   return ['오사카 주유패스', '라피트', '일본 eSIM'];
 }
 
+function plannerTnaKeywords(options: {
+  cityCode: string;
+  nights: number;
+  styles?: string[];
+  recommendedExtras?: string;
+  templateTitle?: string;
+  routeStyle?: string;
+  planType?: string;
+}) {
+  const city = options.cityCode === 'FUK' ? 'fukuoka' : 'osaka';
+  const preset = getCityItineraryPreset({
+    city,
+    nights: options.nights,
+    days: options.nights + 1,
+    travelStyles: options.styles ?? [],
+  });
+  const presetKeywords = preset?.tourKeywords ?? [];
+  const defaults = options.cityCode === 'FUK' ? CITY_TNA_RULES.FUK.defaults : CITY_TNA_RULES.KIX.defaults;
+  const legacyKeywords = sampleTnaKeywords(options);
+
+  return uniqueStrings([
+    ...presetKeywords,
+    ...defaults,
+    ...legacyKeywords,
+  ]).slice(0, 6);
+}
+
 async function searchPlannerTnas(options: {
   cityCode: string;
   cityKeyword: string;
+  nights: number;
+  styles?: string[];
   recommendedExtras?: string;
   templateTitle?: string;
   routeStyle?: string;
   planType?: string;
   timer?: PlannerTimer;
 }) {
-  const keywords = sampleTnaKeywords(options);
+  const keywords = plannerTnaKeywords(options);
   options.timer?.mark('tour search keywords prepared', { keywordCount: keywords.length });
   const results = await Promise.allSettled(
     keywords.map(async (keyword) => {
@@ -427,8 +544,41 @@ async function searchPlannerTnas(options: {
       items.push(item);
     }
   }
-  options.timer?.mark('tour normalize end', { candidateCount: items.length });
-  return items.slice(0, 9);
+  options.timer?.mark('tour normalize collected', { candidateCount: items.length });
+  const preset = getCityItineraryPreset({
+    city: options.cityCode === 'FUK' ? 'fukuoka' : 'osaka',
+    nights: options.nights,
+    days: options.nights + 1,
+    travelStyles: options.styles ?? [],
+  });
+  const preferenceKeywords = uniqueStrings([
+    ...(options.styles ?? []),
+    options.recommendedExtras,
+    options.templateTitle,
+    options.routeStyle,
+    options.planType,
+  ]);
+  const ranked = items
+    .map((item, index) => ({
+      item,
+      index,
+      rank: rankPlannerTna(item, {
+        cityCode: options.cityCode,
+        presetKeywords: preset?.tourKeywords ?? [],
+        preferenceKeywords,
+      }),
+    }))
+    .filter(({ rank }) => rank.keep)
+    .sort((a, b) => b.rank.score - a.rank.score || a.index - b.index)
+    .map(({ item }) => item);
+
+  options.timer?.mark('tour city filter end', {
+    beforeCount: items.length,
+    afterCount: ranked.length,
+    presetKeywordCount: preset?.tourKeywords?.length ?? 0,
+  });
+
+  return ranked.slice(0, 9);
 }
 
 function getFallbackTnas(cityCode: string) {
@@ -589,6 +739,10 @@ export async function GET(request: NextRequest) {
   const templateTitle = p.get('templateTitle') ?? '';
   const routeStyle = p.get('routeStyle') ?? '';
   const planType = p.get('planType') ?? '';
+  const styles = (p.get('styles') ?? '')
+    .split(',')
+    .map((style) => style.trim())
+    .filter(Boolean);
   const includeSupportTickets = Boolean(recommendedExtras || templateTitle || routeStyle || planType);
   const includeTna = includeTour || includeSupportTickets;
 
@@ -606,6 +760,7 @@ export async function GET(request: NextRequest) {
     includeHotel,
     includeTour,
     includeTna,
+    styleCount: styles.length,
   });
   timer.mark('itinerary build start', { handledIn: 'planner-summary/client' });
   timer.mark('itinerary build end', { skipped: true });
@@ -665,7 +820,7 @@ export async function GET(request: NextRequest) {
       ? (async () => {
           timer.mark('tour search start');
           try {
-            const result = await searchPlannerTnas({ cityCode, cityKeyword, recommendedExtras, templateTitle, routeStyle, planType, timer });
+            const result = await searchPlannerTnas({ cityCode, cityKeyword, nights, styles, recommendedExtras, templateTitle, routeStyle, planType, timer });
             timer.mark('tour search end', { candidateCount: result.length });
             return result;
           } catch (error) {
