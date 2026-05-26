@@ -2,6 +2,7 @@ import {
   createItineraryOutline as createTemplateItineraryOutline,
   normalizeTravelStyle,
 } from "./itineraryTemplates";
+import { getFukuokaTwoNightItineraryPreset } from "./itineraryPresets";
 
 export type BudgetPresetId = "budget" | "standard" | "premium";
 export type NearbyMode = "light" | "standard" | "comfort";
@@ -76,6 +77,8 @@ export type PlanSummary = {
     day: number;
     title: string;
     description: string;
+    spots?: string[];
+    presetKey?: string;
   }[];
 };
 
@@ -553,6 +556,18 @@ function createRecommendationReason(input: PlanInput) {
 function createItineraryTemplateResult(input: PlanInput) {
   if (input.days > MAX_PLAN_DAYS) {
     throw new Error("MAX_TRIP_DAYS_EXCEEDED");
+  }
+
+  const preset = getFukuokaTwoNightItineraryPreset(input);
+  if (preset) {
+    return {
+      headline: preset.headline,
+      description: preset.description,
+      days: preset.days.map((day) => ({
+        ...day,
+        presetKey: preset.key,
+      })),
+    };
   }
 
   const styles = normalizeTravelStyles(input.travelStyles.length ? input.travelStyles : ["sightseeing"]);

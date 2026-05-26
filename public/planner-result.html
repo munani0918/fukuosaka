@@ -307,8 +307,10 @@
     .timeline { display:flex; flex-direction:column; gap:8px; }
     .timeline-item { display:grid; grid-template-columns:32px 1fr; gap:9px; padding:10px; border:1px solid #EEE4DA; border-radius:16px; background:#FFFDFC; }
     .day-badge { width:30px; height:30px; border-radius:50%; background:#FFF0EE; color:#D9524A; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900; }
-    .day-title { font-size:14px; line-height:1.3; font-weight:850; color:#2C221D; margin-bottom:2px; word-break:keep-all; }
-    .day-desc { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:12.5px; line-height:1.42; color:#7E7067; word-break:keep-all; }
+    .day-title { font-size:14px; line-height:1.35; font-weight:850; color:#2C221D; margin-bottom:3px; word-break:keep-all; overflow-wrap:anywhere; }
+    .day-desc { font-size:12.5px; line-height:1.48; color:#7E7067; word-break:keep-all; overflow-wrap:anywhere; }
+    .day-spots { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
+    .day-spot { max-width:100%; padding:3px 7px; border:1px solid #F3D4CF; border-radius:999px; background:#FFF4EE; color:#A85E47; font-size:10.5px; line-height:1.25; font-weight:850; word-break:keep-all; overflow-wrap:anywhere; }
     .summary-cta-row { display:flex; gap:8px; flex-wrap:wrap; }
     .summary-cta {
       flex:1 1 30%; min-width:106px; padding:12px 10px; border-radius:16px;
@@ -3862,7 +3864,27 @@ function itineraryTemplateDescription(item = {}, index = 0, sourceText = ''){
   return list[(day - 1) % list.length];
 }
 
+function isCompleteItinerarySentence(value){
+  const text = String(value || '').trim();
+  return /(?:요\.|다\.|니다\.)$/.test(text);
+}
+
+function itinerarySpotsHtml(item = {}){
+  const spots = Array.isArray(item.spots) ? item.spots.filter(Boolean) : [];
+  if(!spots.length) return '';
+  return `<div class="day-spots">${spots.map(spot => `<span class="day-spot">${spot}</span>`).join('')}</div>`;
+}
+
 function compactItineraryDescription(description, item = {}, index = 0, usedDescriptions = new Set()){
+  const raw = String(description || '').replace(/\s+/g, ' ').trim();
+  if(raw && (item.presetKey || item.spots) && isCompleteItinerarySentence(raw)){
+    const rawKey = itineraryCopyKey(raw);
+    if(!usedDescriptions.has(rawKey)){
+      usedDescriptions.add(rawKey);
+      return raw;
+    }
+  }
+
   let fallback = itineraryTemplateDescription(item, index, description);
   let guard = 0;
   while(usedDescriptions.has(itineraryCopyKey(fallback)) && guard < 5){
@@ -3901,10 +3923,17 @@ function renderSummary(){
     { day:1, title:'일정 준비 중', description:'입력한 조건을 기준으로 기본 일정 흐름을 준비하고 있어요.' },
   ];
   const usedItineraryDescriptions = new Set();
-  const timelineHtml = timeline.map((item, index) => `<div class="timeline-item">
+  const timelineHtml = timeline.map((item, index) => {
+    const spotsHtml = itinerarySpotsHtml(item);
+    return `<div class="timeline-item">
           <div class="day-badge">${item.day}일</div>
-          <div><div class="day-title">${compactItineraryTitle(item.title)}</div><div class="day-desc">${compactItineraryDescription(item.description, item, index, usedItineraryDescriptions)}</div></div>
-        </div>`).join('');
+          <div>
+            <div class="day-title">${compactItineraryTitle(item.title)}</div>
+            <div class="day-desc">${compactItineraryDescription(item.description, item, index, usedItineraryDescriptions)}</div>
+            ${spotsHtml}
+          </div>
+        </div>`;
+  }).join('');
   el.innerHTML = `
     <div class="summary-card summary-hero">
       <div class="summary-top compact">
