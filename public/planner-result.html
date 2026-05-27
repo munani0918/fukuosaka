@@ -4486,6 +4486,7 @@ function setSaveTripButtonState(label, saved = false, disabled = false){
     if(!button) return;
     button.textContent = label;
     button.disabled = Boolean(disabled);
+    button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
     button.classList.toggle('saved', saved);
     button.classList.toggle('primary', !saved && !disabled);
   });
@@ -4506,20 +4507,27 @@ function setupSaveTripStickyCta(){
     return;
   }
   sticky.classList.remove('is-hidden');
-  sticky.setAttribute('aria-hidden', 'false');
+  sticky.setAttribute('aria-hidden', 'true');
   if('IntersectionObserver' in window) {
     saveTripStickyObserver = new IntersectionObserver((entries) => {
       const entry = entries[0];
-      sticky.classList.toggle('show', !entry?.isIntersecting);
-    }, { threshold:0.18 });
+      const topButtonVisible = Boolean(entry && entry.isIntersecting && entry.intersectionRatio > 0);
+      sticky.classList.toggle('show', !topButtonVisible);
+      sticky.setAttribute('aria-hidden', topButtonVisible ? 'true' : 'false');
+    }, { threshold:[0, 0.01, 0.18] });
     saveTripStickyObserver.observe(topButton);
   } else {
     sticky.classList.add('show');
+    sticky.setAttribute('aria-hidden', 'false');
   }
 }
 
 function saveCurrentTrip(){
   if(saveTripInProgress || SAVED_TRIP_VIEW) return;
+  if(currentSavedTripId) {
+    setSaveTripButtonState('저장 완료', true, true);
+    return;
+  }
   if(!savedTripStorageAvailable()) {
     alert('이 브라우저에서는 저장을 사용할 수 없어요.');
     return;
@@ -4538,8 +4546,8 @@ function saveCurrentTrip(){
     setSaveTripButtonState('저장 완료', true, true);
     window.setTimeout(() => {
       saveTripInProgress = false;
-      setSaveTripButtonState('여행 일정 저장', false, false);
-    }, 1600);
+      setSaveTripButtonState('저장 완료', true, true);
+    }, 1200);
   } catch(e) {
     saveTripInProgress = false;
     setSaveTripButtonState('여행 일정 저장', false, false);

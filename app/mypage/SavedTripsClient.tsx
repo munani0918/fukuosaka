@@ -40,10 +40,14 @@ function formatDate(value?: string) {
 function shortDate(value?: string) {
   const date = new Date(value || "");
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("ko-KR", {
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${month}.${day}`;
+}
+
+function savedDateLabel(value?: string) {
+  const label = shortDate(value);
+  return label ? `${label} 저장` : "";
 }
 
 function formatBudget(value: number | null) {
@@ -155,6 +159,14 @@ function countText({ trips, hotels, tours }: { trips?: number; hotels: number; t
   if (hotels > 0) parts.push(`숙소 ${hotels}`);
   if (tours > 0) parts.push(`투어 ${tours}`);
   return parts.length ? parts.join(" · ") : "저장 항목 없음";
+}
+
+function boardCardClass(selected: boolean, widthClass = "min-w-[172px]") {
+  return `${widthClass} rounded-[24px] border p-4 text-left transition ${
+    selected
+      ? "border-[#f26b61] bg-[#fff2ee] shadow-[0_14px_30px_rgba(219,85,75,0.12)]"
+      : "border-[#f0dfd7] bg-[#fffdfb]"
+  }`;
 }
 
 function tripAssociationFromTrip(trip: SavedTrip) {
@@ -452,22 +464,18 @@ export function SavedTripsClient() {
               setSelectedBoard("all");
               setSelectedCategory("all");
             }}
-            className={`min-w-[158px] rounded-[24px] border p-4 text-left transition ${
-              selectedBoard === "all"
-                ? "border-[#f26b61] bg-[#fff0eb] shadow-[0_14px_30px_rgba(219,85,75,0.14)]"
-                : "border-[#f0dfd7] bg-[#fffdfb]"
-            }`}
+            className={boardCardClass(selectedBoard === "all")}
           >
-            <span className="text-[18px]" aria-hidden="true">
-              ◇
+            <span className="inline-flex rounded-full bg-[#fff1ec] px-2.5 py-1 text-[10px] font-black text-[#c85c52]">
+              전체
             </span>
-            <strong className="mt-2 block text-[14px] font-black tracking-[-0.04em]">
+            <strong className="mt-3 block text-[15px] font-black tracking-[-0.045em] text-[#2c211d]">
               전체 보기
             </strong>
-            <span className="mt-1 block text-[11.5px] font-bold leading-snug text-[#8a7a72]">
+            <span className="mt-1.5 block text-[11.5px] font-bold leading-snug text-[#8a7a72]">
               저장한 일정과 찜한 상품 전체
             </span>
-            <span className="mt-3 block text-[11px] font-black text-[#c85c52]">
+            <span className="mt-3 inline-flex rounded-full bg-[#f7f1ec] px-2.5 py-1 text-[10.5px] font-black text-[#8c6f64]">
               {countText(totalCounts)}
             </span>
           </button>
@@ -485,22 +493,23 @@ export function SavedTripsClient() {
                   setSelectedBoard(trip.id);
                   setSelectedCategory("all");
                 }}
-                className={`min-w-[170px] rounded-[24px] border p-4 text-left transition ${
-                  selected
-                    ? "border-[#f26b61] bg-[#fff0eb] shadow-[0_14px_30px_rgba(219,85,75,0.14)]"
-                    : "border-[#f0dfd7] bg-[#fffdfb]"
-                }`}
+                className={boardCardClass(selected, "min-w-[180px]")}
               >
-                <span className="text-[18px]" aria-hidden="true">
-                  ▣
+                <span className="inline-flex rounded-full bg-[#fff1ec] px-2.5 py-1 text-[10px] font-black text-[#c85c52]">
+                  여행
                 </span>
-                <strong className="mt-2 line-clamp-2 block text-[14px] font-black leading-tight tracking-[-0.04em]">
-                  {tripLabel(trip, true)}
+                <strong className="mt-3 line-clamp-2 block text-[15px] font-black leading-tight tracking-[-0.045em] text-[#2c211d]">
+                  {tripLabel(trip)}
                 </strong>
+                {savedDateLabel(trip.savedAt) ? (
+                  <span className="mt-1.5 block text-[11px] font-black text-[#b9877b]">
+                    {savedDateLabel(trip.savedAt)}
+                  </span>
+                ) : null}
                 <span className="mt-1 block text-[11.5px] font-bold leading-snug text-[#8a7a72]">
                   {formatBudget(trip.budgetTotal)}
                 </span>
-                <span className="mt-3 block text-[11px] font-black text-[#c85c52]">
+                <span className="mt-3 inline-flex rounded-full bg-[#f7f1ec] px-2.5 py-1 text-[10.5px] font-black text-[#8c6f64]">
                   {countText({ trips: 1, ...linkedCounts })}
                 </span>
               </button>
@@ -514,22 +523,18 @@ export function SavedTripsClient() {
                 setSelectedBoard("unassigned");
                 setSelectedCategory("all");
               }}
-              className={`min-w-[158px] rounded-[24px] border p-4 text-left transition ${
-                selectedBoard === "unassigned"
-                  ? "border-[#f26b61] bg-[#fff0eb] shadow-[0_14px_30px_rgba(219,85,75,0.14)]"
-                  : "border-[#f0dfd7] bg-[#fffdfb]"
-              }`}
+              className={boardCardClass(selectedBoard === "unassigned")}
             >
-              <span className="text-[18px]" aria-hidden="true">
-                □
+              <span className="inline-flex rounded-full bg-[#fff1ec] px-2.5 py-1 text-[10px] font-black text-[#c85c52]">
+                임시보관
               </span>
-              <strong className="mt-2 block text-[14px] font-black tracking-[-0.04em]">
+              <strong className="mt-3 block text-[15px] font-black tracking-[-0.045em] text-[#2c211d]">
                 여행 미지정
               </strong>
-              <span className="mt-1 block text-[11.5px] font-bold leading-snug text-[#8a7a72]">
+              <span className="mt-1.5 block text-[11.5px] font-bold leading-snug text-[#8a7a72]">
                 아직 여행에 담지 않은 찜 항목
               </span>
-              <span className="mt-3 block text-[11px] font-black text-[#c85c52]">
+              <span className="mt-3 inline-flex rounded-full bg-[#f7f1ec] px-2.5 py-1 text-[10.5px] font-black text-[#8c6f64]">
                 {countText({ hotels: unassignedCounts.hotels, tours: unassignedCounts.tours })}
               </span>
             </button>
@@ -538,7 +543,7 @@ export function SavedTripsClient() {
       </section>
 
       <section className="sticky top-2 z-10 rounded-[26px] border border-[#f2ded4] bg-[#fffdfb]/95 p-2 shadow-[0_12px_30px_rgba(111,63,48,0.08)] backdrop-blur">
-        <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {[
             { id: "all" as const, label: "전체", count: boardCounts.trips + boardCounts.hotels + boardCounts.tours },
             { id: "trips" as const, label: "일정", count: boardCounts.trips },
@@ -549,14 +554,20 @@ export function SavedTripsClient() {
               key={tab.id}
               type="button"
               onClick={() => setSelectedCategory(tab.id)}
-              className={`whitespace-nowrap rounded-full px-3.5 py-2 text-[12px] font-black transition ${
+              className={`whitespace-nowrap rounded-full px-4 py-2 text-[12px] font-black transition ${
                 selectedCategory === tab.id
                   ? "bg-[#f26b61] text-white shadow-[0_10px_22px_rgba(219,85,75,0.18)]"
                   : "bg-[#f7f1ec] text-[#7d6e66]"
               }`}
             >
               {tab.label}
-              <span className="ml-1 opacity-80">{tab.count}</span>
+              <span
+                className={`ml-1.5 inline-flex min-w-5 justify-center rounded-full px-1.5 py-0.5 text-[10px] ${
+                  selectedCategory === tab.id ? "bg-white/20 text-white" : "bg-white text-[#9a7c70]"
+                }`}
+              >
+                {tab.count}
+              </span>
             </button>
           ))}
         </div>
