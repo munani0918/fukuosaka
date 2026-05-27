@@ -64,12 +64,6 @@ function formatBudget(value: number | null) {
   return `총 ${Math.round(value).toLocaleString("ko-KR")}원`;
 }
 
-function formatCompactBudget(value: number | null) {
-  if (!value || value <= 0) return "";
-  if (value >= 10000) return `${Math.round(value / 10000).toLocaleString("ko-KR")}만원`;
-  return `${Math.round(value).toLocaleString("ko-KR")}원`;
-}
-
 function styleText(styles: string[]) {
   return styles.length ? styles.join(" · ") : "대표 코스";
 }
@@ -89,12 +83,7 @@ function tripLabel(trip: SavedTrip, withDate = false) {
 }
 
 function tripOptionBaseLabel(trip: SavedTrip) {
-  const parts = [
-    tripLabel(trip),
-    compactStyleText(trip.styles),
-    formatCompactBudget(trip.budgetTotal),
-    savedDateTimeLabel(trip.savedAt).replace(" 저장", ""),
-  ].filter(Boolean);
+  const parts = [tripLabel(trip), shortDate(trip.savedAt)].filter(Boolean);
   return parts.join(" · ");
 }
 
@@ -260,6 +249,7 @@ export function SavedTripsClient() {
   const [selectedBoard, setSelectedBoard] = useState<BoardKey>("all");
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey>("all");
   const [attachDrafts, setAttachDrafts] = useState<Record<string, string>>({});
+  const [attachOpenItems, setAttachOpenItems] = useState<Record<string, boolean>>({});
   const [loaded, setLoaded] = useState(false);
   const [storageError, setStorageError] = useState("");
 
@@ -326,6 +316,11 @@ export function SavedTripsClient() {
     try {
       writeItems(nextItems);
       setAttachDrafts((previous) => {
+        const next = { ...previous };
+        delete next[itemId];
+        return next;
+      });
+      setAttachOpenItems((previous) => {
         const next = { ...previous };
         delete next[itemId];
         return next;
@@ -711,6 +706,7 @@ export function SavedTripsClient() {
               const isExternal = isExternalHref(href);
               const isHotel = isHotelItem(item);
               const selectedAttachTrip = attachDrafts[item.id] || trips[0]?.id || "";
+              const attachOpen = Boolean(attachOpenItems[item.id]);
               const itemMeta =
                 [
                   item.cityName || item.tripCityName || item.area || item.category,
@@ -765,46 +761,85 @@ export function SavedTripsClient() {
                   </div>
 
                   {!item.tripId ? (
-                    <div className="mt-3 rounded-[22px] bg-[#fff8f5] p-3">
-                      {trips.length > 0 ? (
-                        <div className="flex flex-col gap-2">
+                    <div className="mt-3 rounded-[20px] bg-[#fff8f5] p-2.5">
+                      {!attachOpen ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setAttachOpenItems((previous) => ({
+                              ...previous,
+                              [item.id]: true,
+                            }))
+                          }
+                          className="inline-flex w-full items-center justify-center rounded-full border border-[#efd6cf] bg-white px-3.5 py-2 text-[12px] font-black text-[#c85c52]"
+                        >
+                          + 여행에 담기
+                        </button>
+                      ) : trips.length > 0 ? (
+                        <div className="flex min-w-0 flex-col gap-2">
                           <label
                             htmlFor={`attach-trip-${item.id}`}
-                            className="text-[11.5px] font-black text-[#7d6e66]"
+                            className="text-[11px] font-black text-[#7d6e66]"
                           >
-                            + 여행에 담기
+                            담을 여행 선택
                           </label>
-                          <div className="flex gap-2">
-                            <select
-                              id={`attach-trip-${item.id}`}
-                              value={selectedAttachTrip}
-                              onChange={(event) =>
-                                setAttachDrafts((previous) => ({
-                                  ...previous,
-                                  [item.id]: event.target.value,
-                                }))
-                              }
-                              className="min-w-0 flex-1 rounded-full border border-[#ead7cf] bg-white px-3 py-2 text-[12px] font-bold text-[#4a382f]"
-                            >
-                              {trips.map((trip) => (
-                                <option key={trip.id} value={trip.id}>
-                                  {tripOptionLabels[trip.id] || tripLabel(trip, true)}
-                                </option>
-                              ))}
-                            </select>
+                          <select
+                            id={`attach-trip-${item.id}`}
+                            value={selectedAttachTrip}
+                            onChange={(event) =>
+                              setAttachDrafts((previous) => ({
+                                ...previous,
+                                [item.id]: event.target.value,
+                              }))
+                            }
+                            className="block w-full min-w-0 max-w-full truncate rounded-[16px] border border-[#ead7cf] bg-white px-3 py-2 text-[12px] font-bold text-[#4a382f]"
+                          >
+                            {trips.map((trip) => (
+                              <option key={trip.id} value={trip.id}>
+                                {tripOptionLabels[trip.id] || tripLabel(trip, true)}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="flex flex-wrap gap-2">
                             <button
                               type="button"
                               onClick={() => assignItemToTrip(item.id, selectedAttachTrip)}
-                              className="shrink-0 rounded-full bg-[#f26b61] px-3.5 py-2 text-[12px] font-black text-white"
+                              className="min-w-[84px] flex-1 rounded-full bg-[#f26b61] px-3.5 py-2 text-[12px] font-black text-white"
                             >
                               담기
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setAttachOpenItems((previous) => ({
+                                  ...previous,
+                                  [item.id]: false,
+                                }))
+                              }
+                              className="min-w-[72px] rounded-full border border-[#efd6cf] bg-white px-3.5 py-2 text-[12px] font-black text-[#9d6a5e]"
+                            >
+                              닫기
                             </button>
                           </div>
                         </div>
                       ) : (
-                        <p className="text-[11.5px] font-bold text-[#8a7a72]">
-                          먼저 여행 일정을 저장해 주세요.
-                        </p>
+                        <div className="flex flex-col gap-2">
+                          <p className="text-[11.5px] font-bold text-[#8a7a72]">
+                            먼저 여행 일정을 저장해 주세요.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setAttachOpenItems((previous) => ({
+                                ...previous,
+                                [item.id]: false,
+                              }))
+                            }
+                            className="self-start rounded-full border border-[#efd6cf] bg-white px-3.5 py-2 text-[12px] font-black text-[#9d6a5e]"
+                          >
+                            닫기
+                          </button>
+                        </div>
                       )}
                     </div>
                   ) : null}

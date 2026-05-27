@@ -22,7 +22,7 @@ function bottomTabs() {
     { id: "planner", label: "예산플래너", href: "/planner-wizard.html", icon: "planner" as const },
     { id: "stay", label: "숙소", href: "/stays", icon: "stay" as const },
     { id: "tour", label: "투어", href: "/tours", icon: "tour" as const },
-    { id: "my", label: "마이", href: "#top", icon: "my" as const },
+    { id: "my", label: "마이", href: "/mypage", icon: "my" as const },
   ];
 }
 
