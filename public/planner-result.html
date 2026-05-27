@@ -2610,20 +2610,13 @@ function tourSearchFallbackUrlSafe(item = {}){
 }
 
 function tourLinkAttributes(item = {}){
-  const link = resolveTourProductUrl(item);
-  const target = link.isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
-  return `href="${escapeAttr(link.url)}"${target}`;
+  return `href="${escapeAttr(buildTourDetailHrefForResult(item))}" onclick="storeResultReturnUrl('tours')"`;
 }
 
 function openTourCardLink(element){
   const url = element?.dataset?.href || '';
   if(!url) return;
   storeResultReturnUrl('tours');
-  if(/^https?:\/\//i.test(url)) {
-    const opened = window.open(url, '_blank', 'noopener,noreferrer');
-    if(opened) opened.opener = null;
-    return;
-  }
   window.location.href = url;
 }
 

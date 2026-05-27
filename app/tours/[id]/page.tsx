@@ -20,7 +20,7 @@ import {
   futureTourDate,
   type TourSnapshot,
 } from "@/src/lib/tours";
-import { ReturnLink } from "../../stays/ReturnLink";
+import { TourReturnLink } from "./TourReturnLink";
 
 function bottomTabs() {
   return [
@@ -207,17 +207,16 @@ export default async function TourDetailPage({
       <div className="mx-auto min-h-dvh max-w-[430px] pb-[calc(env(safe-area-inset-bottom)+132px)]">
         <header className="sticky top-0 z-30 border-b border-[#f0e4dd] bg-[#fffaf6]/95 px-5 pb-4 pt-[calc(env(safe-area-inset-top)+14px)] backdrop-blur-xl">
           <div className="flex items-center gap-3">
-            <ReturnLink
+            <TourReturnLink
               href={backHref}
               label={backLabel}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#7f6f69] shadow-[0_8px_18px_rgba(78,42,29,0.07)] ring-1 ring-[#efe3db]"
-              preferHref={Boolean(returnTo)}
-              storageKey="fukuosaka_last_result_url"
+              returnTo={returnTo}
             >
               <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M12.5 4.5 7 10l5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </ReturnLink>
+            </TourReturnLink>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold tracking-[-0.02em] text-[#a58f86]">
                 {state.city} 투어 상세
@@ -511,18 +510,17 @@ export default async function TourDetailPage({
         </section>
 
         <div className="px-5 pt-5">
-          <ReturnLink
+          <TourReturnLink
             href={backHref}
             label={backLabel}
             className="inline-flex items-center gap-2 text-[12px] font-bold text-[#8d7b73]"
-            preferHref={Boolean(returnTo)}
-            storageKey="fukuosaka_last_result_url"
+            returnTo={returnTo}
           >
             <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M12.5 4.5 7 10l5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             {backLabel}
-          </ReturnLink>
+          </TourReturnLink>
         </div>
       </div>
 
