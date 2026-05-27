@@ -56,5 +56,33 @@ export type SavedTrip = {
   }>;
 };
 
+export type SavedItemType = "hotel" | "tour" | "ticket" | "transport" | "esim";
+
+export type SavedItemSource = "agoda" | "myrealtrip" | "manual" | "unknown";
+
+export type SavedItem = {
+  id: string;
+  userId?: string;
+  itemType: SavedItemType;
+  source: SavedItemSource;
+  cityCode?: string;
+  cityName?: string;
+  title: string;
+  subtitle?: string;
+  area?: string;
+  category?: string;
+  priceText?: string;
+  imageUrl?: string;
+  ratingText?: string;
+  badgeText?: string;
+  detailPath?: string;
+  bookingUrl?: string;
+  affiliateUrl?: string;
+  originalUrl?: string;
+  savedAt: string;
+};
+
 export const SAVED_TRIPS_STORAGE_KEY = "fukuosaka_saved_trips";
 export const MAX_SAVED_TRIPS = 20;
+export const SAVED_ITEMS_STORAGE_KEY = "fukuosaka_saved_items";
+export const MAX_SAVED_ITEMS = 50;

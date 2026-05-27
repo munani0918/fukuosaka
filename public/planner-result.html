@@ -229,6 +229,7 @@
     .prod-meta { font-size:10.5px; color:var(--muted); line-height:1.25; margin:-1px 0 4px; word-break:keep-all; }
     .prod-foot  { display:flex; align-items:flex-end; justify-content:space-between; gap:8px; }
     .prod-price { min-width:0; font-size:14px; line-height:1.15; font-weight:900; color:#B64F43; white-space:nowrap; }
+    .prod-action-row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
     .prod-btn   {
       display:inline-flex; align-items:center; justify-content:center;
       min-width:64px; min-height:29px; padding:7px 11px; border-radius:999px;
@@ -238,6 +239,15 @@
       text-decoration:none;
     }
     .prod-btn:hover { background:#F46C67; border-color:#F46C67; color:#fff; }
+    .save-item-btn {
+      display:inline-flex; align-items:center; justify-content:center;
+      min-height:26px; padding:5px 9px; border-radius:999px;
+      border:1px solid #F0C9C2; background:#fff; color:#C95B50;
+      font-family:inherit; font-size:10.5px; line-height:1; font-weight:900;
+      cursor:pointer; white-space:nowrap; transition:all .15s;
+    }
+    .save-item-btn.saved { background:#FFF4EE; color:#8B5F55; border-color:#E8D4CB; }
+    .save-item-btn:hover { transform:translateY(-1px); box-shadow:0 7px 16px rgba(111,58,49,.10); }
 
     /* ── Coupon card ───────────────────────────── */
     .coupon-wrap { padding:0 16px 12px; }
@@ -397,6 +407,7 @@
     .preview-title { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:13px; font-weight:900; color:#2C221D; line-height:1.35; }
     .preview-meta { margin-top:2px; font-size:11px; color:#7E7067; line-height:1.35; }
     .preview-go { color:#A2958B; font-size:18px; font-weight:900; }
+    .preview-side-actions { display:flex; flex-direction:column; align-items:flex-end; justify-content:center; gap:7px; }
     .hotel-preview-head { display:flex; flex-direction:column; gap:3px; margin-bottom:12px; }
     .hotel-preview-sub { color:#7E7067; font-size:12px; line-height:1.45; font-weight:600; }
     .booking-candidate-head { display:flex; flex-direction:column; gap:3px; margin-bottom:14px; }
@@ -3648,15 +3659,20 @@ function renderHotelCandidateGroup(){
   const hasUpgrade = PLAN_SUMMARY?.budget?.hotelMatchStatus === 'target_matched'
     && hotels.some((hotel) => ['예산 활용','위치 업그레이드','성향 맞춤 업그레이드','여유 예산 추천','선택 업그레이드'].includes(hotel.previewBadge));
   const body = hotels.length
-    ? hotels.map((hotel) => `<button class="preview-card hotel-preview-card" type="button" onclick="setActiveTab('hotels', true)">
+    ? hotels.map((hotel) => {
+      const bridgeUrl = hotelSource(hotel) === 'agoda' ? buildAgodaBridgeHrefForResult(hotel) : '';
+      const stayDetailUrl = hotelSource(hotel) !== 'agoda' ? buildMyRealTripStayDetailHrefForResult(hotel) : '';
+      const saveButton = saveItemButtonHtml(hotelSavedItemPayload(hotel, bridgeUrl || stayDetailUrl || firstValidHotelUrl(hotel)));
+      return `<div class="preview-card hotel-preview-card" role="button" tabindex="0" onclick="setActiveTab('hotels', true)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setActiveTab('hotels', true)}">
         ${previewThumb(hotel, '🏨')}
         <span>
           <span class="preview-badge">${escapeHtml(hotel.previewBadge || '추천 숙소')}</span>
           <span class="preview-title">${escapeHtml(hotel.name || '추천 숙소 확인')}</span>
           <span class="preview-meta">${escapeHtml(hotelPreviewMeta(hotel))}</span>
         </span>
-        <span class="preview-action">자세히</span>
-      </button>`).join('')
+        <span class="preview-side-actions">${saveButton}<span class="preview-action">자세히</span></span>
+      </div>`;
+    }).join('')
     : bookingEmpty(isCheckingHotels ? '숙소 후보를 확인하고 있어요.' : '숙소 후보를 불러오지 못했어요. 숙소 탭에서 다시 확인해보세요.', 'hotels');
   return `<div class="booking-group">
     <div class="booking-group-title">추천 숙소</div>
@@ -3675,15 +3691,19 @@ function renderTourCandidateGroup(){
     ? '근교 투어보다 공항 이동권·교통패스·eSIM처럼 실제 여행에 필요한 준비물을 먼저 추천해요.'
     : '라피트, 교통패스, 원데이패스처럼 일정에 필요한 티켓을 골라봤어요.';
   const body = tours.length
-    ? tours.map((tour) => `<a class="preview-card" ${tourLinkAttributes(tour)}>
+    ? tours.map((tour) => {
+      const detailHref = buildTourDetailHrefForResult(tour);
+      const saveButton = saveItemButtonHtml(tourSavedItemPayload(tour, detailHref));
+      return `<div class="preview-card" role="link" tabindex="0" data-href="${escapeAttr(detailHref)}" onclick="openTourCardLink(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openTourCardLink(this)}">
         ${previewThumb(tour, tourFallbackMeta(tour).icon)}
         <span>
           <span class="preview-badge">${escapeHtml(tourTypeBadgeLabel(tour))}</span>
           <span class="preview-title">${escapeHtml(tour.displayTitle || tour.name || tour.title || '추천 투어')}</span>
           <span class="preview-meta">${escapeHtml(tourPreviewMeta(tour) || '추천 상품 확인')}</span>
         </span>
-        <span class="preview-go">›</span>
-      </a>`).join('')
+        <span class="preview-side-actions">${saveButton}<span class="preview-go">›</span></span>
+      </div>`;
+    }).join('')
     : bookingEmpty(isSupportTicketOnly ? '일정 보조 티켓을 불러오지 못했어요. 투어 탭에서 다시 확인해보세요.' : '투어 데이터를 불러오지 못했어요. 투어 탭에서 다시 확인해보세요.', 'tours');
   return `<div class="booking-group">
     <div class="booking-group-title">${isSupportTicketOnly ? supportTitle : '추천 투어&티켓'}</div>
@@ -4101,8 +4121,11 @@ function itineraryGoogleMapsLinkHtml(item = {}, index = 0){
 
 const SAVED_TRIPS_STORAGE_KEY = 'fukuosaka_saved_trips';
 const MAX_SAVED_TRIPS = 20;
+const SAVED_ITEMS_STORAGE_KEY = 'fukuosaka_saved_items';
+const MAX_SAVED_ITEMS = 50;
 let saveTripInProgress = false;
 let saveTripStickyObserver = null;
+let SAVED_ITEM_PAYLOADS = {};
 
 function savedTripNumberOrNull(value){
   const num = Number(value);
@@ -4114,6 +4137,13 @@ function savedTripId(){
     if(window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
   } catch(e) {}
   return `trip-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function savedItemId(){
+  try {
+    if(window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+  } catch(e) {}
+  return `item-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 function savedTripStorageAvailable(){
@@ -4139,6 +4169,145 @@ function readSavedTrips(){
 
 function writeSavedTrips(trips){
   window.localStorage.setItem(SAVED_TRIPS_STORAGE_KEY, JSON.stringify(trips.slice(0, MAX_SAVED_TRIPS)));
+}
+
+function readSavedItems(){
+  try {
+    const raw = window.localStorage.getItem(SAVED_ITEMS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch(e) {
+    return [];
+  }
+}
+
+function writeSavedItems(items){
+  window.localStorage.setItem(SAVED_ITEMS_STORAGE_KEY, JSON.stringify(items.slice(0, MAX_SAVED_ITEMS)));
+}
+
+function savedItemIdentityKey(item = {}){
+  const stableUrl = item.detailPath || item.bookingUrl || item.affiliateUrl || item.originalUrl || '';
+  if(stableUrl) return String(stableUrl).trim();
+  return [item.source || 'unknown', item.itemType || 'unknown', item.title || ''].join('|').toLowerCase();
+}
+
+function isSavedItemPayload(payload = {}){
+  const key = savedItemIdentityKey(payload);
+  if(!key) return false;
+  return readSavedItems().some(item => savedItemIdentityKey(item) === key);
+}
+
+function updateSavedItemButtons(key, saved){
+  document.querySelectorAll('.save-item-btn').forEach((button) => {
+    if(button.dataset.savedKey !== key) return;
+    button.textContent = saved ? '저장됨' : '저장';
+    button.classList.toggle('saved', saved);
+    button.setAttribute('aria-pressed', saved ? 'true' : 'false');
+  });
+}
+
+function registerSavedItemPayload(payload = {}){
+  const token = savedItemId();
+  SAVED_ITEM_PAYLOADS[token] = payload;
+  return token;
+}
+
+function saveItemButtonHtml(payload = {}){
+  if(!payload.title) return '';
+  const key = savedItemIdentityKey(payload);
+  const token = registerSavedItemPayload(payload);
+  const saved = isSavedItemPayload(payload);
+  return `<button class="save-item-btn ${saved ? 'saved' : ''}" type="button" data-saved-key="${escapeAttr(key)}" aria-pressed="${saved ? 'true' : 'false'}" onclick="toggleSavedItem(event, '${escapeAttr(token)}')">${saved ? '저장됨' : '저장'}</button>`;
+}
+
+function toggleSavedItem(event, token){
+  if(event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  if(!savedTripStorageAvailable()) {
+    alert('이 브라우저에서는 저장을 사용할 수 없어요.');
+    return false;
+  }
+  const payload = SAVED_ITEM_PAYLOADS[token];
+  if(!payload?.title) return false;
+  const key = savedItemIdentityKey(payload);
+  const current = readSavedItems();
+  const existingIndex = current.findIndex(item => savedItemIdentityKey(item) === key);
+  let nextItems;
+  let saved;
+  if(existingIndex >= 0) {
+    nextItems = current.filter((_, index) => index !== existingIndex);
+    saved = false;
+  } else {
+    nextItems = [{ ...payload, id: savedItemId(), savedAt: new Date().toISOString() }, ...current].slice(0, MAX_SAVED_ITEMS);
+    saved = true;
+  }
+  try {
+    writeSavedItems(nextItems);
+    updateSavedItemButtons(key, saved);
+  } catch(e) {
+    alert('이 브라우저에서는 저장을 사용할 수 없어요.');
+  }
+  return false;
+}
+
+function savedItemCityName(){
+  return CITY_NAME[P.cityCode] || savedTripCityName();
+}
+
+function hotelSavedItemPayload(item = {}, detailPath = ''){
+  const source = hotelSource(item);
+  const bookingUrl = firstValidHotelUrl(item) || normalizeProductUrl(item.bookingUrl || item.bookUrl || item.affiliateUrl || item.detailUrl || item.productUrl || item.url);
+  const internalDetailPath = detailPath && detailPath.startsWith('/') ? detailPath : '';
+  return {
+    itemType:'hotel',
+    source: source === 'agoda' ? 'agoda' : (source === 'api' ? 'myrealtrip' : 'unknown'),
+    cityCode:P.cityCode || '',
+    cityName:savedItemCityName(),
+    title:item.name || item.title || item.hotelName || '추천 숙소',
+    subtitle:hotelSourceLabel(item),
+    area:item.area || item.location || '',
+    category:'숙소',
+    priceText:hotelPreviewMeta(item) || hotelPriceInfo(item).nightlyText || '',
+    imageUrl:getHotelImageUrl(item) || '',
+    ratingText:hotelRatingText(item) || '',
+    badgeText:hotelSourceLabel(item),
+    detailPath:internalDetailPath,
+    bookingUrl:bookingUrl || '',
+    affiliateUrl:item.affiliateUrl || '',
+    originalUrl:bookingUrl || item.detailUrl || item.productUrl || item.url || '',
+  };
+}
+
+function savedTourItemType(item = {}){
+  const text = asText(item.name, item.title, item.displayTitle, item.tag, item.category, item.categoryLabel, item.tags);
+  if(hasAny(text, ['esim', 'e-sim', '이심', '유심', 'usim', '로밍'])) return 'esim';
+  if(hasAny(text, ['라피트', '교통', '패스', '지하철', '산큐', '열차', '공항버스', '리무진'])) return 'transport';
+  if(hasAny(text, ['입장권', '티켓', 'ticket', '전망대', '테마파크', 'usj', '유니버설'])) return 'ticket';
+  return 'tour';
+}
+
+function tourSavedItemPayload(item = {}, detailPath = ''){
+  const productUrl = firstTourProductUrl(item);
+  const imageUrl = getProductImageUrl(item);
+  return {
+    itemType:savedTourItemType(item),
+    source:item.source === 'saved' ? 'manual' : 'myrealtrip',
+    cityCode:P.cityCode || '',
+    cityName:savedItemCityName(),
+    title:item.displayTitle || item.name || item.title || item.itemName || '추천 투어',
+    subtitle:tourTypeBadgeLabel(item),
+    category:tourTypeBadgeLabel(item),
+    priceText:formatTourPriceForMeta(item) || tourPreviewMeta(item) || '',
+    imageUrl:imageUrl || '',
+    ratingText:item.rating ? `평점 ${item.rating}` : '',
+    badgeText:tourTypeBadgeLabel(item),
+    detailPath:detailPath && detailPath.startsWith('/') ? detailPath : '',
+    bookingUrl:productUrl || item.bookUrl || item.bookingUrl || '',
+    affiliateUrl:item.affiliateUrl || '',
+    originalUrl:productUrl || item.deepLink || item.url || item.href || item.link || '',
+  };
 }
 
 function savedTripCityCode(){
@@ -5111,6 +5280,7 @@ function renderHotels(stays){
     const image = getHotelImageUrl(s);
     const ratingText = hotelRatingText(s);
     const priceInfo = hotelPriceInfo(s);
+    const saveButton = saveItemButtonHtml(hotelSavedItemPayload(s, bridgeUrl || stayDetailUrl || url));
     const imgH = image
       ? `<img class="prod-img" src="${escapeAttr(image)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
         + `<div class="prod-ph" style="display:none">🏨</div>`
@@ -5123,7 +5293,7 @@ function renderHotels(stays){
     return `<div class="prod-card">
       ${imgH}
       <div class="prod-info">
-        <div class="prod-source-tag">${escapeHtml(hotelSourceLabel(s))}</div>
+        <div class="prod-action-row"><div class="prod-source-tag">${escapeHtml(hotelSourceLabel(s))}</div>${saveButton}</div>
         <div class="prod-name">${s.name||'추천 숙소'}</div>
         ${ratingText ? `<div class="prod-stars">${escapeHtml(ratingText)}</div>` : ''}
         ${priceInfo.totalText ? `<div class="prod-meta">${escapeHtml(priceInfo.totalText)}</div>` : ''}
@@ -5201,11 +5371,12 @@ function renderTours(tnas){
     const url  = escapeAttr(detailHref);
     const imgH = tourThumbHtml(t);
     const tagH = `<div class="prod-tag">${escapeHtml(tourTypeBadgeLabel(t))}</div>`;
+    const saveButton = saveItemButtonHtml(tourSavedItemPayload(t, detailHref));
     const action = `<a href="${url}" class="prod-btn" onclick="event.stopPropagation();storeResultReturnUrl('tours')">상세 보기</a>`;
     return `<div class="prod-card tour-card" data-href="${url}" onclick="openTourCardLink(this)">
       ${imgH}
       <div class="prod-info">
-        ${tagH}
+        <div class="prod-action-row">${tagH}${saveButton}</div>
         <div class="prod-name">${escapeHtml(t.displayTitle || t.name || '추천 투어')}</div>
         ${t.rating?`<div class="prod-stars">⭐ ${t.rating}</div>`:''}
         <div class="prod-foot">

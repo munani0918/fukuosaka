@@ -1,9 +1,13 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useState } from "react";
 
 import {
+  MAX_SAVED_ITEMS,
+  SAVED_ITEMS_STORAGE_KEY,
   SAVED_TRIPS_STORAGE_KEY,
+  type SavedItem,
   type SavedTrip,
 } from "@/src/types/savedTrip";
 
@@ -47,8 +51,143 @@ function normalizeSavedTrips(value: unknown): SavedTrip[] {
     });
 }
 
+function normalizeSavedItems(value: unknown): SavedItem[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is SavedItem => {
+      return Boolean(
+        item &&
+          typeof item === "object" &&
+          "id" in item &&
+          "title" in item &&
+          "itemType" in item,
+      );
+    })
+    .sort((a, b) => {
+      return new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime();
+    });
+}
+
+function sourceLabel(source: SavedItem["source"]) {
+  if (source === "agoda") return "아고다";
+  if (source === "myrealtrip") return "마이리얼트립";
+  if (source === "manual") return "저장한 상품";
+  return "출처 확인";
+}
+
+function savedItemHref(item: SavedItem) {
+  return item.detailPath || item.bookingUrl || item.affiliateUrl || item.originalUrl || "";
+}
+
+function isExternalHref(href: string) {
+  return /^https?:\/\//i.test(href);
+}
+
+function SavedItemsSection({
+  title,
+  description,
+  emptyText,
+  items,
+  onDelete,
+}: {
+  title: string;
+  description: string;
+  emptyText: string;
+  items: SavedItem[];
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <section className="rounded-[28px] border border-[#f2ded4] bg-white/88 p-4 shadow-[0_18px_40px_rgba(111,63,48,0.08)]">
+      <div className="mb-4">
+        <h2 className="text-[19px] font-black tracking-[-0.05em]">
+          {title}
+        </h2>
+        <p className="mt-1 text-[12.5px] font-semibold leading-relaxed text-[#8a7a72]">
+          {description}
+        </p>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="rounded-3xl border border-dashed border-[#ebcfc4] bg-[#fff8f5] p-5 text-center text-[13px] font-bold text-[#897970]">
+          {emptyText}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {items.map((item) => {
+            const href = savedItemHref(item);
+            return (
+              <article
+                key={item.id}
+                className="rounded-[24px] border border-[#f0dfd7] bg-[#fffdfb] p-3 shadow-[0_12px_28px_rgba(92,55,43,0.06)]"
+              >
+                <div className="flex gap-3">
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt=""
+                      className="h-20 w-20 shrink-0 rounded-[18px] object-cover"
+                      loading="lazy"
+                      onError={(event) => {
+                        event.currentTarget.style.display = "none";
+                      }}
+                    />
+                  ) : null}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="rounded-full bg-[#fff1ec] px-2 py-1 text-[10px] font-black text-[#c85c52]">
+                        {sourceLabel(item.source)}
+                      </span>
+                      {item.badgeText || item.category ? (
+                        <span className="rounded-full bg-[#f7f1ec] px-2 py-1 text-[10px] font-black text-[#7d6e66]">
+                          {item.badgeText || item.category}
+                        </span>
+                      ) : null}
+                    </div>
+                    <h3 className="mt-2 line-clamp-2 text-[14px] font-black leading-snug tracking-[-0.04em] text-[#2c211d]">
+                      {item.title}
+                    </h3>
+                    <p className="mt-1 text-[11.5px] font-bold leading-relaxed text-[#8a7a72]">
+                      {[item.cityName || item.area || item.category, item.priceText]
+                        .filter(Boolean)
+                        .join(" · ") || "저장한 상품"}
+                    </p>
+                    <p className="mt-1 text-[10.5px] font-semibold text-[#b0998e]">
+                      저장일 {formatDate(item.savedAt)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {href ? (
+                    <a
+                      href={href}
+                      target={isExternalHref(href) ? "_blank" : undefined}
+                      rel={isExternalHref(href) ? "noopener noreferrer" : undefined}
+                      className="inline-flex flex-1 items-center justify-center rounded-full bg-[#f26b61] px-4 py-2.5 text-[12px] font-black text-white shadow-[0_10px_24px_rgba(219,85,75,0.18)]"
+                    >
+                      다시 보기
+                    </a>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => onDelete(item.id)}
+                    className="inline-flex items-center justify-center rounded-full border border-[#efd6cf] bg-white px-4 py-2.5 text-[12px] font-black text-[#9d6a5e]"
+                  >
+                    삭제
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function SavedTripsClient() {
   const [trips, setTrips] = useState<SavedTrip[]>([]);
+  const [items, setItems] = useState<SavedItem[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [storageError, setStorageError] = useState("");
 
@@ -56,6 +195,8 @@ export function SavedTripsClient() {
     try {
       const raw = window.localStorage.getItem(SAVED_TRIPS_STORAGE_KEY);
       setTrips(normalizeSavedTrips(raw ? JSON.parse(raw) : []));
+      const itemRaw = window.localStorage.getItem(SAVED_ITEMS_STORAGE_KEY);
+      setItems(normalizeSavedItems(itemRaw ? JSON.parse(itemRaw) : []));
     } catch {
       setStorageError("저장한 여행을 불러오지 못했어요.");
     } finally {
@@ -78,7 +219,24 @@ export function SavedTripsClient() {
     }
   }
 
+  function deleteItem(id: string) {
+    const nextItems = items.filter((item) => item.id !== id);
+    try {
+      window.localStorage.setItem(
+        SAVED_ITEMS_STORAGE_KEY,
+        JSON.stringify(nextItems.slice(0, MAX_SAVED_ITEMS)),
+      );
+      setItems(nextItems);
+    } catch {
+      setStorageError("이 브라우저에서는 저장 변경을 사용할 수 없어요.");
+    }
+  }
+
+  const hotelItems = items.filter((item) => item.itemType === "hotel");
+  const tourItems = items.filter((item) => item.itemType !== "hotel");
+
   return (
+    <div className="space-y-4">
     <section className="rounded-[28px] border border-[#f2ded4] bg-white/88 p-4 shadow-[0_18px_40px_rgba(111,63,48,0.08)]">
       <div className="mb-4">
         <h2 className="text-[19px] font-black tracking-[-0.05em]">
@@ -192,5 +350,22 @@ export function SavedTripsClient() {
         </div>
       )}
     </section>
+
+    <SavedItemsSection
+      title="찜한 숙소"
+      description="마음에 드는 숙소를 저장해두고 다시 확인할 수 있어요."
+      emptyText="아직 찜한 숙소가 없어요."
+      items={hotelItems}
+      onDelete={deleteItem}
+    />
+
+    <SavedItemsSection
+      title="찜한 투어·티켓"
+      description="입장권, 교통패스, 현지투어를 저장해두고 비교해보세요."
+      emptyText="아직 찜한 투어·티켓이 없어요."
+      items={tourItems}
+      onDelete={deleteItem}
+    />
+    </div>
   );
 }
