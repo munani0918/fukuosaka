@@ -40,6 +40,16 @@ export type SavedTrip = {
     area?: string;
     priceText?: string;
   };
+  selectedFlight?: {
+    title?: string;
+    airline?: string;
+    route?: string;
+    departureText?: string;
+    arrivalText?: string;
+    priceText?: string;
+    bookingUrl?: string;
+    statusText?: string;
+  };
   selectedTours?: Array<{
     title?: string;
     priceText?: string;

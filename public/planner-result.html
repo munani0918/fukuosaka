@@ -2191,10 +2191,26 @@ function auxiliaryTicketsVisible(){
   return supportTicketsAllowed() && (RESULT_DATA.tnas || []).length > 0;
 }
 
-function costValueText(value, excluded = false){
+function usefulSavedFlightPriceText(text){
+  const value = String(text || '').trim();
+  if(!value) return '';
+  return /예약 페이지에서 확인|예약 페이지에서 요금 확인|실시간 가격 확인|^요금 확인$/.test(value) ? '' : value;
+}
+
+function savedTripFlightPriceText(){
+  return usefulSavedFlightPriceText(ACTIVE_SAVED_TRIP?.selectedFlight?.priceText);
+}
+
+function fallbackCostText(label){
+  return label === '항공권'
+    ? (savedTripFlightPriceText() || '실시간 요금 확인 필요')
+    : '예약 페이지에서 확인';
+}
+
+function costValueText(value, excluded = false, label = ''){
   if(excluded) return '선택 제외';
   const amount = Number(value) || 0;
-  return amount > 0 ? fmtWon(amount) : '예약 페이지에서 확인';
+  return amount > 0 ? fmtWon(amount) : fallbackCostText(label);
 }
 
 function renderBudgetLine(icon, label, value, excluded, helper = ''){
@@ -2203,7 +2219,7 @@ function renderBudgetLine(icon, label, value, excluded, helper = ''){
       <div class="budget-label"><span class="budget-icon">${icon}</span>${label}</div>
       ${helper ? `<div class="budget-note" style="margin:4px 0 0 34px">${helper}</div>` : ''}
     </div>
-    <div class="budget-value">${costValueText(value, excluded)}</div>
+    <div class="budget-value">${costValueText(value, excluded, label)}</div>
   </div>`;
 }
 
@@ -3610,7 +3626,7 @@ function renderFlightCandidateGroup(){
           <span class="preview-badge">최저가</span>
           <span class="preview-title">${escapeHtml(flight.airline || '추천 항공권')}</span>
           <span class="preview-meta">${escapeHtml([
-            flight.price ? `${Number(flight.price).toLocaleString('ko-KR')}원` : '실시간 가격 확인',
+            flightDisplayPrice(flight),
             `${flightTripType() === 'RT' ? '왕복' : '편도'} · 1인 기준`,
             `${ORIGIN_NAME[P.origin] || P.origin} → ${CITY_NAME[P.cityCode] || flightDestinationCode()}`
           ].filter(Boolean).join(' · '))}</span>
@@ -4176,6 +4192,55 @@ function savedTripSelectedTours(){
     .filter(tour => tour.title || tour.priceText);
 }
 
+function bestFlightCandidate(){
+  const flights = Array.isArray(RESULT_DATA.flights) ? RESULT_DATA.flights.filter(Boolean) : [];
+  if(!flights.length) return null;
+  return [...flights].sort((a, b) => {
+    const aPrice = Number(a?.price) > 0 ? Number(a.price) : Number.MAX_SAFE_INTEGER;
+    const bPrice = Number(b?.price) > 0 ? Number(b.price) : Number.MAX_SAFE_INTEGER;
+    return aPrice - bPrice;
+  })[0] || null;
+}
+
+function flightDisplayPrice(flight, fallback = '실시간 요금 확인 필요'){
+  const price = Number(flight?.price) || 0;
+  if(price > 0) return `${price.toLocaleString('ko-KR')}원`;
+  return usefulSavedFlightPriceText(flight?.priceText || flight?.displayPrice || flight?.fareText) || fallback;
+}
+
+function displayedFlightPriceTextFromDom(){
+  const nodes = document.querySelectorAll('#flight-list .flight-result-price, #sec-summary .preview-meta');
+  for(const node of nodes){
+    const text = String(node?.textContent || '').replace(/\s+/g, ' ').trim();
+    if(!text || !/원/.test(text) || /예약 페이지에서 확인|실시간 가격 확인|^요금 확인$/.test(text)) continue;
+    const match = text.match(/(?:약\s*)?[0-9][0-9,]*(?:\s*만)?\s*원/);
+    if(match) return match[0].replace(/\s+/g, ' ').trim();
+  }
+  return '';
+}
+
+function savedTripSelectedFlight(){
+  if(!packageIncludes('flight')) return undefined;
+  const flight = bestFlightCandidate();
+  const budgetFlight = Number(PLAN_SUMMARY?.budget?.flight) || 0;
+  const priceText = flightDisplayPrice(flight, '') || displayedFlightPriceTextFromDom() || (budgetFlight > 0 ? fmtMan(budgetFlight) : '');
+  const originLabel = ORIGIN_NAME[P.origin] || P.origin || PLAN_INPUT?.origin || '';
+  const destinationLabel = CITY_NAME[P.cityCode] || flightDestinationCode();
+  const outbound = flight?.outbound || {};
+  const bookingUrl = flight?.bookingUrl || flight?.bookUrl || flight?.url || buildFlightListUrl(outbound.origin || P.origin);
+  if(!flight && !priceText) return undefined;
+  return {
+    title: '항공권',
+    airline: flight?.airline || '',
+    route: `${originLabel} → ${destinationLabel}`,
+    departureText: [outbound.departTime, outbound.origin].filter(Boolean).join(' '),
+    arrivalText: [outbound.arriveTime, outbound.destination].filter(Boolean).join(' '),
+    priceText: usefulSavedFlightPriceText(priceText) || priceText || '',
+    bookingUrl: bookingUrl || '',
+    statusText: flight ? (flight.isDirect ? '직항 항공권' : '경유 포함 항공권') : '실시간 항공권',
+  };
+}
+
 function buildSavedTripPayload(){
   if(!PLAN_SUMMARY || !PLAN_INPUT) return null;
   const nights = Math.max(1, Number(PLAN_INPUT.nights || P.nights) || 1);
@@ -4183,6 +4248,7 @@ function buildSavedTripPayload(){
   const cityName = savedTripCityName();
   const itineraryOutline = savedTripItineraryOutline();
   const selectedHotel = savedTripSelectedHotel();
+  const selectedFlight = savedTripSelectedFlight();
   const selectedTours = savedTripSelectedTours();
   const payload = {
     id: savedTripId(),
@@ -4206,6 +4272,7 @@ function buildSavedTripPayload(){
     itineraryOutline,
   };
   if(selectedHotel) payload.selectedHotel = selectedHotel;
+  if(selectedFlight) payload.selectedFlight = selectedFlight;
   if(selectedTours.length) payload.selectedTours = selectedTours;
   return payload;
 }
@@ -4326,6 +4393,32 @@ function savedTripTourSnapshots(savedTrip){
     .filter(tour => tour.name);
 }
 
+function savedTripFlightSnapshot(savedTrip){
+  const flight = savedTrip?.selectedFlight;
+  if(!flight || (!flight.priceText && !flight.bookingUrl && !flight.airline && !flight.route)) return null;
+  const price = parsePrice(flight.priceText || '');
+  const routeParts = String(flight.route || '').split('→').map(part => part.trim()).filter(Boolean);
+  const originLabel = routeParts[0] || ORIGIN_NAME[P.origin] || P.origin || savedTrip.origin || '';
+  const destinationLabel = routeParts[1] || savedTrip.cityName || CITY_NAME[savedTrip.cityCode] || flightDestinationCode();
+  return {
+    id: `saved-${savedTrip.id}-flight`,
+    source:'saved',
+    airline: flight.airline || flight.title || '저장한 항공권',
+    price,
+    priceText: usefulSavedFlightPriceText(flight.priceText) || flight.priceText || '',
+    bookingUrl: flight.bookingUrl || '',
+    isDirect: !/경유/.test(String(flight.statusText || '')),
+    isCheapest:true,
+    outbound:{
+      departTime: flight.departureText || '',
+      origin: originLabel,
+      arriveTime: flight.arrivalText || '',
+      destination: destinationLabel,
+      duration:0,
+    },
+  };
+}
+
 function normalizeSavedTripToPlanSummary(savedTrip){
   const nights = Math.max(1, Number(savedTrip.nights) || Math.max(1, Number(savedTrip.days || 2) - 1));
   const days = Math.max(2, Number(savedTrip.days) || nights + 1);
@@ -4335,8 +4428,10 @@ function normalizeSavedTripToPlanSummary(savedTrip){
   const travelers = Math.max(1, Number(savedTrip.travelers) || 1);
   const styleKeys = normalizeSavedTripStyleKeys(savedTrip.styles);
   const packageType = normalizePackageTypeValue(savedTrip.packageType || 'hotel_tour');
+  const flight = savedTripFlightSnapshot(savedTrip);
   const hotel = savedTripHotelSnapshot(savedTrip);
   const tours = savedTripTourSnapshots(savedTrip);
+  const flightCost = Number(flight?.price) || 0;
   const hotelCost = Number(hotel?.totalPrice) || 0;
   const tourCost = tours.reduce((sum, tour) => sum + parsePrice(tour.price), 0);
   const itineraryOutline = (Array.isArray(savedTrip.itineraryOutline) ? savedTrip.itineraryOutline : [])
@@ -4389,9 +4484,10 @@ function normalizeSavedTripToPlanSummary(savedTrip){
       total: totalBudget,
       status:'within_budget',
       overBudgetLevel:'within_budget',
-      flight:0,
+      flight:flightCost,
       hotel:hotelCost,
       tour:tourCost,
+      selectedFlightCost:flightCost,
       selectedHotelCost:hotelCost,
       selectedHotelName: hotel?.name || '',
       hotelMatchStatus: hotel ? 'target_matched' : 'not_needed',
@@ -4400,7 +4496,7 @@ function normalizeSavedTripToPlanSummary(savedTrip){
     },
   };
   RESULT_DATA = {
-    flights: [],
+    flights: flight ? [flight] : [],
     stays: hotel ? [hotel] : [],
     agodaStays: [],
     tnas: tours,
@@ -4438,10 +4534,10 @@ function renderSavedTripResult(savedTripId){
   normalizeSavedTripToPlanSummary(savedTrip);
   renderHeader();
   renderSummary();
-  renderFlights([]);
+  renderFlights(RESULT_DATA.flights || []);
   renderHotels(RESULT_DATA.stays || []);
   renderTours(RESULT_DATA.tnas || []);
-  renderCost([], RESULT_DATA.stays || [], RESULT_DATA.tnas || []);
+  renderCost(RESULT_DATA.flights || [], RESULT_DATA.stays || [], RESULT_DATA.tnas || []);
   stopPageLoadingProgress();
   document.getElementById('page-loading').style.display = 'none';
   document.getElementById('page-content').style.display = 'block';
@@ -4573,7 +4669,7 @@ function renderCost(flights, stays, tnas){
     const tripMin = reservationTotal + Number(localEstimate.min || 0);
     const tripMax = reservationTotal + Number(localEstimate.max || 0);
     const detailRow = (label, value, included) =>
-      `<div class="cost-row"><span class="cost-lbl">${label}</span><span class="cost-val">${included ? (Number(value) > 0 ? fmtMan(value) : '예약 페이지에서 확인') : '선택 제외'}</span></div>`;
+      `<div class="cost-row"><span class="cost-lbl">${label}</span><span class="cost-val">${included ? (Number(value) > 0 ? fmtMan(value) : fallbackCostText(label)) : '선택 제외'}</span></div>`;
     const rows = [
       detailRow('항공권', costSummary.flightCost, hasF),
       detailRow('숙소', costSummary.hotelCost, hasH),
@@ -4692,11 +4788,12 @@ function renderFlights(flights){
     ${flights.map((f, index)=>{
       const o = f.outbound || {};
       const ret = f.inbound;
-      const url = buildFlightListUrl(o.origin || P.origin).replace(/"/g,'&quot;');
+      const rawUrl = f.bookingUrl || f.bookUrl || f.url || buildFlightListUrl(o.origin || P.origin);
+      const url = String(rawUrl || '#').replace(/"/g,'&quot;');
       const logo = f.logoUrl
         ? `<img src="${String(f.logoUrl).replace(/"/g,'&quot;')}" alt="${escapeHtml(f.airline || '')}" loading="lazy">`
         : airlineInitial(f.airline);
-      const price = Number(f.price) > 0 ? `${Number(f.price).toLocaleString('ko-KR')}원` : '요금 확인';
+      const price = flightDisplayPrice(f);
       return `<a class="flight-result-card" href="${url}" target="_blank" rel="noreferrer">
         ${index === 0 || f.isCheapest ? '<div class="flight-cheapest-strip">최저가 항공편</div>' : ''}
         <div class="flight-result-body">
