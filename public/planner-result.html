@@ -305,11 +305,13 @@
     .itinerary-jump-button, .save-trip-button { display:inline-flex; align-items:center; justify-content:center; padding:7px 10px; border:1px solid #F0B7B2; border-radius:999px; background:#FFF8F5; color:#C94D43; font-family:inherit; font-size:11.5px; line-height:1.2; font-weight:900; cursor:pointer; box-shadow:0 6px 14px rgba(203,75,66,.08); }
     .save-trip-button.primary { border-color:#F26B61; background:#F26B61; color:#fff; }
     .save-trip-button.saved, .save-trip-button:disabled { border-color:#F0D7CE; background:#F7EEE9; color:#9F8B82; cursor:default; box-shadow:none; }
+    .save-trip-button.saved:not(:disabled) { cursor:pointer; }
     .save-trip-sticky { position:fixed; left:50%; bottom:calc(76px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(12px); width:min(calc(100% - 28px), 398px); z-index:99; pointer-events:none; opacity:0; transition:opacity .18s ease, transform .18s ease; }
     .save-trip-sticky.show { opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; }
     .save-trip-sticky.is-hidden { display:none; }
     .save-trip-sticky-button { width:100%; min-height:46px; border:1px solid #F2B9B2; border-radius:999px; background:#F26B61; color:#fff; font-family:inherit; font-size:14px; line-height:1.2; font-weight:950; letter-spacing:-.03em; box-shadow:0 14px 34px rgba(203,75,66,.20); cursor:pointer; }
     .save-trip-sticky-button.saved, .save-trip-sticky-button:disabled { border-color:#EED8CF; background:#F7EEE9; color:#9F8B82; box-shadow:0 10px 24px rgba(88,54,43,.08); cursor:default; }
+    .save-trip-sticky-button.saved:not(:disabled) { cursor:pointer; }
     .saved-trip-notice { margin-top:10px; padding:10px 12px; border:1px solid #F1D6CF; border-radius:16px; background:#FFF8F5; color:#7E7067; font-size:12px; font-weight:750; line-height:1.45; }
     .saved-trip-notice strong { display:block; color:#C94D43; font-size:12.5px; margin-bottom:2px; }
     .saved-trip-error { margin:18px 0; padding:22px 18px; border:1px solid #F1D6CF; border-radius:24px; background:#FFF8F5; text-align:center; color:#2C221D; }
@@ -1339,10 +1341,47 @@ function hotelProductId(item){
 }
 
 function firstValidHotelUrl(item){
-  const urls = [item?.detailUrl, item?.affiliateUrl, item?.bookingUrl, item?.bookUrl, item?.deepLink, item?.productUrl, item?.url];
+  const urls = [
+    item?.detailUrl,
+    item?.affiliateUrl,
+    item?.bookingUrl,
+    item?.bookUrl,
+    item?.deepLink,
+    item?.productUrl,
+    item?.originalUrl,
+    item?.url,
+    item?.href,
+    item?.link,
+    item?.landingURL,
+    item?.landingUrl,
+  ];
   for(const url of urls) {
     const normalized = normalizeImageUrl(url);
     if(isValidHotelUrl(normalized, item)) return normalized;
+  }
+  return '';
+}
+
+function firstRawHotelUrl(item = {}, extraUrl = ''){
+  const urls = [
+    extraUrl,
+    item?.detailPath,
+    item?.detailUrl,
+    item?.bookingUrl,
+    item?.bookUrl,
+    item?.affiliateUrl,
+    item?.originalUrl,
+    item?.productUrl,
+    item?.deepLink,
+    item?.url,
+    item?.href,
+    item?.link,
+    item?.landingURL,
+    item?.landingUrl,
+  ];
+  for(const url of urls) {
+    const normalized = normalizeProductUrl(url);
+    if(/^https?:\/\//i.test(normalized)) return normalized;
   }
   return '';
 }
@@ -4188,6 +4227,22 @@ function writeSavedItems(items){
   window.localStorage.setItem(SAVED_ITEMS_STORAGE_KEY, JSON.stringify(items.slice(0, MAX_SAVED_ITEMS)));
 }
 
+function unlinkSavedItemsFromTrip(tripId){
+  if(!tripId) return;
+  const nextItems = readSavedItems().map((item) => {
+    if(String(item?.tripId || '') !== String(tripId)) return item;
+    const nextItem = { ...item };
+    delete nextItem.tripId;
+    delete nextItem.tripLabel;
+    delete nextItem.tripCityCode;
+    delete nextItem.tripCityName;
+    delete nextItem.tripNights;
+    delete nextItem.tripDays;
+    return nextItem;
+  });
+  writeSavedItems(nextItems);
+}
+
 function savedItemIdentityKey(item = {}){
   const stableUrl = item.detailPath || item.bookingUrl || item.affiliateUrl || item.originalUrl || '';
   if(stableUrl) return String(stableUrl).trim();
@@ -4292,8 +4347,10 @@ function withCurrentTripAssociation(payload = {}){
 
 function hotelSavedItemPayload(item = {}, detailPath = ''){
   const source = hotelSource(item);
-  const bookingUrl = firstValidHotelUrl(item) || normalizeProductUrl(item.bookingUrl || item.bookUrl || item.affiliateUrl || item.detailUrl || item.productUrl || item.url);
-  const internalDetailPath = detailPath && detailPath.startsWith('/') ? detailPath : '';
+  const fallbackDetailPath = source === 'agoda' ? buildAgodaBridgeHrefForResult(item) : buildMyRealTripStayDetailHrefForResult(item);
+  const internalDetailPath = (detailPath && detailPath.startsWith('/') ? detailPath : '') || fallbackDetailPath || '';
+  const rawExternalUrl = firstRawHotelUrl(item, detailPath);
+  const bookingUrl = firstValidHotelUrl(item) || rawExternalUrl;
   return withCurrentTripAssociation({
     itemType:'hotel',
     source: source === 'agoda' ? 'agoda' : (source === 'api' ? 'myrealtrip' : 'unknown'),
@@ -4309,8 +4366,8 @@ function hotelSavedItemPayload(item = {}, detailPath = ''){
     badgeText:hotelSourceLabel(item),
     detailPath:internalDetailPath,
     bookingUrl:bookingUrl || '',
-    affiliateUrl:item.affiliateUrl || '',
-    originalUrl:bookingUrl || item.detailUrl || item.productUrl || item.url || '',
+    affiliateUrl:item.affiliateUrl || item.affiliateLink || '',
+    originalUrl:bookingUrl || item.detailUrl || item.productUrl || item.deepLink || item.link || item.url || '',
   });
 }
 
@@ -4487,6 +4544,8 @@ function setSaveTripButtonState(label, saved = false, disabled = false){
     button.textContent = label;
     button.disabled = Boolean(disabled);
     button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+    button.setAttribute('aria-pressed', saved ? 'true' : 'false');
+    button.setAttribute('title', saved ? '저장 취소' : '여행 일정 저장');
     button.classList.toggle('saved', saved);
     button.classList.toggle('primary', !saved && !disabled);
   });
@@ -4525,7 +4584,7 @@ function setupSaveTripStickyCta(){
 function saveCurrentTrip(){
   if(saveTripInProgress || SAVED_TRIP_VIEW) return;
   if(currentSavedTripId) {
-    setSaveTripButtonState('저장 완료', true, true);
+    cancelCurrentSavedTrip();
     return;
   }
   if(!savedTripStorageAvailable()) {
@@ -4543,15 +4602,42 @@ function saveCurrentTrip(){
     const nextTrips = [payload, ...readSavedTrips()].slice(0, MAX_SAVED_TRIPS);
     writeSavedTrips(nextTrips);
     currentSavedTripId = payload.id;
-    setSaveTripButtonState('저장 완료', true, true);
+    setSaveTripButtonState('저장됨', true, true);
     window.setTimeout(() => {
       saveTripInProgress = false;
-      setSaveTripButtonState('저장 완료', true, true);
+      setSaveTripButtonState('저장됨', true, false);
     }, 1200);
   } catch(e) {
     saveTripInProgress = false;
     setSaveTripButtonState('여행 일정 저장', false, false);
     alert('이 브라우저에서는 저장을 사용할 수 없어요.');
+  }
+}
+
+function cancelCurrentSavedTrip(){
+  if(saveTripInProgress || SAVED_TRIP_VIEW) return;
+  const tripId = currentSavedTripId;
+  if(!tripId) {
+    setSaveTripButtonState('여행 일정 저장', false, false);
+    return;
+  }
+  if(!window.confirm('저장한 여행 일정을 취소할까요?')) return;
+  if(!savedTripStorageAvailable()) {
+    alert('이 브라우저에서는 저장을 사용할 수 없어요.');
+    return;
+  }
+  saveTripInProgress = true;
+  setSaveTripButtonState('취소 중...', true, true);
+  try {
+    writeSavedTrips(readSavedTrips().filter((trip) => String(trip?.id || '') !== String(tripId)));
+    unlinkSavedItemsFromTrip(tripId);
+    currentSavedTripId = '';
+    saveTripInProgress = false;
+    setSaveTripButtonState('여행 일정 저장', false, false);
+  } catch(e) {
+    saveTripInProgress = false;
+    setSaveTripButtonState('저장됨', true, false);
+    alert('저장 취소를 완료하지 못했어요.');
   }
 }
 

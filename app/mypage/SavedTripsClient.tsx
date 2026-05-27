@@ -50,13 +50,32 @@ function savedDateLabel(value?: string) {
   return label ? `${label} 저장` : "";
 }
 
+function savedDateTimeLabel(value?: string) {
+  const date = new Date(value || "");
+  if (Number.isNaN(date.getTime())) return savedDateLabel(value);
+  const dateLabel = shortDate(value);
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${dateLabel} ${hours}:${minutes} 저장`;
+}
+
 function formatBudget(value: number | null) {
   if (!value || value <= 0) return "예산 정보 없음";
   return `총 ${Math.round(value).toLocaleString("ko-KR")}원`;
 }
 
+function formatCompactBudget(value: number | null) {
+  if (!value || value <= 0) return "";
+  if (value >= 10000) return `${Math.round(value / 10000).toLocaleString("ko-KR")}만원`;
+  return `${Math.round(value).toLocaleString("ko-KR")}원`;
+}
+
 function styleText(styles: string[]) {
   return styles.length ? styles.join(" · ") : "대표 코스";
+}
+
+function compactStyleText(styles: string[]) {
+  return styles.slice(0, 2).join(" · ");
 }
 
 function savedTripResultHref(id: string) {
@@ -67,6 +86,34 @@ function tripLabel(trip: SavedTrip, withDate = false) {
   const base = `${trip.cityName} ${trip.nights}박${trip.days}일`;
   const dateLabel = shortDate(trip.savedAt);
   return withDate && dateLabel ? `${base} · ${dateLabel}` : base;
+}
+
+function tripOptionBaseLabel(trip: SavedTrip) {
+  const parts = [
+    tripLabel(trip),
+    compactStyleText(trip.styles),
+    formatCompactBudget(trip.budgetTotal),
+    savedDateTimeLabel(trip.savedAt).replace(" 저장", ""),
+  ].filter(Boolean);
+  return parts.join(" · ");
+}
+
+function buildTripOptionLabels(trips: SavedTrip[]) {
+  const baseCounts = new Map<string, number>();
+  const seenCounts = new Map<string, number>();
+
+  trips.forEach((trip) => {
+    const base = tripOptionBaseLabel(trip);
+    baseCounts.set(base, (baseCounts.get(base) || 0) + 1);
+  });
+
+  return trips.reduce<Record<string, string>>((labels, trip) => {
+    const base = tripOptionBaseLabel(trip);
+    const nextSeen = (seenCounts.get(base) || 0) + 1;
+    seenCounts.set(base, nextSeen);
+    labels[trip.id] = (baseCounts.get(base) || 0) > 1 ? `${base} #${nextSeen}` : base;
+    return labels;
+  }, {});
 }
 
 function normalizeItemType(value: unknown): SavedItemType {
@@ -345,6 +392,7 @@ export function SavedTripsClient() {
     ...countItems(items),
   };
   const unassignedCounts = countItems(unassignedItems);
+  const tripOptionLabels = buildTripOptionLabels(trips);
   const activeBoardLabel =
     selectedBoard === "all"
       ? "전체 보기"
@@ -501,14 +549,19 @@ export function SavedTripsClient() {
                 <strong className="mt-3 line-clamp-2 block text-[15px] font-black leading-tight tracking-[-0.045em] text-[#2c211d]">
                   {tripLabel(trip)}
                 </strong>
-                {savedDateLabel(trip.savedAt) ? (
+                {savedDateTimeLabel(trip.savedAt) ? (
                   <span className="mt-1.5 block text-[11px] font-black text-[#b9877b]">
-                    {savedDateLabel(trip.savedAt)}
+                    {savedDateTimeLabel(trip.savedAt)}
                   </span>
                 ) : null}
                 <span className="mt-1 block text-[11.5px] font-bold leading-snug text-[#8a7a72]">
                   {formatBudget(trip.budgetTotal)}
                 </span>
+                {compactStyleText(trip.styles) ? (
+                  <span className="mt-1 block text-[11px] font-bold leading-snug text-[#9a8a82]">
+                    {compactStyleText(trip.styles)}
+                  </span>
+                ) : null}
                 <span className="mt-3 inline-flex rounded-full bg-[#f7f1ec] px-2.5 py-1 text-[10.5px] font-black text-[#8c6f64]">
                   {countText({ trips: 1, ...linkedCounts })}
                 </span>
@@ -719,7 +772,7 @@ export function SavedTripsClient() {
                             htmlFor={`attach-trip-${item.id}`}
                             className="text-[11.5px] font-black text-[#7d6e66]"
                           >
-                            이 상품을 여행에 담기
+                            + 여행에 담기
                           </label>
                           <div className="flex gap-2">
                             <select
@@ -735,7 +788,7 @@ export function SavedTripsClient() {
                             >
                               {trips.map((trip) => (
                                 <option key={trip.id} value={trip.id}>
-                                  {tripLabel(trip, true)}
+                                  {tripOptionLabels[trip.id] || tripLabel(trip, true)}
                                 </option>
                               ))}
                             </select>
