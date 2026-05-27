@@ -26,6 +26,10 @@ function styleText(styles: string[]) {
   return styles.length ? styles.join(" · ") : "대표 코스";
 }
 
+function savedTripResultHref(id: string) {
+  return `/planner-result.html?mode=saved&savedTripId=${encodeURIComponent(id)}`;
+}
+
 function normalizeSavedTrips(value: unknown): SavedTrip[] {
   if (!Array.isArray(value)) return [];
   return value
@@ -53,14 +57,14 @@ export function SavedTripsClient() {
       const raw = window.localStorage.getItem(SAVED_TRIPS_STORAGE_KEY);
       setTrips(normalizeSavedTrips(raw ? JSON.parse(raw) : []));
     } catch {
-      setStorageError("저장한 일정을 불러오지 못했어요.");
+      setStorageError("저장한 여행을 불러오지 못했어요.");
     } finally {
       setLoaded(true);
     }
   }, []);
 
   function deleteTrip(id: string) {
-    if (!window.confirm("저장한 일정을 삭제할까요?")) return;
+    if (!window.confirm("저장한 여행을 삭제할까요?")) return;
 
     const nextTrips = trips.filter((trip) => trip.id !== id);
     try {
@@ -78,13 +82,13 @@ export function SavedTripsClient() {
     <section className="rounded-[28px] border border-[#f2ded4] bg-white/88 p-4 shadow-[0_18px_40px_rgba(111,63,48,0.08)]">
       <div className="mb-4">
         <h2 className="text-[19px] font-black tracking-[-0.05em]">
-          저장한 일정
+          저장한 여행
         </h2>
         <p className="mt-1 text-[12.5px] font-semibold leading-relaxed text-[#8a7a72]">
-          저장한 일정은 현재 브라우저에 보관돼요.
+          이 기기에 저장된 여행 계획이에요.
         </p>
         <p className="mt-1 text-[11.5px] font-semibold leading-relaxed text-[#b0998e]">
-          추후 로그인 기능이 추가되면 다른 기기에서도 확인할 수 있게 확장할 예정이에요.
+          현재는 이 브라우저에만 저장돼요.
         </p>
       </div>
 
@@ -96,12 +100,12 @@ export function SavedTripsClient() {
 
       {!loaded ? (
         <div className="rounded-3xl bg-[#fff8f5] p-5 text-center text-[13px] font-bold text-[#8a7a72]">
-          저장한 일정을 확인하고 있어요.
+          저장한 여행을 확인하고 있어요.
         </div>
       ) : trips.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-[#ebcfc4] bg-[#fff8f5] p-5 text-center">
           <p className="text-[14px] font-black tracking-[-0.04em]">
-            아직 저장한 일정이 없어요.
+            아직 저장한 여행이 없어요.
           </p>
           <p className="mt-2 text-[12.5px] font-semibold leading-relaxed text-[#897970]">
             예산 플래너에서 마음에 드는 일정을 저장해보세요.
@@ -129,13 +133,6 @@ export function SavedTripsClient() {
                     {trip.cityName} {trip.nights}박 {trip.days}일
                   </h3>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => deleteTrip(trip.id)}
-                  className="shrink-0 rounded-full border border-[#efd6cf] bg-white px-3 py-1.5 text-[11px] font-black text-[#9d6a5e]"
-                >
-                  삭제
-                </button>
               </div>
 
               <div className="mt-3 flex flex-wrap gap-1.5 text-[11.5px] font-extrabold text-[#7d6e66]">
@@ -174,6 +171,22 @@ export function SavedTripsClient() {
                   </li>
                 ))}
               </ol>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a
+                  href={savedTripResultHref(trip.id)}
+                  className="inline-flex flex-1 items-center justify-center rounded-full bg-[#f26b61] px-4 py-2.5 text-[12px] font-black text-white shadow-[0_10px_24px_rgba(219,85,75,0.18)]"
+                >
+                  저장한 결과 보기
+                </a>
+                <button
+                  type="button"
+                  onClick={() => deleteTrip(trip.id)}
+                  className="inline-flex items-center justify-center rounded-full border border-[#efd6cf] bg-white px-4 py-2.5 text-[12px] font-black text-[#9d6a5e]"
+                >
+                  삭제
+                </button>
+              </div>
             </article>
           ))}
         </div>

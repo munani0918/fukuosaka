@@ -291,7 +291,14 @@
     .summary-card-title { display:flex; align-items:center; gap:7px; margin-bottom:10px; font-size:15.5px; font-weight:900; color:#2C221D; letter-spacing:-.03em; }
     .summary-hero-actions { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
     .itinerary-jump-button, .save-trip-button { display:inline-flex; align-items:center; justify-content:center; padding:7px 10px; border:1px solid #F0B7B2; border-radius:999px; background:#FFF8F5; color:#C94D43; font-family:inherit; font-size:11.5px; line-height:1.2; font-weight:900; cursor:pointer; box-shadow:0 6px 14px rgba(203,75,66,.08); }
-    .save-trip-button.saved { border-color:#F26B61; background:#F26B61; color:#fff; }
+    .save-trip-button.primary { border-color:#F26B61; background:#F26B61; color:#fff; }
+    .save-trip-button.saved, .save-trip-button:disabled { border-color:#F0D7CE; background:#F7EEE9; color:#9F8B82; cursor:default; box-shadow:none; }
+    .saved-trip-notice { margin-top:10px; padding:10px 12px; border:1px solid #F1D6CF; border-radius:16px; background:#FFF8F5; color:#7E7067; font-size:12px; font-weight:750; line-height:1.45; }
+    .saved-trip-notice strong { display:block; color:#C94D43; font-size:12.5px; margin-bottom:2px; }
+    .saved-trip-error { margin:18px 0; padding:22px 18px; border:1px solid #F1D6CF; border-radius:24px; background:#FFF8F5; text-align:center; color:#2C221D; }
+    .saved-trip-error h2 { margin:0 0 8px; font-size:18px; letter-spacing:-.04em; }
+    .saved-trip-error p { margin:0 0 16px; color:#7E7067; font-size:13px; line-height:1.5; }
+    .saved-trip-error a { display:inline-flex; align-items:center; justify-content:center; padding:10px 14px; border-radius:999px; background:#F26B61; color:#fff; font-size:12px; font-weight:900; text-decoration:none; }
     .budget-list { display:flex; flex-direction:column; gap:8px; }
     .budget-line { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:8px; border-bottom:1px solid #EEE4DA; }
     .budget-line:last-child { border-bottom:none; padding-bottom:0; }
@@ -982,6 +989,8 @@ let PLAN_SUMMARY = null;
 let activeTab = 'summary';
 let RESULT_DATA = { flights: [], stays: [], agodaStays: [], tnas: [] };
 const RESULT_FILTERS = { hotels: null, tours: null, flights: null };
+let SAVED_TRIP_VIEW = false;
+let ACTIVE_SAVED_TRIP = null;
 (function readPlanSummary(){
   try {
     PLAN_INPUT = JSON.parse(sessionStorage.getItem('plannerPlanInput') || 'null');
@@ -994,7 +1003,7 @@ const RESULT_FILTERS = { hotels: null, tours: null, flights: null };
     if(PLAN_INPUT && explicitParams.get('routeStyle')) PLAN_INPUT.routeStyle = explicitParams.get('routeStyle');
     if(PLAN_INPUT && explicitParams.get('planType')) PLAN_INPUT.planType = explicitParams.get('planType');
     const storedSignature = PLAN_SUMMARY?.resultInputSignature || PLAN_INPUT?.resultInputSignature;
-    const hasExplicitQuery = Boolean(window.location.search);
+    const hasExplicitQuery = Boolean(window.location.search) && !explicitParams.get('savedTripId');
     if(PLAN_SUMMARY && ((storedSignature && storedSignature !== currentPlanSignature()) || (!storedSignature && hasExplicitQuery))) {
       PLAN_INPUT = null;
       PLAN_SUMMARY = null;
@@ -4166,9 +4175,16 @@ function buildSavedTripPayload(){
   const selectedTours = savedTripSelectedTours();
   const payload = {
     id: savedTripId(),
+    mode:'saved',
+    savedSource:'planner-result',
+    resultVersion:1,
     savedAt: new Date().toISOString(),
     cityCode: savedTripCityCode(),
     cityName,
+    date: PLAN_INPUT.date || P.date || '',
+    returnDate: PLAN_INPUT.returnDate || P.returnDate || '',
+    origin: P.origin || PLAN_INPUT.origin || '',
+    packageType: currentPackageType(),
     nights,
     days,
     budgetTotal: savedTripNumberOrNull(PLAN_INPUT.totalBudget || P.budget),
@@ -4204,10 +4220,182 @@ function saveCurrentTrip(){
     const nextTrips = [payload, ...readSavedTrips()].slice(0, MAX_SAVED_TRIPS);
     writeSavedTrips(nextTrips);
     setSaveTripButtonState('저장 완료', true);
-    window.setTimeout(() => setSaveTripButtonState('이 일정 저장하기', false), 1600);
+    window.setTimeout(() => setSaveTripButtonState('이 여행 저장하기', false), 1600);
   } catch(e) {
     alert('이 브라우저에서는 저장을 사용할 수 없어요.');
   }
+}
+
+function savedTripRequestId(){
+  const params = new URLSearchParams(window.location.search);
+  return params.get('savedTripId') || '';
+}
+
+function loadSavedTripFromStorage(savedTripId){
+  if(!savedTripId) return null;
+  return readSavedTrips().find(trip => String(trip?.id || '') === String(savedTripId)) || null;
+}
+
+function normalizeSavedTripStyleKeys(styles = []){
+  const byLabel = { '맛집':'food', '쇼핑':'shopping', '관광':'sightseeing', '온천':'onsen', '가족':'family', '커플':'couple', '혼자':'solo' };
+  return normalizeStyles((Array.isArray(styles) ? styles : []).map(style => byLabel[style] || style));
+}
+
+function savedTripHotelSnapshot(savedTrip){
+  const hotel = savedTrip?.selectedHotel;
+  if(!hotel?.title) return null;
+  const nightly = parsePrice(hotel.priceText || '');
+  const nights = Math.max(1, Number(savedTrip.nights) || 1);
+  return {
+    id: `saved-${savedTrip.id}-hotel`,
+    source:'saved',
+    provider:'saved',
+    isBookable:false,
+    name: hotel.title,
+    area: hotel.area || '',
+    price: hotel.priceText || '',
+    pricePerNight: nightly,
+    totalPrice: nightly ? nightly * nights : 0,
+    tags:['saved_trip'],
+  };
+}
+
+function savedTripTourSnapshots(savedTrip){
+  return (Array.isArray(savedTrip?.selectedTours) ? savedTrip.selectedTours : [])
+    .map((tour, index) => ({
+      id: `saved-${savedTrip.id}-tour-${index + 1}`,
+      source:'saved',
+      name: tour.title || `저장한 투어 ${index + 1}`,
+      displayTitle: tour.title || `저장한 투어 ${index + 1}`,
+      price: tour.priceText || '',
+      tag:'저장한 투어',
+      tags:['saved_trip'],
+      bookUrl:'',
+      productUrl:'',
+    }))
+    .filter(tour => tour.name);
+}
+
+function normalizeSavedTripToPlanSummary(savedTrip){
+  const nights = Math.max(1, Number(savedTrip.nights) || Math.max(1, Number(savedTrip.days || 2) - 1));
+  const days = Math.max(2, Number(savedTrip.days) || nights + 1);
+  const cityCode = savedTrip.cityCode || (String(savedTrip.cityName || '').includes('후쿠오카') ? 'FUK' : 'KIX');
+  const city = cityCode === 'FUK' ? 'fukuoka' : 'osaka';
+  const totalBudget = Number(savedTrip.budgetTotal) || 0;
+  const travelers = Math.max(1, Number(savedTrip.travelers) || 1);
+  const styleKeys = normalizeSavedTripStyleKeys(savedTrip.styles);
+  const packageType = normalizePackageTypeValue(savedTrip.packageType || 'hotel_tour');
+  const hotel = savedTripHotelSnapshot(savedTrip);
+  const tours = savedTripTourSnapshots(savedTrip);
+  const hotelCost = Number(hotel?.totalPrice) || 0;
+  const tourCost = tours.reduce((sum, tour) => sum + parsePrice(tour.price), 0);
+  const itineraryOutline = (Array.isArray(savedTrip.itineraryOutline) ? savedTrip.itineraryOutline : [])
+    .map((item, index) => ({
+      day: Number(item.day) || index + 1,
+      title: item.title || `${index + 1}일차 일정`,
+      description: item.summary || '',
+      summary: item.summary || '',
+      spots: Array.isArray(item.spots) ? item.spots : [],
+      mapMode: item.mapMode,
+      mapOptions: Array.isArray(item.mapOptions) ? item.mapOptions : undefined,
+      presetKey:'saved',
+    }));
+
+  Object.assign(P, {
+    cityCode,
+    date: savedTrip.date || '',
+    returnDate: savedTrip.returnDate || '',
+    nights,
+    origin: savedTrip.origin || 'ICN',
+    adults: travelers,
+    children: 0,
+    budget: totalBudget,
+    styles: styleKeys,
+    packages: packagesFromPackageType(packageType),
+    tripType:'RT',
+  });
+
+  PLAN_INPUT = {
+    city,
+    cityCode,
+    date: savedTrip.date || '',
+    returnDate: savedTrip.returnDate || '',
+    nights,
+    days,
+    adults: travelers,
+    children: 0,
+    totalBudget,
+    travelStyles: styleKeys,
+    packageType,
+  };
+  PLAN_SUMMARY = {
+    isSavedTrip:true,
+    generatedAt: savedTrip.savedAt,
+    totalTravelers: travelers,
+    itineraryHeadline: savedTrip.title || `${savedTrip.cityName || CITY_NAME[cityCode]} ${nights}박 ${days}일 여행 계획`,
+    recommendationReason: savedTrip.summary || '저장한 여행 계획을 다시 보여드리고 있어요.',
+    itineraryOutline,
+    budget: {
+      total: totalBudget,
+      status:'within_budget',
+      overBudgetLevel:'within_budget',
+      flight:0,
+      hotel:hotelCost,
+      tour:tourCost,
+      selectedHotelCost:hotelCost,
+      selectedHotelName: hotel?.name || '',
+      hotelMatchStatus: hotel ? 'target_matched' : 'not_needed',
+      reservationBudgetUsageStatus:'fit',
+      generatedAt: savedTrip.savedAt,
+    },
+  };
+  RESULT_DATA = {
+    flights: [],
+    stays: hotel ? [hotel] : [],
+    agodaStays: [],
+    tnas: tours,
+  };
+  return { planInput: PLAN_INPUT, planSummary: PLAN_SUMMARY, resultData: RESULT_DATA };
+}
+
+function renderSavedTripNotFound(){
+  stopPageLoadingProgress();
+  document.getElementById('page-loading').style.display = 'none';
+  document.getElementById('page-content').style.display = 'block';
+  const summary = document.getElementById('sec-summary');
+  if(summary) {
+    summary.innerHTML = `<div class="saved-trip-error">
+      <h2>저장한 여행을 찾을 수 없어요.</h2>
+      <p>이 브라우저에 저장된 여행이 삭제되었거나, 잘못된 링크일 수 있어요.</p>
+      <a href="/mypage">마이페이지로 돌아가기</a>
+    </div>`;
+  }
+  ['flight-list','hotel-list','tour-list','cost-card'].forEach((id) => {
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = '';
+  });
+}
+
+function renderSavedTripResult(savedTripId){
+  const savedTrip = loadSavedTripFromStorage(savedTripId);
+  if(!savedTrip) {
+    renderSavedTripNotFound();
+    return;
+  }
+  SAVED_TRIP_VIEW = true;
+  ACTIVE_SAVED_TRIP = savedTrip;
+  normalizeSavedTripToPlanSummary(savedTrip);
+  renderHeader();
+  renderSummary();
+  renderFlights([]);
+  renderHotels(RESULT_DATA.stays || []);
+  renderTours(RESULT_DATA.tnas || []);
+  renderCost([], RESULT_DATA.stays || [], RESULT_DATA.tnas || []);
+  stopPageLoadingProgress();
+  document.getElementById('page-loading').style.display = 'none';
+  document.getElementById('page-content').style.display = 'block';
+  const hashTab = resultTabFromHash();
+  setActiveTab(hashTab || 'summary', Boolean(hashTab));
 }
 
 function compactItineraryDescription(description, item = {}, index = 0, usedDescriptions = new Set()){
@@ -4271,6 +4459,12 @@ function renderSummary(){
           </div>
         </div>`;
   }).join('');
+  const savedTripNotice = SAVED_TRIP_VIEW
+    ? `<div class="saved-trip-notice"><strong>저장한 여행 계획</strong>가격과 상품 정보는 저장 당시 기준일 수 있어요.</div>`
+    : '';
+  const saveTripAction = SAVED_TRIP_VIEW
+    ? `<button class="save-trip-button saved" type="button" disabled>저장됨</button>`
+    : `<button class="save-trip-button primary" id="save-trip-button" type="button" onclick="saveCurrentTrip()">이 여행 저장하기</button>`;
   el.innerHTML = `
     <div class="summary-card summary-hero">
       <div class="summary-top compact">
@@ -4280,9 +4474,10 @@ function renderSummary(){
         </div>
       </div>
       <div class="summary-tags">${conditionTags.map(tag => `<span class="summary-tag">${tag}</span>`).join('')}</div>
+      ${savedTripNotice}
       <div class="summary-hero-actions">
+        ${saveTripAction}
         <button class="itinerary-jump-button" type="button" onclick="scrollToItineraryOutline()">일정 뼈대 보기</button>
-        <button class="save-trip-button" id="save-trip-button" type="button" onclick="saveCurrentTrip()">이 일정 저장하기</button>
       </div>
     </div>
 
@@ -4593,6 +4788,7 @@ function getFallbackToursFinal(){
 }
 
 function prepareHotelResults(stays){
+  if(SAVED_TRIP_VIEW) return Array.isArray(stays) ? stays : [];
   const reservationMeta = activeReservationHotelTargetMeta();
   const source = reservationMeta
     ? reservationHotelCandidatePool(stays, reservationMeta)
@@ -4607,6 +4803,7 @@ function prepareHotelResults(stays){
 }
 
 function prepareTourResults(tours){
+  if(SAVED_TRIP_VIEW && (!Array.isArray(tours) || !tours.length)) return [];
   const source = (Array.isArray(tours) && tours.length) ? tours : getFallbackToursFinal();
   let items = scoreTours(source);
   if(supportTicketsAllowed() && !packageIncludes('tour')) {
@@ -4701,6 +4898,7 @@ function mergeHotelDisplayItems(myrealtripItems, agodaItems){
 }
 
 function hotelSourceLabel(item = {}){
+  if(item.source === 'saved' || item.provider === 'saved') return '저장한 숙소';
   return item.source === 'agoda' || item.provider === 'agoda' ? '아고다' : '마이리얼트립';
 }
 
@@ -4768,9 +4966,11 @@ function renderHotels(stays){
       ? `<img class="prod-img" src="${escapeAttr(image)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
         + `<div class="prod-ph" style="display:none">🏨</div>`
       : `<div class="prod-ph">🏨</div>`;
-    const action = s.isBookable && url
+    const action = SAVED_TRIP_VIEW && !url
+      ? ''
+      : (s.isBookable && url
       ? `<a href="${urlAttr}"${linkAttrs} class="prod-btn" onclick="event.stopPropagation()">상세 보기</a>`
-      : `<button type="button" class="prod-btn" onclick="event.stopPropagation();setActiveTab('hotels', true)">숙소 다시 조회</button>`;
+      : `<button type="button" class="prod-btn" onclick="event.stopPropagation();setActiveTab('hotels', true)">숙소 다시 조회</button>`);
     return `<div class="prod-card">
       ${imgH}
       <div class="prod-info">
@@ -5655,7 +5855,9 @@ async function fetchAndRender(options = {}){
 // Boot
 startPageLoadingProgress();
 loadGoogleMapsEmbedKey();
-fetchAndRender();
+const initialSavedTripId = savedTripRequestId();
+if(initialSavedTripId) renderSavedTripResult(initialSavedTripId);
+else fetchAndRender();
 </script>
 </body>
 </html>

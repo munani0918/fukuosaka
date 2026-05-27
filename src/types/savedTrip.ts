@@ -17,9 +17,16 @@ export type SavedTripItineraryDay = {
 export type SavedTrip = {
   id: string;
   userId?: string;
+  mode?: "saved";
+  savedSource?: "planner-result";
+  resultVersion?: number;
   savedAt: string;
   cityCode: string;
   cityName: string;
+  date?: string;
+  returnDate?: string;
+  origin?: string;
+  packageType?: string;
   nights: number;
   days: number;
   budgetTotal: number | null;
