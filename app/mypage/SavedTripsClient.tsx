@@ -803,13 +803,17 @@ export function SavedTripsClient() {
                           <div className="flex flex-wrap gap-2">
                             <button
                               type="button"
+                              aria-label="선택한 여행에 추가"
+                              title="선택한 여행에 추가"
                               onClick={() => assignItemToTrip(item.id, selectedAttachTrip)}
                               className="min-w-[84px] flex-1 rounded-full bg-[#f26b61] px-3.5 py-2 text-[12px] font-black text-white"
                             >
-                              담기
+                              추가
                             </button>
                             <button
                               type="button"
+                              aria-label="여행 선택 접기"
+                              title="여행 선택 접기"
                               onClick={() =>
                                 setAttachOpenItems((previous) => ({
                                   ...previous,
@@ -818,7 +822,7 @@ export function SavedTripsClient() {
                               }
                               className="min-w-[72px] rounded-full border border-[#efd6cf] bg-white px-3.5 py-2 text-[12px] font-black text-[#9d6a5e]"
                             >
-                              닫기
+                              접기
                             </button>
                           </div>
                         </div>
