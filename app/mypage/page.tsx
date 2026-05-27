@@ -23,7 +23,7 @@ export default function MyPage() {
             마이페이지
           </h1>
           <p className="mt-2 text-[13px] font-semibold leading-relaxed text-[#81716a]">
-            저장한 여행 계획을 다시 확인할 수 있어요.
+            저장한 여행 계획과 상품을 확인해 보세요.
           </p>
         </header>
 
