@@ -289,7 +289,9 @@
     .summary-tags::-webkit-scrollbar { display:none; }
     .summary-tag { flex-shrink:0; padding:5px 9px; border-radius:999px; background:#FBF6F1; border:1px solid #EEE4DA; color:#7E7067; font-size:11.5px; font-weight:750; white-space:nowrap; }
     .summary-card-title { display:flex; align-items:center; gap:7px; margin-bottom:10px; font-size:15.5px; font-weight:900; color:#2C221D; letter-spacing:-.03em; }
-    .itinerary-jump-button { display:inline-flex; align-items:center; justify-content:center; margin-top:10px; padding:7px 10px; border:1px solid #F0B7B2; border-radius:999px; background:#FFF8F5; color:#C94D43; font-family:inherit; font-size:11.5px; line-height:1.2; font-weight:900; cursor:pointer; box-shadow:0 6px 14px rgba(203,75,66,.08); }
+    .summary-hero-actions { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
+    .itinerary-jump-button, .save-trip-button { display:inline-flex; align-items:center; justify-content:center; padding:7px 10px; border:1px solid #F0B7B2; border-radius:999px; background:#FFF8F5; color:#C94D43; font-family:inherit; font-size:11.5px; line-height:1.2; font-weight:900; cursor:pointer; box-shadow:0 6px 14px rgba(203,75,66,.08); }
+    .save-trip-button.saved { border-color:#F26B61; background:#F26B61; color:#fff; }
     .budget-list { display:flex; flex-direction:column; gap:8px; }
     .budget-line { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:8px; border-bottom:1px solid #EEE4DA; }
     .budget-line:last-child { border-bottom:none; padding-bottom:0; }
@@ -837,7 +839,7 @@
       </span>
       <span class="nav-lbl">투어·티켓</span>
     </a>
-    <a class="nav-item" href="#top">
+    <a class="nav-item" href="/mypage">
       <span class="nav-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="8" r="3.5"></circle>
@@ -4063,6 +4065,151 @@ function itineraryGoogleMapsLinkHtml(item = {}, index = 0){
     : content;
 }
 
+const SAVED_TRIPS_STORAGE_KEY = 'fukuosaka_saved_trips';
+const MAX_SAVED_TRIPS = 20;
+
+function savedTripNumberOrNull(value){
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? num : null;
+}
+
+function savedTripId(){
+  try {
+    if(window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+  } catch(e) {}
+  return `trip-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function savedTripStorageAvailable(){
+  try {
+    const testKey = '__fukuosaka_saved_trip_test__';
+    window.localStorage.setItem(testKey, '1');
+    window.localStorage.removeItem(testKey);
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+function readSavedTrips(){
+  try {
+    const raw = window.localStorage.getItem(SAVED_TRIPS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch(e) {
+    return [];
+  }
+}
+
+function writeSavedTrips(trips){
+  window.localStorage.setItem(SAVED_TRIPS_STORAGE_KEY, JSON.stringify(trips.slice(0, MAX_SAVED_TRIPS)));
+}
+
+function savedTripCityCode(){
+  return P.cityCode || (PLAN_INPUT?.city === 'fukuoka' ? 'FUK' : 'KIX');
+}
+
+function savedTripCityName(){
+  return PLAN_INPUT?.city === 'fukuoka' || savedTripCityCode() === 'FUK' ? '후쿠오카' : '오사카';
+}
+
+function savedTripStyles(){
+  return normalizeStyles(PLAN_INPUT?.travelStyles || P.styles || [])
+    .map(style => SUMMARY_STYLE_NAME[style] || style)
+    .filter(Boolean);
+}
+
+function savedTripItineraryOutline(){
+  return (Array.isArray(PLAN_SUMMARY?.itineraryOutline) ? PLAN_SUMMARY.itineraryOutline : [])
+    .map((item, index) => {
+      const mapOptions = validMapOptions(item);
+      const day = {
+        day: Number(item.day) || index + 1,
+        title: String(item.title || '').trim(),
+        summary: String(item.summary || item.description || '').trim(),
+        spots: (Array.isArray(item.spots) ? item.spots : []).map(spot => String(spot || '').trim()).filter(Boolean),
+      };
+      if(item.mapMode === 'options' || mapOptions.length) day.mapMode = 'options';
+      if(mapOptions.length) day.mapOptions = mapOptions;
+      return day;
+    })
+    .filter(item => item.title || item.summary || item.spots.length);
+}
+
+function savedTripSelectedHotel(){
+  const hotel = summaryRecommendedHotels()[0];
+  if(!hotel) return undefined;
+  return {
+    title: hotel.name || hotel.title || hotel.hotelName || '',
+    area: hotel.area || hotel.location || hotelSourceLabel(hotel),
+    priceText: hotelPreviewMeta(hotel) || '',
+  };
+}
+
+function savedTripSelectedTours(){
+  return prepareTourResults(RESULT_DATA.tnas || [])
+    .slice(0, 3)
+    .map(tour => ({
+      title: tour.displayTitle || tour.name || tour.title || tour.itemName || '',
+      priceText: tourPreviewMeta(tour) || formatTourPriceForMeta(tour) || '',
+    }))
+    .filter(tour => tour.title || tour.priceText);
+}
+
+function buildSavedTripPayload(){
+  if(!PLAN_SUMMARY || !PLAN_INPUT) return null;
+  const nights = Math.max(1, Number(PLAN_INPUT.nights || P.nights) || 1);
+  const days = Math.max(2, Number(PLAN_INPUT.days) || nights + 1);
+  const cityName = savedTripCityName();
+  const itineraryOutline = savedTripItineraryOutline();
+  const selectedHotel = savedTripSelectedHotel();
+  const selectedTours = savedTripSelectedTours();
+  const payload = {
+    id: savedTripId(),
+    savedAt: new Date().toISOString(),
+    cityCode: savedTripCityCode(),
+    cityName,
+    nights,
+    days,
+    budgetTotal: savedTripNumberOrNull(PLAN_INPUT.totalBudget || P.budget),
+    travelers: savedTripNumberOrNull(PLAN_SUMMARY.totalTravelers || PLAN_INPUT.adults || P.adults),
+    styles: savedTripStyles(),
+    title: PLAN_SUMMARY.itineraryHeadline || `${cityName} ${nights}박 ${days}일 일정`,
+    summary: conciseRecommendationReason(PLAN_SUMMARY.recommendationReason) || itineraryBasisCopy(),
+    itineraryOutline,
+  };
+  if(selectedHotel) payload.selectedHotel = selectedHotel;
+  if(selectedTours.length) payload.selectedTours = selectedTours;
+  return payload;
+}
+
+function setSaveTripButtonState(label, saved = false){
+  const button = document.getElementById('save-trip-button');
+  if(!button) return;
+  button.textContent = label;
+  button.classList.toggle('saved', saved);
+}
+
+function saveCurrentTrip(){
+  if(!savedTripStorageAvailable()) {
+    alert('이 브라우저에서는 저장을 사용할 수 없어요.');
+    return;
+  }
+  const payload = buildSavedTripPayload();
+  if(!payload) {
+    alert('저장할 일정 정보를 아직 준비하고 있어요.');
+    return;
+  }
+  try {
+    const nextTrips = [payload, ...readSavedTrips()].slice(0, MAX_SAVED_TRIPS);
+    writeSavedTrips(nextTrips);
+    setSaveTripButtonState('저장 완료', true);
+    window.setTimeout(() => setSaveTripButtonState('이 일정 저장하기', false), 1600);
+  } catch(e) {
+    alert('이 브라우저에서는 저장을 사용할 수 없어요.');
+  }
+}
+
 function compactItineraryDescription(description, item = {}, index = 0, usedDescriptions = new Set()){
   const raw = String(description || '').replace(/\s+/g, ' ').trim();
   if(raw && (item.presetKey || item.spots) && isCompleteItinerarySentence(raw)){
@@ -4133,7 +4280,10 @@ function renderSummary(){
         </div>
       </div>
       <div class="summary-tags">${conditionTags.map(tag => `<span class="summary-tag">${tag}</span>`).join('')}</div>
-      <button class="itinerary-jump-button" type="button" onclick="scrollToItineraryOutline()">일정 뼈대 보기</button>
+      <div class="summary-hero-actions">
+        <button class="itinerary-jump-button" type="button" onclick="scrollToItineraryOutline()">일정 뼈대 보기</button>
+        <button class="save-trip-button" id="save-trip-button" type="button" onclick="saveCurrentTrip()">이 일정 저장하기</button>
+      </div>
     </div>
 
     ${renderBudgetModeNotice()}

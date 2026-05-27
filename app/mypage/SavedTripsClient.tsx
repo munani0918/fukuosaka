@@ -1,0 +1,183 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+import {
+  SAVED_TRIPS_STORAGE_KEY,
+  type SavedTrip,
+} from "@/src/types/savedTrip";
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "저장일 확인 중";
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function formatBudget(value: number | null) {
+  if (!value || value <= 0) return "예산 정보 없음";
+  return `총 ${Math.round(value).toLocaleString("ko-KR")}원`;
+}
+
+function styleText(styles: string[]) {
+  return styles.length ? styles.join(" · ") : "대표 코스";
+}
+
+function normalizeSavedTrips(value: unknown): SavedTrip[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is SavedTrip => {
+      return Boolean(
+        item &&
+          typeof item === "object" &&
+          "id" in item &&
+          "savedAt" in item &&
+          "cityName" in item,
+      );
+    })
+    .sort((a, b) => {
+      return new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime();
+    });
+}
+
+export function SavedTripsClient() {
+  const [trips, setTrips] = useState<SavedTrip[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [storageError, setStorageError] = useState("");
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(SAVED_TRIPS_STORAGE_KEY);
+      setTrips(normalizeSavedTrips(raw ? JSON.parse(raw) : []));
+    } catch {
+      setStorageError("저장한 일정을 불러오지 못했어요.");
+    } finally {
+      setLoaded(true);
+    }
+  }, []);
+
+  function deleteTrip(id: string) {
+    if (!window.confirm("저장한 일정을 삭제할까요?")) return;
+
+    const nextTrips = trips.filter((trip) => trip.id !== id);
+    try {
+      window.localStorage.setItem(
+        SAVED_TRIPS_STORAGE_KEY,
+        JSON.stringify(nextTrips),
+      );
+      setTrips(nextTrips);
+    } catch {
+      setStorageError("이 브라우저에서는 저장 변경을 사용할 수 없어요.");
+    }
+  }
+
+  return (
+    <section className="rounded-[28px] border border-[#f2ded4] bg-white/88 p-4 shadow-[0_18px_40px_rgba(111,63,48,0.08)]">
+      <div className="mb-4">
+        <h2 className="text-[19px] font-black tracking-[-0.05em]">
+          저장한 일정
+        </h2>
+        <p className="mt-1 text-[12.5px] font-semibold leading-relaxed text-[#8a7a72]">
+          저장한 일정은 현재 브라우저에 보관돼요.
+        </p>
+        <p className="mt-1 text-[11.5px] font-semibold leading-relaxed text-[#b0998e]">
+          추후 로그인 기능이 추가되면 다른 기기에서도 확인할 수 있게 확장할 예정이에요.
+        </p>
+      </div>
+
+      {storageError ? (
+        <div className="mb-3 rounded-2xl border border-[#f3d0c5] bg-[#fff8f5] px-3 py-2 text-[12px] font-bold text-[#c45449]">
+          {storageError}
+        </div>
+      ) : null}
+
+      {!loaded ? (
+        <div className="rounded-3xl bg-[#fff8f5] p-5 text-center text-[13px] font-bold text-[#8a7a72]">
+          저장한 일정을 확인하고 있어요.
+        </div>
+      ) : trips.length === 0 ? (
+        <div className="rounded-3xl border border-dashed border-[#ebcfc4] bg-[#fff8f5] p-5 text-center">
+          <p className="text-[14px] font-black tracking-[-0.04em]">
+            아직 저장한 일정이 없어요.
+          </p>
+          <p className="mt-2 text-[12.5px] font-semibold leading-relaxed text-[#897970]">
+            예산 플래너에서 마음에 드는 일정을 저장해보세요.
+          </p>
+          <a
+            href="/planner-wizard.html"
+            className="mt-4 inline-flex items-center justify-center rounded-full bg-[#f26b61] px-4 py-2.5 text-[12px] font-black text-white shadow-[0_10px_24px_rgba(219,85,75,0.18)]"
+          >
+            예산 플래너 시작하기
+          </a>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {trips.map((trip) => (
+            <article
+              key={trip.id}
+              className="rounded-[24px] border border-[#f0dfd7] bg-[#fffdfb] p-4 shadow-[0_12px_28px_rgba(92,55,43,0.06)]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-black text-[#d95f55]">
+                    {trip.cityName}
+                  </p>
+                  <h3 className="mt-1 text-[18px] font-black leading-snug tracking-[-0.05em]">
+                    {trip.cityName} {trip.nights}박 {trip.days}일
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => deleteTrip(trip.id)}
+                  className="shrink-0 rounded-full border border-[#efd6cf] bg-white px-3 py-1.5 text-[11px] font-black text-[#9d6a5e]"
+                >
+                  삭제
+                </button>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-1.5 text-[11.5px] font-extrabold text-[#7d6e66]">
+                <span className="rounded-full bg-[#fff1ec] px-2.5 py-1 text-[#c85c52]">
+                  {formatBudget(trip.budgetTotal)}
+                </span>
+                <span className="rounded-full bg-[#f7f1ec] px-2.5 py-1">
+                  {styleText(trip.styles)}
+                </span>
+                <span className="rounded-full bg-[#f7f1ec] px-2.5 py-1">
+                  저장일 {formatDate(trip.savedAt)}
+                </span>
+              </div>
+
+              <div className="mt-4 rounded-[18px] bg-[#fff8f5] p-3">
+                <p className="text-[13px] font-black leading-snug tracking-[-0.04em]">
+                  {trip.title}
+                </p>
+                <p className="mt-1 text-[12px] font-semibold leading-relaxed text-[#83736c]">
+                  {trip.summary}
+                </p>
+              </div>
+
+              <ol className="mt-3 space-y-1.5">
+                {trip.itineraryOutline.map((day) => (
+                  <li
+                    key={`${trip.id}-${day.day}`}
+                    className="flex gap-2 text-[12.5px] leading-relaxed"
+                  >
+                    <span className="shrink-0 font-black text-[#d95f55]">
+                      {day.day}일차
+                    </span>
+                    <span className="min-w-0 font-bold text-[#3b302b]">
+                      {day.title}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
