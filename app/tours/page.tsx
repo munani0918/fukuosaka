@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { connection } from "next/server";
 
+import { SavedItemStarButton } from "@/src/components/SavedItemStarButton";
 import { Artwork } from "@/src/components/home/Artwork";
 import { BottomTabBar } from "@/src/components/home/BottomTabBar";
 import { SearchIcon, StarIcon } from "@/src/components/home/icons";
 import {
+  type TnaSearchItem,
   searchTnaCategoriesViaApi,
   searchTnaProductsViaApi,
 } from "@/src/lib/myrealtrip";
@@ -14,6 +16,8 @@ import {
   coerceTourSearchState,
   formatTourPriceLabel,
 } from "@/src/lib/tours";
+import { inferSavedTourItemType } from "@/src/lib/savedItems";
+import type { SavedItem } from "@/src/types/savedTrip";
 import { ReturnLink } from "../stays/ReturnLink";
 
 function bottomTabs() {
@@ -34,6 +38,42 @@ function safeRelativeReturnTo(value: string | undefined) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
   if (/^https?:\/\//i.test(value)) return null;
   return value;
+}
+
+function tourCityCode(city: string) {
+  return city.includes("후쿠오카") ? "FUK" : "KIX";
+}
+
+function tourSavedItemPayload(
+  tour: TnaSearchItem,
+  state: ReturnType<typeof coerceTourSearchState>,
+  detailPath: string,
+): SavedItem {
+  const priceText = formatTourPriceLabel(tour.priceDisplay, tour.salePrice);
+
+  return {
+    id: "",
+    itemType: inferSavedTourItemType({
+      title: tour.itemName,
+      category: tour.category,
+      tags: tour.tags,
+    }),
+    source: "myrealtrip",
+    cityCode: tourCityCode(state.city),
+    cityName: state.city,
+    title: tour.itemName,
+    subtitle: tour.category || "투어·티켓",
+    category: tour.category || "투어·티켓",
+    priceText,
+    ...(tour.imageUrl ? { imageUrl: tour.imageUrl } : {}),
+    ...(tour.reviewScore ? { ratingText: `★ ${tour.reviewScore.toFixed(1).replace(/\.0$/, "")}` } : {}),
+    badgeText: tour.category || "투어·티켓",
+    detailPath,
+    bookingUrl: tour.productUrl,
+    ...(tour.deepLink ? { affiliateUrl: tour.deepLink } : {}),
+    originalUrl: tour.deepLink || tour.productUrl,
+    savedAt: "",
+  };
 }
 
 export default async function ToursPage({
@@ -141,12 +181,18 @@ export default async function ToursPage({
 
         <section className="space-y-2.5 px-5">
           {tours.length > 0 ? (
-            tours.map((tour) => (
-              <Link
-                key={tour.gid}
-                href={buildTourDetailHref(tour, state)}
-                className="flex overflow-hidden rounded-[22px] bg-white shadow-[0_12px_22px_rgba(85,42,28,0.055)] ring-1 ring-[#efe3db] transition active:scale-[0.99]"
-              >
+            tours.map((tour) => {
+              const detailHref = buildTourDetailHref(tour, state);
+              return (
+              <article key={tour.gid} className="relative">
+                <SavedItemStarButton
+                  item={tourSavedItemPayload(tour, state, detailHref)}
+                  className="absolute right-3 top-3 z-10 bg-white/95"
+                />
+                <Link
+                  href={detailHref}
+                  className="flex overflow-hidden rounded-[22px] bg-white shadow-[0_12px_22px_rgba(85,42,28,0.055)] ring-1 ring-[#efe3db] transition active:scale-[0.99]"
+                >
                 <div className="relative h-[136px] w-[118px] shrink-0 overflow-hidden bg-[#f5e8df]">
                   {tour.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -165,7 +211,7 @@ export default async function ToursPage({
                   <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(50,26,18,0.12)_100%)]" />
                 </div>
 
-                <div className="flex min-w-0 flex-1 flex-col p-3.5">
+                <div className="flex min-w-0 flex-1 flex-col p-3.5 pr-11">
                   <div className="flex min-w-0 flex-1 flex-col">
                     <div className="min-w-0">
                       <p className="inline-flex max-w-full items-center rounded-full bg-[#f7eee8] px-2 py-1 text-[10px] font-black leading-none text-[#9a7368]">
@@ -199,8 +245,10 @@ export default async function ToursPage({
                     </span>
                   </div>
                 </div>
-              </Link>
-            ))
+                </Link>
+              </article>
+            );
+            })
           ) : (
             <div className="rounded-[24px] bg-white p-5 text-center shadow-[0_14px_26px_rgba(85,42,28,0.06)] ring-1 ring-[#efe3db]">
               <p className="text-[17px] font-black tracking-[-0.04em] text-[#271d18]">

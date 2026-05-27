@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
+import { SavedItemStarButton } from "@/src/components/SavedItemStarButton";
 import { Artwork } from "@/src/components/home/Artwork";
 import { BottomTabBar } from "@/src/components/home/BottomTabBar";
 import { StarIcon } from "@/src/components/home/icons";
@@ -14,12 +15,15 @@ import {
 } from "@/src/lib/myrealtrip";
 import {
   buildTourResultsHref,
+  buildTourDetailHref,
   coerceTourSearchState,
   formatTourPriceLabel,
   formatTourReviewLabel,
   futureTourDate,
   type TourSnapshot,
 } from "@/src/lib/tours";
+import { inferSavedTourItemType } from "@/src/lib/savedItems";
+import type { SavedItem } from "@/src/types/savedTrip";
 import { TourReturnLink } from "./TourReturnLink";
 
 function bottomTabs() {
@@ -134,6 +138,10 @@ function optionPriceLabel(option: { salePrice: number; currency?: string }) {
   return `${option.salePrice.toLocaleString("ko-KR")}${suffix}`;
 }
 
+function tourCityCode(city: string) {
+  return city.includes("후쿠오카") ? "FUK" : "KIX";
+}
+
 export default async function TourDetailPage({
   params,
   searchParams,
@@ -192,12 +200,36 @@ export default async function TourDetailPage({
     utmContent: `tour-detail-${id}`,
     openInApp: true,
   }).url;
+  const detailPath = buildTourDetailHref(tour, state);
   const primaryPrice = options[0]
     ? optionPriceLabel(options[0])
     : formatTourPriceLabel(tour.priceDisplay, tour.salePrice);
   const included = detail?.included ?? [];
   const excluded = detail?.excluded ?? [];
   const itineraries = detail?.itineraries ?? [];
+  const savedTourItem: SavedItem = {
+    id: "",
+    itemType: inferSavedTourItemType({
+      title: tour.itemName,
+      category: tour.category,
+      tags: tour.tags,
+    }),
+    source: "myrealtrip",
+    cityCode: tourCityCode(state.city),
+    cityName: state.city,
+    title: tour.itemName,
+    subtitle: tour.category || "투어·티켓",
+    category: tour.category || "투어·티켓",
+    priceText: primaryPrice,
+    ...(heroImageUrl ? { imageUrl: heroImageUrl } : {}),
+    ...(tour.reviewScore ? { ratingText: `★ ${tour.reviewScore.toFixed(1).replace(/\.0$/, "")}` } : {}),
+    badgeText: tour.category || "투어·티켓",
+    detailPath,
+    bookingUrl,
+    ...(tour.deepLink ? { affiliateUrl: tour.deepLink } : {}),
+    originalUrl: tour.productUrl || tour.deepLink,
+    savedAt: "",
+  };
 
   return (
     <main
@@ -231,6 +263,10 @@ export default async function TourDetailPage({
         <section className="px-5 pt-5">
           <div className="overflow-hidden rounded-[30px] bg-white shadow-[0_16px_30px_rgba(85,42,28,0.07)] ring-1 ring-[#efe3db]">
             <div className="relative h-[248px] bg-[#f4e8df]">
+              <SavedItemStarButton
+                item={savedTourItem}
+                className="absolute right-4 top-4 z-10 bg-white/95"
+              />
               {heroImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img

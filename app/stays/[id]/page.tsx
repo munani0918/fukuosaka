@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
 
+import { SavedItemStarButton } from "@/src/components/SavedItemStarButton";
 import { BottomTabBar } from "@/src/components/home/BottomTabBar";
 import { Artwork } from "@/src/components/home/Artwork";
 import { StarIcon } from "@/src/components/home/icons";
@@ -14,10 +15,12 @@ import {
 } from "@/src/lib/myrealtrip";
 import {
   addStayDays,
+  buildStayDetailHref,
   buildStayResultsHref,
   coerceStaySearchState,
   formatStayPriceLabel,
 } from "@/src/lib/stays";
+import type { SavedItem } from "@/src/types/savedTrip";
 
 function bottomTabs() {
   return [
@@ -100,6 +103,14 @@ function safeRelativeReturnUrl(value: string | string[] | undefined) {
   }
 }
 
+function cityNameFromKeyword(keyword: string) {
+  return keyword.includes("후쿠오카") || keyword.includes("하카타") ? "후쿠오카" : "오사카";
+}
+
+function cityCodeFromKeyword(keyword: string) {
+  return cityNameFromKeyword(keyword) === "후쿠오카" ? "FUK" : "KIX";
+}
+
 export default async function StayDetailPage({
   params,
   searchParams,
@@ -180,6 +191,26 @@ export default async function StayDetailPage({
   );
   const minCheckOut = addStayDays(state.checkIn, 1);
   const detailAddress = productDetail.ok ? productDetail.address : null;
+  const stayDetailPath = buildStayDetailHref(stay, state);
+  const savedStayItem: SavedItem = {
+    id: "",
+    itemType: "hotel",
+    source: "myrealtrip",
+    cityCode: cityCodeFromKeyword(state.keyword),
+    cityName: cityNameFromKeyword(state.keyword),
+    title: stay.itemName,
+    subtitle: "마이리얼트립",
+    area: detailAddress ?? state.keyword,
+    category: "숙소",
+    priceText: heroPrice,
+    ...(stay.imageUrl ? { imageUrl: stay.imageUrl } : {}),
+    ...(stay.reviewScore ? { ratingText: `${stay.reviewScore}/5` } : {}),
+    badgeText: "마이리얼트립",
+    detailPath: stayDetailPath,
+    bookingUrl: stickyHref,
+    originalUrl: stickyHref,
+    savedAt: "",
+  };
 
   return (
     <main
@@ -212,6 +243,10 @@ export default async function StayDetailPage({
         <section className="px-5 pt-5">
           <div className="overflow-hidden rounded-[30px] bg-white shadow-[0_16px_30px_rgba(85,42,28,0.07)] ring-1 ring-[#efe3db]">
             <div className="relative h-[248px] bg-[#f4e8df]">
+              <SavedItemStarButton
+                item={savedStayItem}
+                className="absolute right-4 top-4 z-10 bg-white/95"
+              />
               {stay.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img

@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 
+import { SavedItemStarButton } from "@/src/components/SavedItemStarButton";
 import { Artwork } from "@/src/components/home/Artwork";
 import { StarIcon } from "@/src/components/home/icons";
 import type { AgodaStayCardItem } from "@/src/lib/agoda-stays";
@@ -14,6 +15,7 @@ import {
   type StayPriceFilterOption,
   type StaySearchState,
 } from "@/src/lib/stays";
+import type { SavedItem } from "@/src/types/savedTrip";
 
 const ALL_PRICE_FILTER: StayPriceFilterOption = {
   id: "all",
@@ -54,6 +56,9 @@ type UnifiedStayCardItem = {
   pricePerNight: number | null;
   href: string;
   isExternal: boolean;
+  bookingUrl: string;
+  affiliateUrl: string;
+  originalUrl: string;
 };
 
 function initialFilterId(state: StaySearchState) {
@@ -97,6 +102,9 @@ function mapMyRealTripStay(
     pricePerNight: stay.salePrice,
     href: buildStayDetailHref(stay, state),
     isExternal: false,
+    bookingUrl: stay.bookUrl,
+    affiliateUrl: "",
+    originalUrl: stay.bookUrl,
   };
 }
 
@@ -117,6 +125,9 @@ function mapAgodaStay(
     pricePerNight: stay.pricePerNight,
     href: buildAgodaStayBridgeHref(stay, state),
     isExternal: false,
+    bookingUrl: stay.bookingUrl,
+    affiliateUrl: stay.bookingUrl,
+    originalUrl: stay.bookingUrl,
   };
 }
 
@@ -264,14 +275,59 @@ function stayRatingLabel(stay: UnifiedStayCardItem) {
   return `${stay.rating}/${stay.ratingScale}`;
 }
 
+function stayCityName(state: StaySearchState) {
+  return state.keyword.includes("후쿠오카") || state.keyword.includes("하카타")
+    ? "후쿠오카"
+    : "오사카";
+}
+
+function stayCityCode(state: StaySearchState) {
+  return stayCityName(state) === "후쿠오카" ? "FUK" : "KIX";
+}
+
+function staySavedItemPayload(
+  stay: UnifiedStayCardItem,
+  state: StaySearchState,
+): SavedItem {
+  const isInternalDetail = stay.href.startsWith("/");
+  const priceText = formatStayPriceLabel(stay.pricePerNight);
+  const ratingLabel = stayRatingLabel(stay);
+
+  return {
+    id: "",
+    itemType: "hotel",
+    source: stay.source,
+    cityCode: stayCityCode(state),
+    cityName: stayCityName(state),
+    title: stay.name,
+    subtitle: stay.sourceLabel,
+    area: stayCityName(state),
+    category: "숙소",
+    priceText,
+    ...(stay.imageUrl ? { imageUrl: stay.imageUrl } : {}),
+    ...(ratingLabel ? { ratingText: ratingLabel } : {}),
+    badgeText: stay.sourceLabel,
+    ...(isInternalDetail ? { detailPath: stay.href } : {}),
+    bookingUrl: stay.bookingUrl || (!isInternalDetail ? stay.href : ""),
+    ...(stay.affiliateUrl ? { affiliateUrl: stay.affiliateUrl } : {}),
+    ...(stay.originalUrl || stay.bookingUrl
+      ? { originalUrl: stay.originalUrl || stay.bookingUrl }
+      : {}),
+    savedAt: "",
+  };
+}
+
 function StayCard({
   stay,
+  state,
   fallbackVariant,
 }: {
   stay: UnifiedStayCardItem;
+  state: StaySearchState;
   fallbackVariant: "stay-fukuoka" | "stay-osaka";
 }) {
   const ratingLabel = stayRatingLabel(stay);
+  const savedItem = staySavedItemPayload(stay, state);
   const content = (
     <>
       <div className="relative h-[144px] w-[138px] shrink-0 overflow-hidden bg-[#f5e8df]">
@@ -290,7 +346,7 @@ function StayCard({
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col p-4">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-3 pr-9">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="inline-flex rounded-full bg-[#fff4f0] px-2 py-0.5 text-[10px] font-black text-[#cb4b42] ring-1 ring-[#f1d7cf]">
@@ -330,26 +386,38 @@ function StayCard({
 
   const className =
     "flex overflow-hidden rounded-[24px] bg-white shadow-[0_14px_26px_rgba(85,42,28,0.06)] ring-1 ring-[#efe3db] transition active:scale-[0.99]";
+  const starButton = (
+    <SavedItemStarButton
+      item={savedItem}
+      className="absolute right-3 top-3 z-10 bg-white/95"
+    />
+  );
 
   const shouldOpenExternally = stay.isExternal && stay.source !== "agoda";
 
   if (shouldOpenExternally) {
     return (
-      <a
-        href={stay.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={className}
-      >
-        {content}
-      </a>
+      <article className="relative">
+        {starButton}
+        <a
+          href={stay.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={className}
+        >
+          {content}
+        </a>
+      </article>
     );
   }
 
   return (
-    <Link href={stay.href} className={className}>
-      {content}
-    </Link>
+    <article className="relative">
+      {starButton}
+      <Link href={stay.href} className={className}>
+        {content}
+      </Link>
+    </article>
   );
 }
 
@@ -412,6 +480,7 @@ export function StayResultsClient({
             <StayCard
               key={stay.key}
               stay={stay}
+              state={state}
               fallbackVariant={fallbackVariant}
             />
           ))

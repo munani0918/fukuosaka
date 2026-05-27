@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { connection } from "next/server";
 
+import { SavedItemStarButton } from "@/src/components/SavedItemStarButton";
 import { Artwork } from "@/src/components/home/Artwork";
 import { BottomTabBar } from "@/src/components/home/BottomTabBar";
 import { StarIcon } from "@/src/components/home/icons";
@@ -14,6 +15,7 @@ import {
   coerceStaySearchState,
   formatStayPriceLabel,
 } from "@/src/lib/stays";
+import type { SavedItem } from "@/src/types/savedTrip";
 
 type AgodaBridgeSnapshot = Omit<AgodaStayCardItem, "isBookable"> & {
   isBookable: boolean;
@@ -108,6 +110,19 @@ function totalPriceLabel(value: number | null) {
   return `${value.toLocaleString("ko-KR")}원`;
 }
 
+function currentAgodaDetailPath(id: string, input: Record<string, string | string[] | undefined>) {
+  const params = new URLSearchParams();
+  Object.entries(input).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach((entry) => params.append(key, entry));
+      return;
+    }
+    if (value !== undefined) params.set(key, value);
+  });
+  const query = params.toString();
+  return `/stays/agoda/${encodeURIComponent(id)}${query ? `?${query}` : ""}`;
+}
+
 function bookingUrlDebug(url: string) {
   try {
     const params = new URL(url).searchParams;
@@ -164,6 +179,27 @@ export default async function AgodaStayBridgePage({
   const fallbackVariant = state.keyword.includes("후쿠오카")
     ? "stay-fukuoka"
     : "stay-osaka";
+  const detailPath = currentAgodaDetailPath(id, resolvedSearchParams);
+  const savedAgodaItem: SavedItem = {
+    id: "",
+    itemType: "hotel",
+    source: "agoda",
+    cityCode: city === "fukuoka" ? "FUK" : "KIX",
+    cityName: city === "fukuoka" ? "후쿠오카" : "오사카",
+    title: stay?.name ?? "아고다 숙소",
+    subtitle: "아고다",
+    area: city === "fukuoka" ? "후쿠오카" : "오사카",
+    category: "숙소",
+    priceText: priceLabel,
+    ...(stay?.imageUrl ? { imageUrl: stay.imageUrl } : {}),
+    ...(stay?.rating ? { ratingText: `${stay.rating}/10` } : {}),
+    badgeText: "아고다",
+    detailPath,
+    bookingUrl,
+    affiliateUrl: bookingUrl,
+    originalUrl: bookingUrl,
+    savedAt: "",
+  };
 
   return (
     <main
@@ -196,6 +232,10 @@ export default async function AgodaStayBridgePage({
         <section className="px-5 pt-4">
           <div className="overflow-hidden rounded-[28px] bg-white shadow-[0_16px_30px_rgba(85,42,28,0.07)] ring-1 ring-[#efe3db]">
             <div className="relative h-[220px] bg-[#f4e8df]">
+              <SavedItemStarButton
+                item={savedAgodaItem}
+                className="absolute right-4 top-4 z-10 bg-white/95"
+              />
               {stay?.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
