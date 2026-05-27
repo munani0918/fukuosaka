@@ -312,8 +312,15 @@
     .day-desc { font-size:12.5px; line-height:1.48; color:#7E7067; word-break:keep-all; overflow-wrap:anywhere; }
     .day-spots { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
     .day-spot { max-width:100%; padding:3px 7px; border:1px solid #F3D4CF; border-radius:999px; background:#FFF4EE; color:#A85E47; font-size:10.5px; line-height:1.25; font-weight:850; word-break:keep-all; overflow-wrap:anywhere; }
-    .day-map-link { display:inline-flex; max-width:100%; align-items:center; justify-content:center; gap:6px; margin-top:9px; padding:7px 10px; border:1px solid #F0B7B2; border-radius:999px; background:#FFF8F5; color:#C94D43; font-size:11.5px; line-height:1.2; font-weight:900; text-decoration:none; box-shadow:0 6px 14px rgba(203,75,66,.08); word-break:keep-all; }
-    .day-map-link:active { transform:scale(.99); }
+    .day-map-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+    .day-map-link,
+    .day-map-preview-button { display:inline-flex; max-width:100%; align-items:center; justify-content:center; gap:6px; padding:7px 10px; border:1px solid #F0B7B2; border-radius:999px; background:#FFF8F5; color:#C94D43; font-family:inherit; font-size:11.5px; line-height:1.2; font-weight:900; text-decoration:none; box-shadow:0 6px 14px rgba(203,75,66,.08); word-break:keep-all; cursor:pointer; }
+    .day-map-preview-button { background:#fff; color:#8F4A3D; border-color:#EAD3CB; }
+    .day-map-link:active,
+    .day-map-preview-button:active { transform:scale(.99); }
+    .day-map-preview { display:none; margin-top:9px; overflow:hidden; border:1px solid #F1D6CF; border-radius:16px; background:#FFF8F5; }
+    .day-map-preview.on { display:block; }
+    .day-map-preview iframe { display:block; width:100%; height:200px; border:0; border-radius:16px; background:#F7EFE8; }
     .summary-cta-row { display:flex; gap:8px; flex-wrap:wrap; }
     .summary-cta {
       flex:1 1 30%; min-width:106px; padding:12px 10px; border-radius:16px;
@@ -3943,14 +3950,86 @@ function buildGoogleMapsUrlForSpots(spots = [], cityName = ''){
   return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints}`;
 }
 
+let googleMapsEmbedApiKey = '';
+let activeItineraryMapPreviewId = '';
+
+function buildGoogleMapsEmbedUrlForSpots(spots = [], cityName = '', apiKey = ''){
+  const key = String(apiKey || '').trim();
+  const cleaned = (Array.isArray(spots) ? spots : []).map(spot => String(spot || '').trim()).filter(Boolean);
+  if(!key || !cleaned.length) return '';
+  const queries = cleaned.map(spot => googleMapsSpotQuery(spot, cityName));
+  const params = new URLSearchParams({ key });
+  if(queries.length === 1) {
+    params.set('q', queries[0]);
+    return `https://www.google.com/maps/embed/v1/place?${params.toString()}`;
+  }
+  params.set('origin', queries[0]);
+  params.set('destination', queries[queries.length - 1]);
+  const middle = queries.slice(1, -1);
+  if(middle.length) params.set('waypoints', middle.join('|'));
+  return `https://www.google.com/maps/embed/v1/directions?${params.toString()}`;
+}
+
+function itineraryMapPreviewId(item = {}, index = 0){
+  const day = Number(item.day || index + 1) || index + 1;
+  return `itinerary-map-${day}-${index}`;
+}
+
+function toggleItineraryMapPreview(previewId, buttonId){
+  const preview = document.getElementById(previewId);
+  const button = document.getElementById(buttonId);
+  if(!preview || !button) return;
+  const willOpen = !preview.classList.contains('on');
+
+  document.querySelectorAll('.day-map-preview.on').forEach((node) => {
+    if(node.id !== previewId) node.classList.remove('on');
+  });
+  document.querySelectorAll('.day-map-preview-button[aria-expanded="true"]').forEach((node) => {
+    if(node.id !== buttonId) node.setAttribute('aria-expanded', 'false');
+  });
+
+  if(willOpen) {
+    const frame = preview.querySelector('iframe[data-src]');
+    if(frame && !frame.getAttribute('src')) frame.setAttribute('src', frame.dataset.src || '');
+    preview.classList.add('on');
+    button.setAttribute('aria-expanded', 'true');
+    activeItineraryMapPreviewId = previewId;
+  } else {
+    preview.classList.remove('on');
+    button.setAttribute('aria-expanded', 'false');
+    activeItineraryMapPreviewId = '';
+  }
+}
+
+async function loadGoogleMapsEmbedKey(){
+  try {
+    const res = await fetch('/api/maps/embed-key', { cache:'no-store' });
+    if(!res.ok) return;
+    const data = await res.json();
+    googleMapsEmbedApiKey = data?.enabled && data?.key ? String(data.key) : '';
+    if(googleMapsEmbedApiKey && PLAN_SUMMARY && PLAN_INPUT) renderSummary();
+  } catch(e) {
+    googleMapsEmbedApiKey = '';
+  }
+}
+
 // My Page save can later persist: city, cityName, nights, days, typeKey, title, summary, and dailyOutline(day/title/summary/spots).
-function itineraryGoogleMapsLinkHtml(item = {}){
+function itineraryGoogleMapsLinkHtml(item = {}, index = 0){
   const spots = Array.isArray(item.spots) ? item.spots.filter(Boolean) : [];
   if(!spots.length) return '';
   const url = buildGoogleMapsUrlForSpots(spots, itineraryCityName());
   if(!url) return '';
   const label = spots.length > 1 ? '이 동선 구글맵에서 보기' : '이 장소 구글맵에서 보기';
-  return `<a class="day-map-link" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+  const mapId = itineraryMapPreviewId(item, index);
+  const buttonId = `${mapId}-button`;
+  const embedUrl = googleMapsEmbedApiKey ? buildGoogleMapsEmbedUrlForSpots(spots, itineraryCityName(), googleMapsEmbedApiKey) : '';
+  const previewButton = embedUrl
+    ? `<button class="day-map-preview-button" id="${escapeAttr(buttonId)}" type="button" aria-expanded="false" aria-controls="${escapeAttr(mapId)}" onclick="toggleItineraryMapPreview('${escapeAttr(mapId)}','${escapeAttr(buttonId)}')">앱에서 지도 미리보기</button>`
+    : '';
+  const previewFrame = embedUrl
+    ? `<div class="day-map-preview" id="${escapeAttr(mapId)}"><iframe data-src="${escapeAttr(embedUrl)}" title="${escapeAttr(`일정 ${Number(item.day || index + 1) || index + 1}일차 Google Maps 미리보기`)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe></div>`
+    : '';
+  return `<div class="day-map-actions"><a class="day-map-link" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">${label}</a>${previewButton}</div>${previewFrame}`;
 }
 
 function compactItineraryDescription(description, item = {}, index = 0, usedDescriptions = new Set()){
@@ -4003,7 +4082,7 @@ function renderSummary(){
   const usedItineraryDescriptions = new Set();
   const timelineHtml = timeline.map((item, index) => {
     const spotsHtml = itinerarySpotsHtml(item);
-    const mapLinkHtml = itineraryGoogleMapsLinkHtml(item);
+    const mapLinkHtml = itineraryGoogleMapsLinkHtml(item, index);
     return `<div class="timeline-item">
           <div class="day-badge">${item.day}일</div>
           <div>
@@ -5393,6 +5472,7 @@ async function fetchAndRender(options = {}){
 
 // Boot
 startPageLoadingProgress();
+loadGoogleMapsEmbedKey();
 fetchAndRender();
 </script>
 </body>
