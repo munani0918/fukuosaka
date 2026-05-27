@@ -289,6 +289,7 @@
     .summary-tags::-webkit-scrollbar { display:none; }
     .summary-tag { flex-shrink:0; padding:5px 9px; border-radius:999px; background:#FBF6F1; border:1px solid #EEE4DA; color:#7E7067; font-size:11.5px; font-weight:750; white-space:nowrap; }
     .summary-card-title { display:flex; align-items:center; gap:7px; margin-bottom:10px; font-size:15.5px; font-weight:900; color:#2C221D; letter-spacing:-.03em; }
+    .itinerary-jump-button { display:inline-flex; align-items:center; justify-content:center; margin-top:10px; padding:7px 10px; border:1px solid #F0B7B2; border-radius:999px; background:#FFF8F5; color:#C94D43; font-family:inherit; font-size:11.5px; line-height:1.2; font-weight:900; cursor:pointer; box-shadow:0 6px 14px rgba(203,75,66,.08); }
     .budget-list { display:flex; flex-direction:column; gap:8px; }
     .budget-line { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:8px; border-bottom:1px solid #EEE4DA; }
     .budget-line:last-child { border-bottom:none; padding-bottom:0; }
@@ -3984,10 +3985,45 @@ function itineraryMapOptionKey(item = {}, index = 0){
   return `day-${Number(item.day || index + 1) || index + 1}-${index}`;
 }
 
-function selectItineraryMapOption(key, optionIndex){
-  if(!key) return;
-  itineraryMapOptionState[key] = Math.max(0, Number(optionIndex) || 0);
-  renderSummary();
+function scrollToItineraryOutline(){
+  const target = document.getElementById('itinerary-outline');
+  if(target) target.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function selectItineraryMapOption(button, optionIndex){
+  const card = button?.closest?.('[data-map-options-card]');
+  if(!card) return;
+
+  const key = card.dataset.optionKey || '';
+  const nextIndex = Math.max(0, Number(optionIndex) || 0);
+  itineraryMapOptionState[key] = nextIndex;
+
+  const optionButton = card.querySelector(`.day-map-option-chip[data-option-index="${nextIndex}"]`);
+  let spots = [];
+  try {
+    spots = JSON.parse(optionButton?.getAttribute('data-spots') || '[]');
+  } catch(e) {
+    spots = [];
+  }
+  if(!Array.isArray(spots) || !spots.length) return;
+
+  card.querySelectorAll('.day-map-option-chip').forEach((chip) => {
+    chip.classList.toggle('on', chip === optionButton);
+  });
+
+  const cityName = card.dataset.cityName || itineraryCityName();
+  const externalUrl = buildGoogleMapsUrlForSpots(spots, cityName);
+  const externalLink = card.querySelector('.day-map-link');
+  if(externalLink && externalUrl) externalLink.setAttribute('href', externalUrl);
+
+  const iframe = card.querySelector('iframe');
+  if(iframe && googleMapsEmbedApiKey) {
+    const embedUrl = buildGoogleMapsEmbedUrlForSpots(spots, cityName, googleMapsEmbedApiKey);
+    if(embedUrl && iframe.getAttribute('src') !== embedUrl) {
+      if(iframe.parentElement) iframe.parentElement.style.display = '';
+      iframe.setAttribute('src', embedUrl);
+    }
+  }
 }
 
 async function loadGoogleMapsEmbedKey(){
@@ -4015,13 +4051,16 @@ function itineraryGoogleMapsLinkHtml(item = {}, index = 0){
   if(!url) return '';
   const label = selectedOption ? '이 코스 구글맵에서 보기' : (spots.length > 1 ? '이 동선 구글맵에서 보기' : '이 장소 구글맵에서 보기');
   const optionControls = selectedOption
-    ? `<div class="day-map-option-note">이 날은 한 곳을 선택하는 일정이에요.</div><div class="day-map-options">${mapOptions.map((option, optionIndex) => `<button class="day-map-option-chip ${optionIndex === selectedIndex ? 'on' : ''}" type="button" onclick="selectItineraryMapOption('${escapeAttr(optionKey)}', ${optionIndex})">${escapeHtml(option.label)}</button>`).join('')}</div>`
+    ? `<div class="day-map-option-note">이 날은 한 곳을 선택하는 일정이에요.</div><div class="day-map-options">${mapOptions.map((option, optionIndex) => `<button class="day-map-option-chip ${optionIndex === selectedIndex ? 'on' : ''}" type="button" data-option-index="${optionIndex}" data-spots="${escapeAttr(JSON.stringify(option.spots))}" onclick="selectItineraryMapOption(this, ${optionIndex})">${escapeHtml(option.label)}</button>`).join('')}</div>`
     : '';
   const embedUrl = googleMapsEmbedApiKey ? buildGoogleMapsEmbedUrlForSpots(spots, itineraryCityName(), googleMapsEmbedApiKey) : '';
   const previewFrame = embedUrl
     ? `<div class="day-map-preview"><iframe src="${escapeAttr(embedUrl)}" title="${escapeAttr(`일정 ${Number(item.day || index + 1) || index + 1}일차 Google Maps 미리보기`)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen onerror="this.parentElement.style.display='none'"></iframe></div>`
     : '';
-  return `${optionControls}${previewFrame}<div class="day-map-actions"><a class="day-map-link" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">${label}</a></div>`;
+  const content = `${optionControls}${previewFrame}<div class="day-map-actions"><a class="day-map-link" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">${label}</a></div>`;
+  return selectedOption
+    ? `<div data-map-options-card data-option-key="${escapeAttr(optionKey)}" data-city-name="${escapeAttr(itineraryCityName())}">${content}</div>`
+    : content;
 }
 
 function compactItineraryDescription(description, item = {}, index = 0, usedDescriptions = new Set()){
@@ -4094,6 +4133,7 @@ function renderSummary(){
         </div>
       </div>
       <div class="summary-tags">${conditionTags.map(tag => `<span class="summary-tag">${tag}</span>`).join('')}</div>
+      <button class="itinerary-jump-button" type="button" onclick="scrollToItineraryOutline()">일정 뼈대 보기</button>
     </div>
 
     ${renderBudgetModeNotice()}
@@ -4102,17 +4142,17 @@ function renderSummary(){
 
     ${renderPlanBSection()}
 
+    ${renderBookingCandidatesSection()}
+
     ${renderLocalSpendingCard(b)}
 
-    <div class="summary-card">
+    <div class="summary-card" id="itinerary-outline">
       <div class="summary-card-title">일정 뼈대</div>
       <div class="summary-sub" style="margin:-4px 0 14px">${PLAN_SUMMARY.itineraryHeadline || itineraryBasisCopy()}</div>
       <div class="timeline">
         ${timelineHtml}
       </div>
     </div>
-
-    ${renderBookingCandidatesSection()}
   `;
 }
 
