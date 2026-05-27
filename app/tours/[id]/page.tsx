@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
@@ -21,6 +20,7 @@ import {
   futureTourDate,
   type TourSnapshot,
 } from "@/src/lib/tours";
+import { ReturnLink } from "../../stays/ReturnLink";
 
 function bottomTabs() {
   return [
@@ -54,13 +54,22 @@ function hiddenFieldValue(value: string | number | null | undefined) {
   return String(value);
 }
 
+function safeRelativeReturnTo(value: string | null | undefined) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+  if (/^https?:\/\//i.test(value)) return null;
+  return value;
+}
+
 function buildSnapshot(
   id: string,
   input: Record<string, string | string[] | undefined>,
 ): TourSnapshot {
   const productUrl =
     toNullableString(input.productUrl) ??
-    `https://experiences.myrealtrip.com/products/${id}`;
+    toNullableString(input.bookingUrl) ??
+    (/^\d+$/.test(id)
+      ? `https://experiences.myrealtrip.com/products/${id}`
+      : "https://experiences.myrealtrip.com/");
 
   return {
     gid: id,
@@ -173,7 +182,11 @@ export default async function TourDetailPage({
     notFound();
   }
 
-  const backHref = buildTourResultsHref(state);
+  const returnTo = safeRelativeReturnTo(toNullableString(resolvedSearchParams.returnTo));
+  const backHref = returnTo ?? buildTourResultsHref(state);
+  const backLabel = returnTo?.includes("planner-result.html")
+    ? "결과 화면으로 돌아가기"
+    : "검색 결과로 돌아가기";
   const bookingUrl = buildMylinkUrl({
     targetUrl: tour.productUrl,
     utmContent: `tour-detail-${id}`,
@@ -194,15 +207,17 @@ export default async function TourDetailPage({
       <div className="mx-auto min-h-dvh max-w-[430px] pb-[calc(env(safe-area-inset-bottom)+132px)]">
         <header className="sticky top-0 z-30 border-b border-[#f0e4dd] bg-[#fffaf6]/95 px-5 pb-4 pt-[calc(env(safe-area-inset-top)+14px)] backdrop-blur-xl">
           <div className="flex items-center gap-3">
-            <Link
+            <ReturnLink
               href={backHref}
+              label={backLabel}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#7f6f69] shadow-[0_8px_18px_rgba(78,42,29,0.07)] ring-1 ring-[#efe3db]"
-              aria-label="검색 결과로 돌아가기"
+              preferHref={Boolean(returnTo)}
+              storageKey="fukuosaka_last_result_url"
             >
               <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M12.5 4.5 7 10l5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </Link>
+            </ReturnLink>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold tracking-[-0.02em] text-[#a58f86]">
                 {state.city} 투어 상세
@@ -496,15 +511,18 @@ export default async function TourDetailPage({
         </section>
 
         <div className="px-5 pt-5">
-          <Link
+          <ReturnLink
             href={backHref}
+            label={backLabel}
             className="inline-flex items-center gap-2 text-[12px] font-bold text-[#8d7b73]"
+            preferHref={Boolean(returnTo)}
+            storageKey="fukuosaka_last_result_url"
           >
             <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M12.5 4.5 7 10l5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            검색 결과로 돌아가기
-          </Link>
+            {backLabel}
+          </ReturnLink>
         </div>
       </div>
 

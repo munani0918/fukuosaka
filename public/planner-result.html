@@ -2557,6 +2557,53 @@ function resolveTourProductUrl(item = {}){
   };
 }
 
+function tourDetailValue(value, fallback = ''){
+  return value === undefined || value === null || value === '' ? fallback : String(value);
+}
+
+function tourProductId(item = {}, productUrl = ''){
+  const explicit = item.gid || item.id || item.productId || item.itemId || item.productID || item.product_id;
+  const explicitId = tourDetailValue(explicit).trim();
+  if(explicitId) return explicitId;
+  const match = String(productUrl || '').match(/\/products\/([^/?#]+)/i);
+  if(match?.[1]) return decodeURIComponent(match[1]);
+  const title = tourDetailValue(item.displayTitle || item.name || item.title || item.itemName || 'tour-ticket').trim();
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 72) || 'tour-ticket';
+}
+
+function buildTourDetailHrefForResult(item = {}){
+  const link = resolveTourProductUrl(item);
+  const productUrl = link.isFallback ? '' : link.url;
+  const id = tourProductId(item, productUrl);
+  const cityLabel = currentCity() === 'fukuoka' ? '후쿠오카' : '오사카';
+  const returnTo = storeResultReturnUrl('tours');
+  const params = new URLSearchParams({
+    keyword: `${cityLabel} 투어 티켓`,
+    city: cityLabel,
+    category: 'all',
+    sort: 'selling_count_desc',
+    name: tourDetailValue(item.originalTitle || item.name || item.title || item.itemName || item.displayTitle),
+    salePrice: tourDetailValue(item.salePrice || item.price),
+    price: tourDetailValue(item.price),
+    priceDisplay: tourDetailValue(item.priceDisplay || item.price),
+    reviewScore: tourDetailValue(item.reviewScore || item.ratingValue || item.rating),
+    reviewCount: tourDetailValue(item.reviewCount),
+    imageUrl: tourDetailValue(item.imageUrl || item.img),
+    productUrl,
+    bookingUrl: productUrl,
+    deepLink: tourDetailValue(item.deepLink),
+    description: tourDetailValue(item.description),
+    itemCategory: tourDetailValue(item.category || item.tag || item.categoryLabel),
+    tags: Array.isArray(item.tags) ? item.tags.join(',') : tourDetailValue(item.tags),
+    returnTo,
+  });
+  return `/tours/${encodeURIComponent(id)}?${params.toString()}`;
+}
+
 function tourSearchFallbackUrlSafe(item = {}){
   const query = String(item.displayTitle || item.name || item.title || item.itemName || item.tag || '투어 티켓').trim();
   return `/tours?query=${encodeURIComponent(query || '투어 티켓')}`;
@@ -2571,6 +2618,7 @@ function tourLinkAttributes(item = {}){
 function openTourCardLink(element){
   const url = element?.dataset?.href || '';
   if(!url) return;
+  storeResultReturnUrl('tours');
   if(/^https?:\/\//i.test(url)) {
     const opened = window.open(url, '_blank', 'noopener,noreferrer');
     if(opened) opened.opener = null;
@@ -4508,15 +4556,12 @@ function renderTours(tnas){
   }
   const notice = styleFallbackNoticeFinal('tour', items);
   const cards = items.map(t=>{
-    const link = resolveTourProductUrl(t);
-    const url  = escapeAttr(link.url);
+    const detailHref = buildTourDetailHrefForResult(t);
+    const url  = escapeAttr(detailHref);
     const imgH = tourThumbHtml(t);
     const tagH = `<div class="prod-tag">${escapeHtml(tourTypeBadgeLabel(t))}</div>`;
-    const linkTarget = link.isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
-    const action = `<a href="${url}"${linkTarget} class="prod-btn" onclick="event.stopPropagation()">예약하기</a>`; /*
-      ? `<a href="${urlAttr}" target="_blank" class="prod-btn">예약하기</a>`
-      : `<button type="button" class="prod-btn" onclick="event.stopPropagation();setActiveTab('hotels', true)">숙소 다시 조회</button>`;
-    */ return `<div class="prod-card tour-card" data-href="${url}" onclick="openTourCardLink(this)">
+    const action = `<a href="${url}" class="prod-btn" onclick="event.stopPropagation();storeResultReturnUrl('tours')">상세 보기</a>`;
+    return `<div class="prod-card tour-card" data-href="${url}" onclick="openTourCardLink(this)">
       ${imgH}
       <div class="prod-info">
         ${tagH}
