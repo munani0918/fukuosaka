@@ -65,6 +65,12 @@ export type SavedItem = {
   userId?: string;
   itemType: SavedItemType;
   source: SavedItemSource;
+  tripId?: string;
+  tripLabel?: string;
+  tripCityCode?: string;
+  tripCityName?: string;
+  tripNights?: number;
+  tripDays?: number;
   cityCode?: string;
   cityName?: string;
   title: string;

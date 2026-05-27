@@ -34,6 +34,17 @@ function savedTripResultHref(id: string) {
   return `/planner-result.html?mode=saved&savedTripId=${encodeURIComponent(id)}`;
 }
 
+function tripFilterLabel(trip: SavedTrip) {
+  const savedDate = new Date(trip.savedAt);
+  const dateLabel = Number.isNaN(savedDate.getTime())
+    ? ""
+    : new Intl.DateTimeFormat("ko-KR", {
+        month: "2-digit",
+        day: "2-digit",
+      }).format(savedDate);
+  return `${trip.cityName} ${trip.nights}박${trip.days}일${dateLabel ? ` · ${dateLabel}` : ""}`;
+}
+
 function normalizeSavedTrips(value: unknown): SavedTrip[] {
   if (!Array.isArray(value)) return [];
   return value
@@ -76,7 +87,13 @@ function sourceLabel(source: SavedItem["source"]) {
 }
 
 function savedItemHref(item: SavedItem) {
-  return item.detailPath || item.bookingUrl || item.affiliateUrl || item.originalUrl || "";
+  return (
+    item.detailPath ||
+    item.bookingUrl ||
+    item.affiliateUrl ||
+    item.originalUrl ||
+    ""
+  );
 }
 
 function isExternalHref(href: string) {
@@ -87,12 +104,16 @@ function SavedItemsSection({
   title,
   description,
   emptyText,
+  actionLabel,
+  missingHrefText,
   items,
   onDelete,
 }: {
   title: string;
   description: string;
   emptyText: string;
+  actionLabel: string;
+  missingHrefText: string;
   items: SavedItem[];
   onDelete: (id: string) => void;
 }) {
@@ -165,9 +186,13 @@ function SavedItemsSection({
                       rel={isExternalHref(href) ? "noopener noreferrer" : undefined}
                       className="inline-flex flex-1 items-center justify-center rounded-full bg-[#f26b61] px-4 py-2.5 text-[12px] font-black text-white shadow-[0_10px_24px_rgba(219,85,75,0.18)]"
                     >
-                      다시 보기
+                      {actionLabel}
                     </a>
-                  ) : null}
+                  ) : (
+                    <p className="min-w-0 flex-1 self-center text-[11.5px] font-bold text-[#b0998e]">
+                      {missingHrefText}
+                    </p>
+                  )}
                   <button
                     type="button"
                     onClick={() => onDelete(item.id)}
@@ -188,6 +213,7 @@ function SavedItemsSection({
 export function SavedTripsClient() {
   const [trips, setTrips] = useState<SavedTrip[]>([]);
   const [items, setItems] = useState<SavedItem[]>([]);
+  const [selectedTripFilter, setSelectedTripFilter] = useState("all");
   const [loaded, setLoaded] = useState(false);
   const [storageError, setStorageError] = useState("");
 
@@ -214,6 +240,7 @@ export function SavedTripsClient() {
         JSON.stringify(nextTrips),
       );
       setTrips(nextTrips);
+      if (selectedTripFilter === id) setSelectedTripFilter("all");
     } catch {
       setStorageError("이 브라우저에서는 저장 변경을 사용할 수 없어요.");
     }
@@ -234,9 +261,67 @@ export function SavedTripsClient() {
 
   const hotelItems = items.filter((item) => item.itemType === "hotel");
   const tourItems = items.filter((item) => item.itemType !== "hotel");
+  const filteredTrips =
+    selectedTripFilter === "all"
+      ? trips
+      : trips.filter((trip) => trip.id === selectedTripFilter);
+  const filteredHotelItems =
+    selectedTripFilter === "all"
+      ? hotelItems
+      : hotelItems.filter((item) => item.tripId === selectedTripFilter);
+  const filteredTourItems =
+    selectedTripFilter === "all"
+      ? tourItems
+      : tourItems.filter((item) => item.tripId === selectedTripFilter);
+  const filteredHotelEmptyText =
+    selectedTripFilter === "all"
+      ? "아직 찜한 숙소가 없어요."
+      : "이 여행에 저장한 숙소가 아직 없어요.";
+  const filteredTourEmptyText =
+    selectedTripFilter === "all"
+      ? "아직 찜한 투어·티켓이 없어요."
+      : "이 여행에 저장한 투어·티켓이 아직 없어요.";
 
   return (
     <div className="space-y-4">
+    <section className="rounded-[28px] border border-[#f2ded4] bg-white/88 p-4 shadow-[0_18px_40px_rgba(111,63,48,0.08)]">
+      <div>
+        <h2 className="text-[19px] font-black tracking-[-0.05em]">
+          여행별 보기
+        </h2>
+        <p className="mt-1 text-[12.5px] font-semibold leading-relaxed text-[#8a7a72]">
+          저장한 여행을 기준으로 찜한 숙소와 투어를 나눠볼 수 있어요.
+        </p>
+      </div>
+      <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1">
+        <button
+          type="button"
+          onClick={() => setSelectedTripFilter("all")}
+          className={`shrink-0 rounded-full px-3.5 py-2 text-[12px] font-black ${
+            selectedTripFilter === "all"
+              ? "bg-[#f26b61] text-white shadow-[0_8px_18px_rgba(219,85,75,0.18)]"
+              : "border border-[#efd6cf] bg-white text-[#8a6f64]"
+          }`}
+        >
+          전체
+        </button>
+        {trips.map((trip) => (
+          <button
+            key={trip.id}
+            type="button"
+            onClick={() => setSelectedTripFilter(trip.id)}
+            className={`shrink-0 rounded-full px-3.5 py-2 text-[12px] font-black ${
+              selectedTripFilter === trip.id
+                ? "bg-[#f26b61] text-white shadow-[0_8px_18px_rgba(219,85,75,0.18)]"
+                : "border border-[#efd6cf] bg-white text-[#8a6f64]"
+            }`}
+          >
+            {tripFilterLabel(trip)}
+          </button>
+        ))}
+      </div>
+    </section>
+
     <section className="rounded-[28px] border border-[#f2ded4] bg-white/88 p-4 shadow-[0_18px_40px_rgba(111,63,48,0.08)]">
       <div className="mb-4">
         <h2 className="text-[19px] font-black tracking-[-0.05em]">
@@ -260,24 +345,30 @@ export function SavedTripsClient() {
         <div className="rounded-3xl bg-[#fff8f5] p-5 text-center text-[13px] font-bold text-[#8a7a72]">
           저장한 여행을 확인하고 있어요.
         </div>
-      ) : trips.length === 0 ? (
+      ) : filteredTrips.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-[#ebcfc4] bg-[#fff8f5] p-5 text-center">
           <p className="text-[14px] font-black tracking-[-0.04em]">
-            아직 저장한 여행이 없어요.
+            {selectedTripFilter === "all"
+              ? "아직 저장한 여행이 없어요."
+              : "선택한 여행을 찾을 수 없어요."}
           </p>
           <p className="mt-2 text-[12.5px] font-semibold leading-relaxed text-[#897970]">
-            예산 플래너에서 마음에 드는 일정을 저장해보세요.
+            {selectedTripFilter === "all"
+              ? "예산 플래너에서 마음에 드는 일정을 저장해보세요."
+              : "전체 보기에서 저장한 여행을 다시 확인해보세요."}
           </p>
-          <a
-            href="/planner-wizard.html"
-            className="mt-4 inline-flex items-center justify-center rounded-full bg-[#f26b61] px-4 py-2.5 text-[12px] font-black text-white shadow-[0_10px_24px_rgba(219,85,75,0.18)]"
-          >
-            예산 플래너 시작하기
-          </a>
+          {selectedTripFilter === "all" ? (
+            <a
+              href="/planner-wizard.html"
+              className="mt-4 inline-flex items-center justify-center rounded-full bg-[#f26b61] px-4 py-2.5 text-[12px] font-black text-white shadow-[0_10px_24px_rgba(219,85,75,0.18)]"
+            >
+              예산 플래너 시작하기
+            </a>
+          ) : null}
         </div>
       ) : (
         <div className="space-y-3">
-          {trips.map((trip) => (
+          {filteredTrips.map((trip) => (
             <article
               key={trip.id}
               className="rounded-[24px] border border-[#f0dfd7] bg-[#fffdfb] p-4 shadow-[0_12px_28px_rgba(92,55,43,0.06)]"
@@ -335,7 +426,7 @@ export function SavedTripsClient() {
                   href={savedTripResultHref(trip.id)}
                   className="inline-flex flex-1 items-center justify-center rounded-full bg-[#f26b61] px-4 py-2.5 text-[12px] font-black text-white shadow-[0_10px_24px_rgba(219,85,75,0.18)]"
                 >
-                  저장한 결과 보기
+                  일정 다시 보기
                 </a>
                 <button
                   type="button"
@@ -354,16 +445,20 @@ export function SavedTripsClient() {
     <SavedItemsSection
       title="찜한 숙소"
       description="마음에 드는 숙소를 저장해두고 다시 확인할 수 있어요."
-      emptyText="아직 찜한 숙소가 없어요."
-      items={hotelItems}
+      emptyText={filteredHotelEmptyText}
+      actionLabel="숙소 다시 보기"
+      missingHrefText="다시 보기 링크가 없는 항목이에요."
+      items={filteredHotelItems}
       onDelete={deleteItem}
     />
 
     <SavedItemsSection
       title="찜한 투어·티켓"
       description="입장권, 교통패스, 현지투어를 저장해두고 비교해보세요."
-      emptyText="아직 찜한 투어·티켓이 없어요."
-      items={tourItems}
+      emptyText={filteredTourEmptyText}
+      actionLabel="상품 다시 보기"
+      missingHrefText="다시 보기 링크가 없는 항목이에요."
+      items={filteredTourItems}
       onDelete={deleteItem}
     />
     </div>

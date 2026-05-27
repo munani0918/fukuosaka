@@ -821,7 +821,7 @@
   </div>
 
   <div class="save-trip-sticky is-hidden" id="save-trip-sticky" aria-hidden="true">
-    <button class="save-trip-sticky-button primary" id="save-trip-sticky-button" type="button" onclick="saveCurrentTrip()">이 여행 저장하기</button>
+    <button class="save-trip-sticky-button primary" id="save-trip-sticky-button" type="button" onclick="saveCurrentTrip()">여행 일정 저장</button>
   </div>
 
   <!-- Bottom nav -->
@@ -4125,6 +4125,7 @@ const SAVED_ITEMS_STORAGE_KEY = 'fukuosaka_saved_items';
 const MAX_SAVED_ITEMS = 50;
 let saveTripInProgress = false;
 let saveTripStickyObserver = null;
+let currentSavedTripId = '';
 let SAVED_ITEM_PAYLOADS = {};
 
 function savedTripNumberOrNull(value){
@@ -4229,7 +4230,7 @@ function toggleSavedItem(event, token){
     alert('이 브라우저에서는 저장을 사용할 수 없어요.');
     return false;
   }
-  const payload = SAVED_ITEM_PAYLOADS[token];
+  const payload = withCurrentTripAssociation(SAVED_ITEM_PAYLOADS[token]);
   if(!payload?.title) return false;
   const key = savedItemIdentityKey(payload);
   const current = readSavedItems();
@@ -4256,11 +4257,40 @@ function savedItemCityName(){
   return CITY_NAME[P.cityCode] || savedTripCityName();
 }
 
+function currentTripLabel(){
+  const nights = Math.max(1, Number(PLAN_INPUT?.nights || P.nights) || 1);
+  return `${savedItemCityName()} ${nights}박 ${nights + 1}일`;
+}
+
+function currentSavedTripAssociation(){
+  const savedTripId = SAVED_TRIP_VIEW ? savedTripRequestId() : currentSavedTripId;
+  const nights = Math.max(1, Number(PLAN_INPUT?.nights || P.nights) || 1);
+  return {
+    tripId: savedTripId || '',
+    tripLabel: currentTripLabel(),
+    tripCityCode: savedTripCityCode(),
+    tripCityName: savedItemCityName(),
+    tripNights: nights,
+    tripDays: Math.max(2, Number(PLAN_INPUT?.days) || nights + 1),
+  };
+}
+
+function withCurrentTripAssociation(payload = {}){
+  const association = currentSavedTripAssociation();
+  return Object.assign({}, payload, {
+    tripLabel: association.tripLabel,
+    tripCityCode: association.tripCityCode,
+    tripCityName: association.tripCityName,
+    tripNights: association.tripNights,
+    tripDays: association.tripDays,
+  }, association.tripId ? { tripId: association.tripId } : {});
+}
+
 function hotelSavedItemPayload(item = {}, detailPath = ''){
   const source = hotelSource(item);
   const bookingUrl = firstValidHotelUrl(item) || normalizeProductUrl(item.bookingUrl || item.bookUrl || item.affiliateUrl || item.detailUrl || item.productUrl || item.url);
   const internalDetailPath = detailPath && detailPath.startsWith('/') ? detailPath : '';
-  return {
+  return withCurrentTripAssociation({
     itemType:'hotel',
     source: source === 'agoda' ? 'agoda' : (source === 'api' ? 'myrealtrip' : 'unknown'),
     cityCode:P.cityCode || '',
@@ -4277,7 +4307,7 @@ function hotelSavedItemPayload(item = {}, detailPath = ''){
     bookingUrl:bookingUrl || '',
     affiliateUrl:item.affiliateUrl || '',
     originalUrl:bookingUrl || item.detailUrl || item.productUrl || item.url || '',
-  };
+  });
 }
 
 function savedTourItemType(item = {}){
@@ -4291,7 +4321,7 @@ function savedTourItemType(item = {}){
 function tourSavedItemPayload(item = {}, detailPath = ''){
   const productUrl = firstTourProductUrl(item);
   const imageUrl = getProductImageUrl(item);
-  return {
+  return withCurrentTripAssociation({
     itemType:savedTourItemType(item),
     source:item.source === 'saved' ? 'manual' : 'myrealtrip',
     cityCode:P.cityCode || '',
@@ -4307,7 +4337,7 @@ function tourSavedItemPayload(item = {}, detailPath = ''){
     bookingUrl:productUrl || item.bookUrl || item.bookingUrl || '',
     affiliateUrl:item.affiliateUrl || '',
     originalUrl:productUrl || item.deepLink || item.url || item.href || item.link || '',
-  };
+  });
 }
 
 function savedTripCityCode(){
@@ -4500,14 +4530,15 @@ function saveCurrentTrip(){
   try {
     const nextTrips = [payload, ...readSavedTrips()].slice(0, MAX_SAVED_TRIPS);
     writeSavedTrips(nextTrips);
+    currentSavedTripId = payload.id;
     setSaveTripButtonState('저장 완료', true, true);
     window.setTimeout(() => {
       saveTripInProgress = false;
-      setSaveTripButtonState('이 여행 저장하기', false, false);
+      setSaveTripButtonState('여행 일정 저장', false, false);
     }, 1600);
   } catch(e) {
     saveTripInProgress = false;
-    setSaveTripButtonState('이 여행 저장하기', false, false);
+    setSaveTripButtonState('여행 일정 저장', false, false);
     alert('이 브라우저에서는 저장을 사용할 수 없어요.');
   }
 }
@@ -4700,6 +4731,7 @@ function renderSavedTripResult(savedTripId){
   }
   SAVED_TRIP_VIEW = true;
   ACTIVE_SAVED_TRIP = savedTrip;
+  currentSavedTripId = savedTrip.id || savedTripId;
   normalizeSavedTripToPlanSummary(savedTrip);
   renderHeader();
   renderSummary();
@@ -4780,7 +4812,7 @@ function renderSummary(){
     : '';
   const saveTripAction = SAVED_TRIP_VIEW
     ? `<button class="save-trip-button saved" type="button" disabled>저장됨</button>`
-    : `<button class="save-trip-button primary" id="save-trip-button" type="button" onclick="saveCurrentTrip()">이 여행 저장하기</button>`;
+    : `<button class="save-trip-button primary" id="save-trip-button" type="button" onclick="saveCurrentTrip()">여행 일정 저장</button>`;
   el.innerHTML = `
     <div class="summary-card summary-hero">
       <div class="summary-top compact">
