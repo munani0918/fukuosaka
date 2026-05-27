@@ -240,13 +240,15 @@
     }
     .prod-btn:hover { background:#F46C67; border-color:#F46C67; color:#fff; }
     .save-item-btn {
+      width:34px; height:34px; flex:0 0 34px;
       display:inline-flex; align-items:center; justify-content:center;
-      min-height:26px; padding:5px 9px; border-radius:999px;
-      border:1px solid #F0C9C2; background:#fff; color:#C95B50;
-      font-family:inherit; font-size:10.5px; line-height:1; font-weight:900;
+      padding:0; border-radius:999px;
+      border:1px solid #F0C9C2; background:#fffaf7; color:#C95B50;
+      font-family:inherit; font-size:18px; line-height:1; font-weight:900;
       cursor:pointer; white-space:nowrap; transition:all .15s;
+      box-shadow:0 5px 12px rgba(111,58,49,.06);
     }
-    .save-item-btn.saved { background:#FFF4EE; color:#8B5F55; border-color:#E8D4CB; }
+    .save-item-btn.saved { background:#FFF0EA; color:#E65B50; border-color:#F2B8AF; }
     .save-item-btn:hover { transform:translateY(-1px); box-shadow:0 7px 16px rgba(111,58,49,.10); }
 
     /* ── Coupon card ───────────────────────────── */
@@ -4201,9 +4203,11 @@ function isSavedItemPayload(payload = {}){
 function updateSavedItemButtons(key, saved){
   document.querySelectorAll('.save-item-btn').forEach((button) => {
     if(button.dataset.savedKey !== key) return;
-    button.textContent = saved ? '저장됨' : '저장';
+    button.textContent = saved ? '★' : '☆';
     button.classList.toggle('saved', saved);
     button.setAttribute('aria-pressed', saved ? 'true' : 'false');
+    button.setAttribute('aria-label', saved ? '찜 해제' : '찜하기');
+    button.setAttribute('title', saved ? '찜 해제' : '찜하기');
   });
 }
 
@@ -4218,7 +4222,7 @@ function saveItemButtonHtml(payload = {}){
   const key = savedItemIdentityKey(payload);
   const token = registerSavedItemPayload(payload);
   const saved = isSavedItemPayload(payload);
-  return `<button class="save-item-btn ${saved ? 'saved' : ''}" type="button" data-saved-key="${escapeAttr(key)}" aria-pressed="${saved ? 'true' : 'false'}" onclick="toggleSavedItem(event, '${escapeAttr(token)}')">${saved ? '저장됨' : '저장'}</button>`;
+  return `<button class="save-item-btn ${saved ? 'saved' : ''}" type="button" data-saved-key="${escapeAttr(key)}" aria-pressed="${saved ? 'true' : 'false'}" aria-label="${saved ? '찜 해제' : '찜하기'}" title="${saved ? '찜 해제' : '찜하기'}" onclick="toggleSavedItem(event, '${escapeAttr(token)}')">${saved ? '★' : '☆'}</button>`;
 }
 
 function toggleSavedItem(event, token){

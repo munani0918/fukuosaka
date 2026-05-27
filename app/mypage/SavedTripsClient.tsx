@@ -213,6 +213,9 @@ function SavedItemsSection({
 export function SavedTripsClient() {
   const [trips, setTrips] = useState<SavedTrip[]>([]);
   const [items, setItems] = useState<SavedItem[]>([]);
+  const [selectedLibraryFilter, setSelectedLibraryFilter] = useState<
+    "all" | "trips" | "hotels" | "tours"
+  >("all");
   const [selectedTripFilter, setSelectedTripFilter] = useState("all");
   const [loaded, setLoaded] = useState(false);
   const [storageError, setStorageError] = useState("");
@@ -261,29 +264,80 @@ export function SavedTripsClient() {
 
   const hotelItems = items.filter((item) => item.itemType === "hotel");
   const tourItems = items.filter((item) => item.itemType !== "hotel");
+  const hasUnassignedItems = items.some((item) => !item.tripId);
   const filteredTrips =
     selectedTripFilter === "all"
       ? trips
+      : selectedTripFilter === "unassigned"
+        ? []
       : trips.filter((trip) => trip.id === selectedTripFilter);
   const filteredHotelItems =
     selectedTripFilter === "all"
       ? hotelItems
+      : selectedTripFilter === "unassigned"
+        ? hotelItems.filter((item) => !item.tripId)
       : hotelItems.filter((item) => item.tripId === selectedTripFilter);
   const filteredTourItems =
     selectedTripFilter === "all"
       ? tourItems
+      : selectedTripFilter === "unassigned"
+        ? tourItems.filter((item) => !item.tripId)
       : tourItems.filter((item) => item.tripId === selectedTripFilter);
   const filteredHotelEmptyText =
     selectedTripFilter === "all"
       ? "아직 찜한 숙소가 없어요."
+      : selectedTripFilter === "unassigned"
+        ? "여행에 연결되지 않은 숙소가 없어요."
       : "이 여행에 저장한 숙소가 아직 없어요.";
   const filteredTourEmptyText =
     selectedTripFilter === "all"
       ? "아직 찜한 투어·티켓이 없어요."
+      : selectedTripFilter === "unassigned"
+        ? "여행에 연결되지 않은 투어·티켓이 없어요."
       : "이 여행에 저장한 투어·티켓이 아직 없어요.";
+  const showTripsSection =
+    (selectedLibraryFilter === "all" || selectedLibraryFilter === "trips") &&
+    selectedTripFilter !== "unassigned";
+  const showHotelsSection =
+    selectedLibraryFilter === "all" || selectedLibraryFilter === "hotels";
+  const showToursSection =
+    selectedLibraryFilter === "all" || selectedLibraryFilter === "tours";
 
   return (
     <div className="space-y-4">
+    <section className="rounded-[28px] border border-[#f2ded4] bg-white/88 p-4 shadow-[0_18px_40px_rgba(111,63,48,0.08)]">
+      <div>
+        <h2 className="text-[19px] font-black tracking-[-0.05em]">
+          보관함 보기
+        </h2>
+      </div>
+      <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1">
+        {[
+          ["all", "전체"],
+          ["trips", "저장한 여행"],
+          ["hotels", "찜한 숙소"],
+          ["tours", "찜한 투어·티켓"],
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() =>
+              setSelectedLibraryFilter(
+                id as "all" | "trips" | "hotels" | "tours",
+              )
+            }
+            className={`shrink-0 rounded-full px-3.5 py-2 text-[12px] font-black ${
+              selectedLibraryFilter === id
+                ? "bg-[#f26b61] text-white shadow-[0_8px_18px_rgba(219,85,75,0.18)]"
+                : "border border-[#efd6cf] bg-white text-[#8a6f64]"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </section>
+
     <section className="rounded-[28px] border border-[#f2ded4] bg-white/88 p-4 shadow-[0_18px_40px_rgba(111,63,48,0.08)]">
       <div>
         <h2 className="text-[19px] font-black tracking-[-0.05em]">
@@ -305,6 +359,19 @@ export function SavedTripsClient() {
         >
           전체
         </button>
+        {hasUnassignedItems ? (
+          <button
+            type="button"
+            onClick={() => setSelectedTripFilter("unassigned")}
+            className={`shrink-0 rounded-full px-3.5 py-2 text-[12px] font-black ${
+              selectedTripFilter === "unassigned"
+                ? "bg-[#f26b61] text-white shadow-[0_8px_18px_rgba(219,85,75,0.18)]"
+                : "border border-[#efd6cf] bg-white text-[#8a6f64]"
+            }`}
+          >
+            여행 미지정
+          </button>
+        ) : null}
         {trips.map((trip) => (
           <button
             key={trip.id}
@@ -322,6 +389,7 @@ export function SavedTripsClient() {
       </div>
     </section>
 
+    {showTripsSection ? (
     <section className="rounded-[28px] border border-[#f2ded4] bg-white/88 p-4 shadow-[0_18px_40px_rgba(111,63,48,0.08)]">
       <div className="mb-4">
         <h2 className="text-[19px] font-black tracking-[-0.05em]">
@@ -441,7 +509,9 @@ export function SavedTripsClient() {
         </div>
       )}
     </section>
+    ) : null}
 
+    {showHotelsSection ? (
     <SavedItemsSection
       title="찜한 숙소"
       description="마음에 드는 숙소를 저장해두고 다시 확인할 수 있어요."
@@ -451,7 +521,9 @@ export function SavedTripsClient() {
       items={filteredHotelItems}
       onDelete={deleteItem}
     />
+    ) : null}
 
+    {showToursSection ? (
     <SavedItemsSection
       title="찜한 투어·티켓"
       description="입장권, 교통패스, 현지투어를 저장해두고 비교해보세요."
@@ -461,6 +533,7 @@ export function SavedTripsClient() {
       items={filteredTourItems}
       onDelete={deleteItem}
     />
+    ) : null}
     </div>
   );
 }
