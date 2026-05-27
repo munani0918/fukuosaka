@@ -15,11 +15,18 @@ export type ItineraryPresetType =
 
 export type FukuokaTwoNightPresetType = ItineraryPresetType;
 
+export type PresetMapOption = {
+  label: string;
+  spots: string[];
+};
+
 export type PresetItineraryDay = {
   day: number;
   title: string;
   description: string;
   spots: string[];
+  mapMode?: "route" | "options";
+  mapOptions?: PresetMapOption[];
 };
 
 export type PresetItinerary = {
@@ -341,6 +348,139 @@ function definePreset(
       description: dayDescription,
       spots,
     })),
+  };
+}
+
+const CHOICE_MAP_OPTIONS_BY_TITLE: Record<string, PresetMapOption[]> = {
+  "USJ 또는 교토 선택 코스": [
+    { label: "USJ", spots: ["유니버설 스튜디오 재팬"] },
+    { label: "교토", spots: ["교토역", "기온"] },
+  ],
+  "USJ 또는 교토 관광": [
+    { label: "USJ", spots: ["유니버설 스튜디오 재팬"] },
+    { label: "교토", spots: ["교토역", "기온"] },
+  ],
+  "USJ 또는 린쿠 쇼핑 코스": [
+    { label: "USJ", spots: ["유니버설 스튜디오 재팬"] },
+    { label: "린쿠", spots: ["린쿠 프리미엄 아울렛"] },
+  ],
+  "린쿠 또는 난바 쇼핑 코스": [
+    { label: "린쿠", spots: ["린쿠 프리미엄 아울렛"] },
+    { label: "난바", spots: ["난바", "신사이바시"] },
+  ],
+  "린쿠 또는 난바 맛집 코스": [
+    { label: "린쿠", spots: ["린쿠 프리미엄 아울렛"] },
+    { label: "난바", spots: ["난바", "구로몬시장"] },
+  ],
+  "아리마 또는 교토 관광": [
+    { label: "아리마", spots: ["아리마온천"] },
+    { label: "교토", spots: ["교토역", "기온"] },
+  ],
+  "아리마 또는 린쿠 코스": [
+    { label: "아리마", spots: ["아리마온천"] },
+    { label: "린쿠", spots: ["린쿠 프리미엄 아울렛"] },
+  ],
+  "아리마 또는 도심 휴식 코스": [
+    { label: "아리마", spots: ["아리마온천"] },
+    { label: "도심", spots: ["난바", "도톤보리"] },
+  ],
+  "아리마 또는 우메다 맛집 코스": [
+    { label: "아리마", spots: ["아리마온천"] },
+    { label: "우메다", spots: ["우메다"] },
+  ],
+  "우메다 또는 난바 맛집 코스": [
+    { label: "우메다", spots: ["우메다"] },
+    { label: "난바", spots: ["난바", "구로몬시장"] },
+  ],
+  "나라·고베 또는 난바 여유 코스": [
+    { label: "나라", spots: ["나라공원"] },
+    { label: "고베", spots: ["고베", "메리켄파크"] },
+    { label: "난바", spots: ["난바"] },
+  ],
+  "나라 또는 고베 근교 관광": [
+    { label: "나라", spots: ["나라공원"] },
+    { label: "고베", spots: ["고베", "메리켄파크"] },
+  ],
+  "고베 또는 나라 근교 코스": [
+    { label: "고베", spots: ["고베", "메리켄파크"] },
+    { label: "나라", spots: ["나라공원"] },
+  ],
+  "고베 또는 도톤보리 재방문": [
+    { label: "고베", spots: ["고베", "메리켄파크"] },
+    { label: "도톤보리", spots: ["도톤보리", "신사이바시"] },
+  ],
+  "교토 또는 난바 맛집 코스": [
+    { label: "교토", spots: ["교토역", "기온"] },
+    { label: "난바", spots: ["난바", "구로몬시장"] },
+  ],
+  "교토 또는 우메다 쇼핑 코스": [
+    { label: "교토", spots: ["교토역", "기온"] },
+    { label: "우메다", spots: ["우메다"] },
+  ],
+  "유후인 또는 벳푸 온천 코스": [
+    { label: "유후인", spots: ["유후인", "긴린코"] },
+    { label: "벳푸", spots: ["벳푸", "지옥온천"] },
+  ],
+  "유후인 또는 벳푸 근교 코스": [
+    { label: "유후인", spots: ["유후인", "긴린코"] },
+    { label: "벳푸", spots: ["벳푸", "지옥온천"] },
+  ],
+  "유후인·벳푸 온천 관광 코스": [
+    { label: "유후인", spots: ["유후인", "긴린코"] },
+    { label: "벳푸", spots: ["벳푸", "지옥온천"] },
+  ],
+  "유후인 또는 텐진 여유 코스": [
+    { label: "유후인", spots: ["유후인", "긴린코"] },
+    { label: "텐진", spots: ["텐진", "다이묘"] },
+  ],
+  "유후인 또는 텐진 맛집 코스": [
+    { label: "유후인", spots: ["유후인", "긴린코"] },
+    { label: "텐진", spots: ["텐진", "다이묘"] },
+  ],
+  "유후인 또는 기타큐슈 근교 코스": [
+    { label: "유후인", spots: ["유후인", "긴린코"] },
+    { label: "기타큐슈", spots: ["모지코"] },
+  ],
+  "유후인 또는 기타큐슈 관광 코스": [
+    { label: "유후인", spots: ["유후인", "긴린코"] },
+    { label: "기타큐슈", spots: ["모지코"] },
+  ],
+  "벳푸 또는 도심 휴식 코스": [
+    { label: "벳푸", spots: ["벳푸", "지옥온천"] },
+    { label: "도심", spots: ["하카타역", "텐진"] },
+  ],
+  "벳푸 또는 텐진 맛집 코스": [
+    { label: "벳푸", spots: ["벳푸", "지옥온천"] },
+    { label: "텐진", spots: ["텐진", "다이묘"] },
+  ],
+  "벳푸 또는 기타큐슈 근교 코스": [
+    { label: "벳푸", spots: ["벳푸", "지옥온천"] },
+    { label: "기타큐슈", spots: ["모지코"] },
+  ],
+  "유후인 또는 모모치 맛집 코스": [
+    { label: "유후인", spots: ["유후인", "긴린코"] },
+    { label: "모모치", spots: ["모모치해변", "후쿠오카타워"] },
+  ],
+  "유후인 또는 모모치 여유 코스": [
+    { label: "유후인", spots: ["유후인", "긴린코"] },
+    { label: "모모치", spots: ["모모치해변", "후쿠오카타워"] },
+  ],
+  "유후인 또는 오호리 여유 코스": [
+    { label: "유후인", spots: ["유후인", "긴린코"] },
+    { label: "오호리", spots: ["오호리공원"] },
+  ],
+};
+
+function withChoiceMapOptions(day: PresetItineraryDay): PresetItineraryDay {
+  const mapOptions = CHOICE_MAP_OPTIONS_BY_TITLE[day.title];
+  if (!mapOptions?.length) {
+    return day;
+  }
+
+  return {
+    ...day,
+    mapMode: "options",
+    mapOptions,
   };
 }
 
@@ -916,6 +1056,7 @@ function withPresetHints(preset: PresetItinerary, city: "fukuoka" | "osaka"): Pr
   const hints = PRESET_HINTS_BY_CITY[city][preset.typeKey];
   return {
     ...preset,
+    days: preset.days.map(withChoiceMapOptions),
     tourKeywords: hints.tourKeywords,
     stayAreaHints: hints.stayAreaHints,
   };

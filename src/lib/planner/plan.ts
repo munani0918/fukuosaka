@@ -78,6 +78,8 @@ export type PlanSummary = {
     title: string;
     description: string;
     spots?: string[];
+    mapMode?: "route" | "options";
+    mapOptions?: { label: string; spots: string[] }[];
     presetKey?: string;
   }[];
 };
