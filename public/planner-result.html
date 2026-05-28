@@ -4435,20 +4435,44 @@ function savedTripItineraryOutline(){
 function savedTripSelectedHotel(){
   const hotel = summaryRecommendedHotels()[0];
   if(!hotel) return undefined;
+  const source = hotelSource(hotel);
+  const detailPath = source === 'agoda'
+    ? buildAgodaBridgeHrefForResult(hotel)
+    : buildMyRealTripStayDetailHrefForResult(hotel);
+  const bookingUrl = firstRawHotelUrl(hotel);
+  const affiliateUrl = normalizeProductUrl(hotel.affiliateUrl || hotel.affiliateLink || '');
   return {
     title: hotel.name || hotel.title || hotel.hotelName || '',
     area: hotel.area || hotel.location || hotelSourceLabel(hotel),
     priceText: hotelPreviewMeta(hotel) || '',
+    detailPath: detailPath && detailPath.startsWith('/') ? detailPath : '',
+    bookingUrl: bookingUrl || '',
+    affiliateUrl: affiliateUrl || '',
+    originalUrl: bookingUrl || hotel.detailUrl || hotel.productUrl || hotel.deepLink || hotel.link || hotel.url || '',
+    source: source === 'agoda' ? 'agoda' : (source === 'api' ? 'myrealtrip' : 'unknown'),
+    imageUrl: getHotelImageUrl(hotel) || '',
   };
 }
 
 function savedTripSelectedTours(){
   return prepareTourResults(RESULT_DATA.tnas || [])
     .slice(0, 3)
-    .map(tour => ({
-      title: tour.displayTitle || tour.name || tour.title || tour.itemName || '',
-      priceText: tourPreviewMeta(tour) || formatTourPriceForMeta(tour) || '',
-    }))
+    .map(tour => {
+      const detailPath = buildTourDetailHrefForResult(tour);
+      const productUrl = firstTourProductUrl(tour);
+      const bookingUrl = /^https?:\/\//i.test(productUrl) ? productUrl : '';
+      return {
+        title: tour.displayTitle || tour.name || tour.title || tour.itemName || '',
+        priceText: tourPreviewMeta(tour) || formatTourPriceForMeta(tour) || '',
+        detailPath: detailPath && detailPath.startsWith('/') ? detailPath : '',
+        bookingUrl: bookingUrl || tour.bookUrl || tour.bookingUrl || '',
+        affiliateUrl: tour.affiliateUrl || '',
+        originalUrl: bookingUrl || tour.deepLink || tour.url || tour.href || tour.link || '',
+        source: tour.source === 'saved' ? 'manual' : 'myrealtrip',
+        imageUrl: getProductImageUrl(tour) || '',
+        itemType: savedTourItemType(tour),
+      };
+    })
     .filter(tour => tour.title || tour.priceText);
 }
 
@@ -4661,33 +4685,56 @@ function savedTripHotelSnapshot(savedTrip){
   if(!hotel?.title) return null;
   const nightly = parsePrice(hotel.priceText || '');
   const nights = Math.max(1, Number(savedTrip.nights) || 1);
+  const detailPath = String(hotel.detailPath || '').trim();
+  const bookingUrl = String(hotel.bookingUrl || hotel.affiliateUrl || hotel.originalUrl || '').trim();
+  const source = hotel.source === 'agoda' ? 'agoda' : (hotel.source === 'myrealtrip' ? 'api' : 'saved');
   return {
     id: `saved-${savedTrip.id}-hotel`,
-    source:'saved',
+    source,
     provider:'saved',
-    isBookable:false,
+    isBookable:Boolean(detailPath || bookingUrl),
     name: hotel.title,
+    title: hotel.title,
     area: hotel.area || '',
     price: hotel.priceText || '',
     pricePerNight: nightly,
     totalPrice: nightly ? nightly * nights : 0,
+    detailPath,
+    detailUrl: bookingUrl,
+    bookingUrl,
+    bookUrl: bookingUrl,
+    affiliateUrl: hotel.affiliateUrl || '',
+    originalUrl: hotel.originalUrl || bookingUrl,
+    imageUrl: hotel.imageUrl || '',
+    img: hotel.imageUrl || '',
     tags:['saved_trip'],
   };
 }
 
 function savedTripTourSnapshots(savedTrip){
   return (Array.isArray(savedTrip?.selectedTours) ? savedTrip.selectedTours : [])
-    .map((tour, index) => ({
+    .map((tour, index) => {
+      const bookingUrl = String(tour.bookingUrl || tour.affiliateUrl || tour.originalUrl || '').trim();
+      const detailPath = String(tour.detailPath || '').trim();
+      return {
       id: `saved-${savedTrip.id}-tour-${index + 1}`,
-      source:'saved',
+      source:tour.source || 'saved',
       name: tour.title || `저장한 투어 ${index + 1}`,
       displayTitle: tour.title || `저장한 투어 ${index + 1}`,
       price: tour.priceText || '',
       tag:'저장한 투어',
       tags:['saved_trip'],
-      bookUrl:'',
-      productUrl:'',
-    }))
+      bookUrl:bookingUrl,
+      productUrl:bookingUrl,
+      deepLink:tour.affiliateUrl || '',
+      url:bookingUrl,
+      href:detailPath || bookingUrl,
+      detailPath,
+      imageUrl:tour.imageUrl || '',
+      img:tour.imageUrl || '',
+      itemType:tour.itemType || 'tour',
+      };
+    })
     .filter(tour => tour.name);
 }
 

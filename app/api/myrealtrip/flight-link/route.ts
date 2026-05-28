@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  buildMylinkUrl,
   createFlightFareQueryLandingUrlViaApi,
   createMylinkViaApi,
 } from "@/src/lib/myrealtrip";
@@ -65,10 +66,15 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  const parameterFallback = buildMylinkUrl({
+    targetUrl: landingResult.landingUrl,
+    utmContent: "flight-result",
+  });
+
   return NextResponse.json({
-    url: landingResult.landingUrl,
+    url: parameterFallback.url || landingResult.landingUrl,
     fallbackUrl,
-    source: "landing",
+    source: parameterFallback.hasMylink ? "mylink-param" : "landing",
     reason: mylinkResult.ok ? undefined : mylinkResult.message,
   });
 }

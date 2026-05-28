@@ -8,6 +8,7 @@ import { StarIcon } from "@/src/components/home/icons";
 import { ReturnLink } from "../ReturnLink";
 import {
   buildAccommodationBookUrl,
+  buildMylinkUrl,
   fetchAccommodationImageUrl,
   fetchAccommodationProductDetail,
   searchAccommodationsSmart,
@@ -179,7 +180,11 @@ export default async function StayDetailPage({
   const backLabel = returnUrl?.includes("planner-result.html")
     ? "결과 화면으로 돌아가기"
     : "검색 결과로 돌아가기";
-  const stickyHref = primaryRoom?.bookUrl ?? stay.bookUrl;
+  const rawStickyHref = primaryRoom?.bookUrl ?? stay.bookUrl;
+  const stickyHref = buildMylinkUrl({
+    targetUrl: rawStickyHref,
+    utmContent: `stay-detail-${id}`,
+  }).url;
   const stickyPrice =
     formatStayDetailPriceText(
       primaryRoom?.footerPriceText ??
@@ -208,7 +213,7 @@ export default async function StayDetailPage({
     badgeText: "마이리얼트립",
     detailPath: stayDetailPath,
     bookingUrl: stickyHref,
-    originalUrl: stickyHref,
+    originalUrl: rawStickyHref,
     savedAt: "",
   };
 
@@ -469,7 +474,12 @@ export default async function StayDetailPage({
                                 ) : null}
                               </div>
                               <a
-                                href={room.bookUrl}
+                                href={
+                                  buildMylinkUrl({
+                                    targetUrl: room.bookUrl,
+                                    utmContent: `stay-detail-${id}-room`,
+                                  }).url
+                                }
                                 target="_blank"
                                 rel="noreferrer"
                                 className="inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#cb4b42] px-3.5 text-[11px] font-black text-white"

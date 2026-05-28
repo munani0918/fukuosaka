@@ -1350,27 +1350,40 @@ export interface BuildMylinkUrlResult {
   hasMylink: boolean;
 }
 
+function buildSafeUtmContent(value: string | undefined) {
+  return (value ?? "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .slice(0, 100);
+}
+
 export function buildMylinkUrl({
   targetUrl,
   utmContent = "home",
   openInApp = false,
 }: BuildMylinkUrlOptions): BuildMylinkUrlResult {
   const mylinkId = process.env.MYREALTRIP_MYLINK_ID;
+  const originalUrl = targetUrl || "";
 
-  if (!mylinkId) {
-    return { url: targetUrl, hasMylink: false };
+  if (!originalUrl || !mylinkId) {
+    return { url: originalUrl, hasMylink: false };
   }
 
-  const parsed = new URL(targetUrl);
-  parsed.searchParams.set("mylink_id", mylinkId);
+  try {
+    const parsed = new URL(originalUrl);
+    parsed.searchParams.set("mylink_id", mylinkId);
 
-  if (utmContent) {
-    parsed.searchParams.set("utm_content", utmContent);
+    const safeUtmContent = buildSafeUtmContent(utmContent);
+    if (safeUtmContent) {
+      parsed.searchParams.set("utm_content", safeUtmContent);
+    }
+
+    if (openInApp) {
+      parsed.searchParams.set("open_in_app", "true");
+    }
+
+    return { url: parsed.toString(), hasMylink: true };
+  } catch {
+    return { url: originalUrl, hasMylink: false };
   }
-
-  if (openInApp) {
-    parsed.searchParams.set("open_in_app", "true");
-  }
-
-  return { url: parsed.toString(), hasMylink: true };
 }

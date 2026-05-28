@@ -49,6 +49,20 @@ function isMrtResponse(v: unknown): v is MrtResponse {
 }
 
 export async function GET(): Promise<NextResponse> {
+  const debugEnabled = process.env.MYREALTRIP_REVENUES_DEBUG_ENABLED === "true";
+
+  if (process.env.NODE_ENV === "production" && !debugEnabled) {
+    return NextResponse.json(
+      {
+        ok: false,
+        status: 404,
+        message: "Not found.",
+        detail: null,
+      },
+      { status: 404 },
+    );
+  }
+
   // 1. API 키 로드 (서버 전용 — 절대 응답·로그에 포함하지 않는다)
   const apiKey = process.env.MRT_PARTNER_API_KEY;
 

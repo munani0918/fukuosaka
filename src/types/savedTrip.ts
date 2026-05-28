@@ -39,6 +39,12 @@ export type SavedTrip = {
     title?: string;
     area?: string;
     priceText?: string;
+    detailPath?: string;
+    bookingUrl?: string;
+    affiliateUrl?: string;
+    originalUrl?: string;
+    source?: "agoda" | "myrealtrip" | "manual" | "unknown";
+    imageUrl?: string;
   };
   selectedFlight?: {
     title?: string;
@@ -53,6 +59,13 @@ export type SavedTrip = {
   selectedTours?: Array<{
     title?: string;
     priceText?: string;
+    detailPath?: string;
+    bookingUrl?: string;
+    affiliateUrl?: string;
+    originalUrl?: string;
+    source?: "myrealtrip" | "manual" | "unknown";
+    imageUrl?: string;
+    itemType?: "tour" | "ticket" | "transport" | "esim";
   }>;
 };
 

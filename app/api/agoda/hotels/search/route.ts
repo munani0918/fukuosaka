@@ -129,10 +129,33 @@ function endpointHost(endpoint: string | undefined): string | null {
   }
 }
 
+function maskSensitiveValue(value: string | undefined | null): string | null {
+  const normalized = value?.trim();
+  if (!normalized) return null;
+  if (normalized.length <= 6) return `${normalized.slice(0, 2)}***`;
+  return `${normalized.slice(0, 3)}***${normalized.slice(-3)}`;
+}
+
+function maskAgodaUrlForDebug(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    const cid = parsed.searchParams.get("cid");
+    if (cid) {
+      parsed.searchParams.set("cid", maskSensitiveValue(cid) ?? "***");
+    }
+    return parsed.toString();
+  } catch {
+    return url.replace(/([?&]cid=)([^&#]+)/i, (_match, prefix: string, cid: string) => {
+      return `${prefix}${maskSensitiveValue(cid) ?? "***"}`;
+    });
+  }
+}
+
 function agodaDebug(siteId: string | undefined, apiKey: string | undefined, endpoint: string | undefined) {
   return {
     hasSiteId: Boolean(siteId),
-    siteId: siteId || null,
+    siteId: maskSensitiveValue(siteId),
     hasApiKey: Boolean(apiKey),
     apiKeyLength: apiKey?.length ?? 0,
     hasEndpoint: Boolean(endpoint),
@@ -140,10 +163,16 @@ function agodaDebug(siteId: string | undefined, apiKey: string | undefined, endp
   };
 }
 
-function sanitizeAgodaErrorBody(body: string, apiKey: string | undefined): string | undefined {
+function sanitizeAgodaErrorBody(
+  body: string,
+  apiKey: string | undefined,
+  siteId: string | undefined,
+): string | undefined {
   const trimmed = body.trim();
   if (!trimmed) return undefined;
-  const redacted = apiKey ? trimmed.split(apiKey).join("[redacted_api_key]") : trimmed;
+  let redacted = apiKey ? trimmed.split(apiKey).join("[redacted_api_key]") : trimmed;
+  redacted = siteId ? redacted.split(siteId).join("[redacted_site_id]") : redacted;
+  redacted = redacted.replace(/([?&]cid=)([^&#\s"]+)/gi, "$1[redacted_cid]");
   return redacted.slice(0, 1000);
 }
 
@@ -248,7 +277,7 @@ function debugRawHotel(raw: unknown) {
     hotelId: rawHotelId || hotelIdFromUrl(landingURL),
     rawHotelId,
     hotelName: stringValue(readPath(hotel, [["hotelName"], ["HotelName"], ["hotel_name"], ["name"]])),
-    landingURL,
+    landingURL: maskAgodaUrlForDebug(landingURL),
     dailyRate:
       numberValue(readPath(hotel, [["dailyRate"], ["rate"], ["rates_from"], ["price"]])) ??
       stringValue(readPath(hotel, [["dailyRate"], ["rate"], ["rates_from"], ["price"]])),
@@ -441,7 +470,7 @@ export async function GET(request: NextRequest) {
         status: response.status,
         statusText: response.statusText,
         debug: agodaDebug(siteId, apiKey, endpoint),
-        agodaErrorBody: sanitizeAgodaErrorBody(responseText, apiKey),
+        agodaErrorBody: sanitizeAgodaErrorBody(responseText, apiKey, siteId),
       });
     }
 
