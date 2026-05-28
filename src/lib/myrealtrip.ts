@@ -752,6 +752,62 @@ export function buildAccommodationBookUrl(
   return url.toString();
 }
 
+function isMyRealTripAccommodationUrl(value: string) {
+  if (!value) return false;
+  try {
+    const parsed = new URL(value);
+    const host = parsed.hostname.toLowerCase();
+    if (host === "accommodation.myrealtrip.com") {
+      return parsed.pathname.includes("/union/products/");
+    }
+    if (host === "www.myrealtrip.com") {
+      return parsed.pathname.includes("/accommodation") || parsed.pathname.includes("/stays");
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+export function buildAccommodationCpaUrl(
+  targetUrl: string,
+  itemId: string,
+  suffix = "",
+) {
+  const originalUrl = targetUrl || "";
+  if (!isMyRealTripAccommodationUrl(originalUrl)) return originalUrl;
+
+  try {
+    const parsed = new URL(originalUrl);
+    const existingMylinkId = parsed.searchParams.get("mylink_id");
+    const existingUtmContent = parsed.searchParams.get("utm_content");
+
+    if (existingMylinkId) {
+      if (!existingUtmContent) {
+        parsed.searchParams.set("utm_content", `stay-detail-${itemId}${suffix}`);
+      }
+      parsed.searchParams.set("open_in_app", "true");
+      return parsed.toString();
+    }
+  } catch {
+    // Fall through to buildMylinkUrl, which also safely falls back to the original URL.
+  }
+
+  const withMylink = buildMylinkUrl({
+    targetUrl: originalUrl,
+    utmContent: `stay-detail-${itemId}${suffix}`,
+    openInApp: true,
+  }).url;
+
+  try {
+    const parsed = new URL(withMylink || originalUrl);
+    parsed.searchParams.set("open_in_app", "true");
+    return parsed.toString();
+  } catch {
+    return withMylink || originalUrl;
+  }
+}
+
 function toRecord(value: unknown) {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -962,10 +1018,14 @@ function toAccommodationProductRoom(
     status: readString(ratePlan?.status) || null,
     isRecommendOption: Boolean(ratePlan?.isRecommendOption),
     isSoonSoldOut: Boolean(ratePlan?.isSoonSoldOut),
-    bookUrl: buildAccommodationBookUrl(itemId, {
-      ...params,
-      providerRoomId,
-    }),
+    bookUrl: buildAccommodationCpaUrl(
+      buildAccommodationBookUrl(itemId, {
+        ...params,
+        providerRoomId,
+      }),
+      itemId,
+      "-room",
+    ),
   } satisfies AccommodationProductRoom;
 }
 
@@ -1156,6 +1216,12 @@ function toAccommodationItem(
     toStringValue(raw.thumbnail) ??
     toStringValue(raw.image);
 
+  const rawBookUrl =
+    toStringValue(raw.bookUrl) ??
+    toStringValue(raw.productUrl) ??
+    toStringValue(raw.url) ??
+    buildAccommodationBookUrl(itemId, params);
+
   return {
     itemId,
     itemName,
@@ -1165,11 +1231,7 @@ function toAccommodationItem(
     reviewScore: toStringValue(raw.reviewScore),
     starRating: toNumber(raw.starRating),
     imageUrl: imageUrl ?? undefined,
-    bookUrl:
-      toStringValue(raw.bookUrl) ??
-      toStringValue(raw.productUrl) ??
-      toStringValue(raw.url) ??
-      buildAccommodationBookUrl(itemId, params),
+    bookUrl: buildAccommodationCpaUrl(rawBookUrl, itemId),
     raw,
   };
 }
