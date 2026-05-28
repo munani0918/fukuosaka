@@ -357,12 +357,9 @@ function StayCard({
               {stay.name}
             </h3>
           </div>
-          <svg className="mt-1 h-4 w-4 shrink-0 text-[#b19c94]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M7.5 4.5 13 10l-5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
         </div>
 
-        <div className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-[#7a6862]">
+        <div className="mb-2 mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-[#7a6862]">
           <StarIcon className="h-3.5 w-3.5 text-[#ffb627]" />
           {ratingLabel ? (
             <span className="text-[#d45c3b]">{ratingLabel}</span>

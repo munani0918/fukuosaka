@@ -237,11 +237,8 @@ export default async function ToursPage({
                     <p className="min-w-0 truncate whitespace-nowrap text-[14px] font-black tracking-[-0.04em] text-[#201b19]">
                       {formatTourPriceLabel(tour.priceDisplay, tour.salePrice)}
                     </p>
-                    <span className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap text-[11px] font-black text-[#b95248]">
+                    <span className="inline-flex shrink-0 items-center whitespace-nowrap text-[11px] font-black text-[#b95248]">
                       상세보기
-                      <svg className="h-3 w-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M7.5 4.5 13 10l-5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
                     </span>
                   </div>
                 </div>
