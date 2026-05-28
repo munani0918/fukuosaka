@@ -6,6 +6,8 @@ import {
   createMylinkViaApi,
 } from "@/src/lib/myrealtrip";
 
+type FlightRedirectFallbackType = "mylink-api" | "mylink-param" | "raw";
+
 function fallbackUrl(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const target = new URL("https://flights.myrealtrip.com");
@@ -23,8 +25,31 @@ function fallbackUrl(request: NextRequest) {
   return target.toString();
 }
 
+function urlHost(value: string) {
+  try {
+    return new URL(value).host;
+  } catch {
+    return "";
+  }
+}
+
+function urlHasParam(value: string, paramName: string) {
+  try {
+    return new URL(value).searchParams.has(paramName);
+  } catch {
+    return false;
+  }
+}
+
+function summarizeDebugReason(message: string | undefined) {
+  const normalized = message?.replace(/https?:\/\/\S+/g, "[redacted_url]").trim();
+  if (!normalized) return undefined;
+  return normalized.slice(0, 160);
+}
+
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
+  const isDebug = params.get("_debug") === "1";
   const origin = params.get("origin") ?? "ICN";
   const destination = params.get("destination") ?? "KIX";
   const tripType = params.get("tripType") === "OW" ? "OW" : "RT";
@@ -35,6 +60,24 @@ export async function GET(request: NextRequest) {
   const airline = params.get("airline") ?? undefined;
 
   if (!departDate) {
+    if (isDebug) {
+      return NextResponse.json(
+        {
+          ok: false,
+          hasLandingUrl: false,
+          landingHost: "",
+          hasMylinkIdEnv: Boolean(process.env.MYREALTRIP_MYLINK_ID),
+          mylinkApiAttempted: false,
+          mylinkApiSucceeded: false,
+          fallbackType: "raw" satisfies FlightRedirectFallbackType,
+          finalUrlHost: urlHost(fallbackUrl(request)),
+          finalUrlHasMylinkId: false,
+          finalUrlHasUtmContent: false,
+          reason: "departDate is required.",
+        },
+        { status: 400 },
+      );
+    }
     return NextResponse.redirect(fallbackUrl(request));
   }
 
@@ -52,6 +95,22 @@ export async function GET(request: NextRequest) {
   });
 
   if (!landingResult.ok) {
+    const fallback = fallbackUrl(request);
+    if (isDebug) {
+      return NextResponse.json({
+        ok: false,
+        hasLandingUrl: false,
+        landingHost: "",
+        hasMylinkIdEnv: Boolean(process.env.MYREALTRIP_MYLINK_ID),
+        mylinkApiAttempted: false,
+        mylinkApiSucceeded: false,
+        fallbackType: "raw" satisfies FlightRedirectFallbackType,
+        finalUrlHost: urlHost(fallback),
+        finalUrlHasMylinkId: false,
+        finalUrlHasUtmContent: false,
+        reason: summarizeDebugReason(landingResult.message),
+      });
+    }
     return NextResponse.redirect(fallbackUrl(request));
   }
 
@@ -60,10 +119,36 @@ export async function GET(request: NextRequest) {
     targetUrl: landingResult.landingUrl,
     utmContent: "flight-result",
   });
+  const mylinkApiUrl = mylinkResult.ok ? mylinkResult.mylinkUrl : "";
+  const fallbackType: FlightRedirectFallbackType =
+    mylinkApiUrl
+      ? "mylink-api"
+      : parameterFallback.hasMylink
+        ? "mylink-param"
+        : "raw";
+  const finalUrl =
+    fallbackType === "mylink-api"
+      ? mylinkApiUrl
+      : parameterFallback.url || landingResult.landingUrl;
 
-  return NextResponse.redirect(
-    mylinkResult.ok && mylinkResult.mylinkUrl
-      ? mylinkResult.mylinkUrl
-      : parameterFallback.url || landingResult.landingUrl,
-  );
+  if (isDebug) {
+    return NextResponse.json({
+      ok: true,
+      hasLandingUrl: true,
+      landingHost: urlHost(landingResult.landingUrl),
+      hasMylinkIdEnv: Boolean(process.env.MYREALTRIP_MYLINK_ID),
+      mylinkApiAttempted: true,
+      mylinkApiSucceeded: Boolean(mylinkApiUrl),
+      fallbackType,
+      finalUrlHost: urlHost(finalUrl),
+      finalUrlHasMylinkId: urlHasParam(finalUrl, "mylink_id"),
+      finalUrlHasUtmContent: urlHasParam(finalUrl, "utm_content"),
+      mylinkApiFailureReason:
+        mylinkApiUrl
+          ? undefined
+          : summarizeDebugReason(mylinkResult.ok ? undefined : mylinkResult.message),
+    });
+  }
+
+  return NextResponse.redirect(finalUrl);
 }
