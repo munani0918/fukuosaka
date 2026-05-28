@@ -5,8 +5,14 @@ import {
   createFlightFareQueryLandingUrlViaApi,
   createMylinkViaApi,
 } from "@/src/lib/myrealtrip";
+import { requireAdminApiToken } from "@/src/lib/myrealtripPartner";
 
 type FlightRedirectFallbackType = "mylink-api" | "mylink-param" | "raw";
+const DEBUG_NO_STORE_HEADERS = {
+  "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+  Pragma: "no-cache",
+  Expires: "0",
+};
 
 function fallbackUrl(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -47,9 +53,27 @@ function summarizeDebugReason(message: string | undefined) {
   return normalized.slice(0, 160);
 }
 
+function debugJson(body: unknown, init: ResponseInit = {}) {
+  const headers = new Headers(init.headers);
+  Object.entries(DEBUG_NO_STORE_HEADERS).forEach(([key, value]) => {
+    headers.set(key, value);
+  });
+
+  return NextResponse.json(body, {
+    ...init,
+    headers,
+  });
+}
+
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const isDebug = params.get("_debug") === "1";
+
+  if (isDebug) {
+    const auth = requireAdminApiToken(request);
+    if (!auth.ok) return auth.response;
+  }
+
   const origin = params.get("origin") ?? "ICN";
   const destination = params.get("destination") ?? "KIX";
   const tripType = params.get("tripType") === "OW" ? "OW" : "RT";
@@ -61,7 +85,7 @@ export async function GET(request: NextRequest) {
 
   if (!departDate) {
     if (isDebug) {
-      return NextResponse.json(
+      return debugJson(
         {
           ok: false,
           hasLandingUrl: false,
@@ -97,7 +121,7 @@ export async function GET(request: NextRequest) {
   if (!landingResult.ok) {
     const fallback = fallbackUrl(request);
     if (isDebug) {
-      return NextResponse.json({
+      return debugJson({
         ok: false,
         hasLandingUrl: false,
         landingHost: "",
@@ -132,7 +156,7 @@ export async function GET(request: NextRequest) {
       : parameterFallback.url || landingResult.landingUrl;
 
   if (isDebug) {
-    return NextResponse.json({
+    return debugJson({
       ok: true,
       hasLandingUrl: true,
       landingHost: urlHost(landingResult.landingUrl),
