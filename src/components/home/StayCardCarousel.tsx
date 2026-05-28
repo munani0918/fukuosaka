@@ -12,6 +12,7 @@ export function StayCardCarousel({ items }: StayCardCarouselProps) {
       title="오늘의 추천 숙소"
       viewAllHref="/stays"
       items={items}
+      savedItemType="hotel"
     />
   );
 }

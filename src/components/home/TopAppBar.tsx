@@ -14,20 +14,22 @@ export function TopAppBar() {
         </Link>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-label="저장"
+          <Link
+            href="/mypage"
+            aria-label="여행 보관함"
+            title="여행 보관함"
             className="flex h-9 w-9 items-center justify-center rounded-full bg-white/88 text-[#5f5550] ring-1 ring-[#f1e4dc]"
           >
             <BookmarkIcon className="h-[18px] w-[18px]" />
-          </button>
-          <button
-            type="button"
-            aria-label="마이"
+          </Link>
+          <Link
+            href="/account"
+            aria-label="계정"
+            title="계정"
             className="flex h-9 w-9 items-center justify-center rounded-full bg-white/88 text-[#5f5550] ring-1 ring-[#f1e4dc]"
           >
             <UserIcon className="h-[18px] w-[18px]" />
-          </button>
+          </Link>
         </div>
       </div>
     </header>

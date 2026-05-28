@@ -108,6 +108,13 @@ export type ProductCardData = {
   metaLabel: string;
   href: string;
   ctaLabel: string;
+  source?: "agoda" | "myrealtrip" | "manual" | "unknown";
+  cityCode?: "FUK" | "KIX";
+  cityName?: string;
+  detailPath?: string;
+  bookingUrl?: string;
+  affiliateUrl?: string;
+  originalUrl?: string;
   imageUrl?: string;
   artVariant: Extract<
     HomeArtVariant,
@@ -288,6 +295,10 @@ export const homeMockData: HomePageData = {
       metaLabel: "마이리얼트립 · 오사카",
       href: "/stays?keyword=오사카",
       ctaLabel: "예약하기",
+      source: "myrealtrip",
+      cityCode: "KIX",
+      cityName: "오사카",
+      detailPath: "/stays?keyword=오사카",
       artVariant: "stay-osaka",
     },
     {
@@ -299,6 +310,40 @@ export const homeMockData: HomePageData = {
       metaLabel: "마이리얼트립 · 후쿠오카",
       href: "/stays?keyword=후쿠오카",
       ctaLabel: "예약하기",
+      source: "myrealtrip",
+      cityCode: "FUK",
+      cityName: "후쿠오카",
+      detailPath: "/stays?keyword=후쿠오카",
+      artVariant: "stay-fukuoka",
+    },
+    {
+      id: "agoda-stay-osaka-card",
+      name: "아고다 오사카 인기 숙소",
+      rating: "4.6",
+      reviewCount: "예약 페이지 확인",
+      priceLabel: "예약 페이지에서 확인",
+      metaLabel: "아고다 · 오사카",
+      href: "/stays?keyword=오사카&city=osaka",
+      ctaLabel: "숙소 보기",
+      source: "agoda",
+      cityCode: "KIX",
+      cityName: "오사카",
+      detailPath: "/stays?keyword=오사카&city=osaka",
+      artVariant: "stay-osaka",
+    },
+    {
+      id: "agoda-stay-fukuoka-card",
+      name: "아고다 후쿠오카 인기 숙소",
+      rating: "4.6",
+      reviewCount: "예약 페이지 확인",
+      priceLabel: "예약 페이지에서 확인",
+      metaLabel: "아고다 · 후쿠오카",
+      href: "/stays?keyword=후쿠오카&city=fukuoka",
+      ctaLabel: "숙소 보기",
+      source: "agoda",
+      cityCode: "FUK",
+      cityName: "후쿠오카",
+      detailPath: "/stays?keyword=후쿠오카&city=fukuoka",
       artVariant: "stay-fukuoka",
     },
   ],

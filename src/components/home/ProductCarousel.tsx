@@ -1,14 +1,17 @@
 "use client";
 
 import type { ProductCardData } from "@/src/data/home";
+import { SavedItemStarButton } from "@/src/components/SavedItemStarButton";
 import { Artwork } from "@/src/components/home/Artwork";
 import { StarIcon } from "@/src/components/home/icons";
+import type { SavedItem } from "@/src/types/savedTrip";
 
 type ProductCarouselProps = {
   id: string;
   title: string;
   viewAllHref: string;
   items: ProductCardData[];
+  savedItemType?: "hotel";
 };
 
 export function ProductCarousel({
@@ -16,6 +19,7 @@ export function ProductCarousel({
   title,
   viewAllHref,
   items,
+  savedItemType,
 }: ProductCarouselProps) {
   const compactMeta = (label: string) => {
     const normalized = label.trim();
@@ -27,6 +31,30 @@ export function ProductCarousel({
     }
 
     return normalized.split("·").at(-1)?.trim() || normalized;
+  };
+
+  const savedItemFor = (item: ProductCardData): SavedItem | null => {
+    if (savedItemType !== "hotel") return null;
+
+    return {
+      id: item.id,
+      itemType: "hotel",
+      source: item.source ?? "unknown",
+      cityCode: item.cityCode,
+      cityName: item.cityName,
+      title: item.name,
+      subtitle: item.metaLabel,
+      area: item.cityName,
+      priceText: item.priceLabel,
+      imageUrl: item.imageUrl,
+      ratingText: item.rating,
+      badgeText: item.metaLabel,
+      detailPath: item.detailPath ?? (!item.href.startsWith("http") ? item.href : undefined),
+      bookingUrl: item.bookingUrl ?? (item.href.startsWith("http") ? item.href : undefined),
+      affiliateUrl: item.affiliateUrl,
+      originalUrl: item.originalUrl,
+      savedAt: new Date().toISOString(),
+    };
   };
 
   return (
@@ -41,62 +69,76 @@ export function ProductCarousel({
       </div>
 
       <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
-        {items.map((item) => (
-          <a
-            key={item.id}
-            href={item.href}
-            target={item.href.startsWith("http") ? "_blank" : undefined}
-            rel={item.href.startsWith("http") ? "noreferrer" : undefined}
-            className="group block h-[210px] w-[184px] shrink-0 overflow-hidden rounded-[22px] bg-white shadow-[0_12px_22px_rgba(87,44,31,0.055)] ring-1 ring-[#eadfd8] transition active:scale-[0.99]"
-          >
-            <div className="flex h-full flex-col">
-              <div className="relative h-[112px] shrink-0 overflow-hidden bg-[#f4eee8]">
-                {item.imageUrl ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={item.imageUrl}
-                      alt={item.name}
-                      className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-                      loading="lazy"
-                      referrerPolicy="no-referrer"
-                      onError={(event) => {
-                        event.currentTarget.style.display = "none";
-                        const fallback = event.currentTarget
-                          .nextElementSibling;
-                        if (fallback instanceof HTMLElement) {
-                          fallback.style.display = "block";
-                        }
-                      }}
-                    />
-                    <Artwork
-                      variant={item.artVariant}
-                      className="hidden h-full w-full"
-                    />
-                  </>
-                ) : (
-                  <Artwork variant={item.artVariant} className="h-full w-full" />
-                )}
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(44,34,29,0.12)_100%)]" />
-              </div>
+        {items.map((item) => {
+          const savedItem = savedItemFor(item);
 
-              <div className="flex min-h-0 flex-1 flex-col px-3 py-2.5">
-                <span className="mb-1.5 inline-flex w-fit max-w-full items-center rounded-full bg-[#f4efe9] px-1.5 py-0.5 text-[9px] font-bold tracking-[-0.03em] text-[#74665f]">
-                  {compactMeta(item.metaLabel)}
-                </span>
+          return (
+            <div
+              key={item.id}
+              className="relative h-[210px] w-[184px] shrink-0"
+            >
+              {savedItem ? (
+                <SavedItemStarButton
+                  item={savedItem}
+                  className="absolute right-2 top-2 z-10 bg-white/95"
+                />
+              ) : null}
+              <a
+                href={item.href}
+                target={item.href.startsWith("http") ? "_blank" : undefined}
+                rel={item.href.startsWith("http") ? "noreferrer" : undefined}
+                className="group block h-full overflow-hidden rounded-[22px] bg-white shadow-[0_12px_22px_rgba(87,44,31,0.055)] ring-1 ring-[#eadfd8] transition active:scale-[0.99]"
+              >
+                <div className="flex h-full flex-col">
+                  <div className="relative h-[112px] shrink-0 overflow-hidden bg-[#f4eee8]">
+                    {item.imageUrl ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          onError={(event) => {
+                            event.currentTarget.style.display = "none";
+                            const fallback = event.currentTarget
+                              .nextElementSibling;
+                            if (fallback instanceof HTMLElement) {
+                              fallback.style.display = "block";
+                            }
+                          }}
+                        />
+                        <Artwork
+                          variant={item.artVariant}
+                          className="hidden h-full w-full"
+                        />
+                      </>
+                    ) : (
+                      <Artwork variant={item.artVariant} className="h-full w-full" />
+                    )}
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(44,34,29,0.12)_100%)]" />
+                  </div>
 
-                <h3 className="min-h-[39px] overflow-hidden pb-0.5 text-[13.5px] font-black leading-[1.42] tracking-[-0.045em] text-[#2c221d] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
-                  {item.name}
-                </h3>
+                  <div className="flex min-h-0 flex-1 flex-col px-3 py-2.5">
+                    <span className="mb-1.5 inline-flex w-fit max-w-full items-center rounded-full bg-[#f4efe9] px-1.5 py-0.5 text-[9px] font-bold tracking-[-0.03em] text-[#74665f]">
+                      {compactMeta(item.metaLabel)}
+                    </span>
 
-                <div className="mt-1.5 flex min-w-0 items-center gap-1 text-[10.5px] font-semibold text-[#7f726c]">
-                  <StarIcon className="h-3 w-3 shrink-0 text-[#d69b2d]" />
-                  <span>{item.rating}</span>
+                    <h3 className="min-h-[39px] overflow-hidden pb-0.5 text-[13.5px] font-black leading-[1.42] tracking-[-0.045em] text-[#2c221d] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                      {item.name}
+                    </h3>
+
+                    <div className="mt-1.5 flex min-w-0 items-center gap-1 text-[10.5px] font-semibold text-[#7f726c]">
+                      <StarIcon className="h-3 w-3 shrink-0 text-[#d69b2d]" />
+                      <span>{item.rating}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </a>
             </div>
-          </a>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

@@ -466,6 +466,19 @@ async function getLiveStayCards() {
           isDomestic: false,
         }),
         ctaLabel: "상세 보기",
+        source: "myrealtrip",
+        cityCode,
+        cityName: config.city,
+        detailPath: buildStayDetailHref(item, {
+          keyword: config.city,
+          checkIn,
+          checkOut,
+          adultCount: 2,
+          childCount: 0,
+          isDomestic: false,
+        }),
+        bookingUrl: item.bookUrl,
+        originalUrl: item.bookUrl,
         imageUrl: imageUrl ? normalizeExternalUrl(imageUrl) : undefined,
         artVariant: config.stayArt,
       } satisfies ProductCardData;
@@ -589,6 +602,10 @@ function mergeStayCardsByCity(
   if (!liveCards.length) return fallbackCards;
 
   return fallbackCards.map((fallback) => {
+    if (fallback.source === "agoda") {
+      return fallback;
+    }
+
     const live = liveCards.find((card) => card.artVariant === fallback.artVariant);
 
     return {
@@ -597,6 +614,19 @@ function mergeStayCardsByCity(
       artVariant: live?.artVariant ?? fallback.artVariant,
     };
   });
+}
+
+function pickDailyStayRecommendations(items: ProductCardData[]) {
+  const myrealtripCards = items.filter((item) => item.source !== "agoda");
+  const agodaCards = items.filter((item) => item.source === "agoda");
+  const first =
+    myrealtripCards[dailyIndex("home-stays-myrealtrip", myrealtripCards.length)] ??
+    items[dailyIndex("home-stays-fallback-first", items.length)];
+  const second =
+    agodaCards[dailyIndex("home-stays-agoda", agodaCards.length)] ??
+    items.find((item) => item.id !== first?.id);
+
+  return [first, second].filter((item): item is ProductCardData => Boolean(item));
 }
 
 function pickDailyRecommendations(
@@ -689,7 +719,9 @@ export async function getHomePageData(): Promise<HomePageData> {
     liveTourCardsResult.status === "fulfilled" ? liveTourCardsResult.value : [];
 
   const flightDeals = await mergeFlightDeals(null);
-  const stayCards = mergeStayCardsByCity(liveStayCards, homeMockData.stayCards);
+  const stayCards = pickDailyStayRecommendations(
+    mergeStayCardsByCity(liveStayCards, homeMockData.stayCards),
+  );
   const tourCards = pickDailyRecommendations(
     mergeProductCards(liveTourCards, homeMockData.tourCards),
     2,
