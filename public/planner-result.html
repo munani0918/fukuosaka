@@ -3722,7 +3722,7 @@ function renderHotelCandidateGroup(){
           <span class="preview-title">${escapeHtml(hotel.name || '추천 숙소 확인')}</span>
           <span class="preview-meta">${escapeHtml(hotelPreviewMeta(hotel))}</span>
         </span>
-        <span class="preview-side-actions">${saveButton}<span class="preview-action">자세히</span></span>
+        <span class="preview-side-actions">${saveButton}</span>
       </div>`;
     }).join('')
     : bookingEmpty(isCheckingHotels ? '숙소 후보를 확인하고 있어요.' : '숙소 후보를 불러오지 못했어요. 숙소 탭에서 다시 확인해보세요.', 'hotels');
@@ -4989,11 +4989,11 @@ function renderSummary(){
 
     ${renderReservationBudgetCard(b)}
 
-    ${renderPlanBSection()}
+    ${renderLocalSpendingCard(b)}
 
     ${renderBookingCandidatesSection()}
 
-    ${renderLocalSpendingCard(b)}
+    ${renderPlanBSection()}
 
     <div class="summary-card" id="itinerary-outline">
       <div class="summary-card-title">일정 뼈대</div>
