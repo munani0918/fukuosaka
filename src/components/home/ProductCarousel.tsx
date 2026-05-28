@@ -9,7 +9,7 @@ type ProductCarouselProps = {
   title: string;
   viewAllHref: string;
   items: ProductCardData[];
-  showMetaLabel?: boolean;
+  metaLabelMode?: "compact" | "city" | "none";
 };
 
 export function ProductCarousel({
@@ -17,7 +17,7 @@ export function ProductCarousel({
   title,
   viewAllHref,
   items,
-  showMetaLabel = true,
+  metaLabelMode = "compact",
 }: ProductCarouselProps) {
   const compactMeta = (label: string) => {
     const normalized = label.trim();
@@ -29,6 +29,27 @@ export function ProductCarousel({
     }
 
     return normalized.split("·").at(-1)?.trim() || normalized;
+  };
+
+  const cityMeta = (item: ProductCardData) => {
+    if (item.cityName) return item.cityName;
+    if (item.cityCode === "FUK") return "후쿠오카";
+    if (item.cityCode === "KIX") return "오사카";
+    if (item.metaLabel.includes("후쿠오카")) return "후쿠오카";
+    if (item.metaLabel.includes("오사카")) return "오사카";
+    return "";
+  };
+
+  const metaLabel = (item: ProductCardData) => {
+    if (metaLabelMode === "none") return "";
+    if (metaLabelMode === "city") return cityMeta(item);
+    return compactMeta(item.metaLabel);
+  };
+
+  const reviewText = (value: string) => {
+    const count = Number.parseInt(value.replace(/[^\d]/g, ""), 10);
+    if (!Number.isFinite(count) || count <= 0) return "";
+    return `후기 ${count.toLocaleString("ko-KR")}`;
   };
 
   return (
@@ -43,7 +64,11 @@ export function ProductCarousel({
       </div>
 
       <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
-        {items.map((item) => (
+        {items.map((item) => {
+          const label = metaLabel(item);
+          const reviews = reviewText(item.reviewCount);
+
+          return (
             <div
               key={item.id}
               className="relative h-[210px] w-[184px] shrink-0"
@@ -86,9 +111,9 @@ export function ProductCarousel({
                   </div>
 
                   <div className="flex min-h-0 flex-1 flex-col px-3 py-2.5">
-                    {showMetaLabel ? (
+                    {label ? (
                       <span className="mb-1.5 inline-flex w-fit max-w-full items-center rounded-full bg-[#f4efe9] px-1.5 py-0.5 text-[9px] font-bold tracking-[-0.03em] text-[#74665f]">
-                        {compactMeta(item.metaLabel)}
+                        {label}
                       </span>
                     ) : null}
 
@@ -99,12 +124,19 @@ export function ProductCarousel({
                     <div className="mt-1.5 flex min-w-0 items-center gap-1 text-[10.5px] font-semibold text-[#7f726c]">
                       <StarIcon className="h-3 w-3 shrink-0 text-[#d69b2d]" />
                       <span>{item.rating}</span>
+                      {reviews ? (
+                        <>
+                          <span className="text-[#c3b3aa]">·</span>
+                          <span className="truncate">{reviews}</span>
+                        </>
+                      ) : null}
                     </div>
                   </div>
                 </div>
               </a>
             </div>
-          ))}
+          );
+        })}
       </div>
     </section>
   );
