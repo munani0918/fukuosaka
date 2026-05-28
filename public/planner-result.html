@@ -1777,8 +1777,17 @@ function reservationHotelTargetMeta(){
   const flightCost = packageIncludes('flight') ? (Number(b.flight) || 0) : 0;
   const tourCost = packageIncludes('tour') ? (Number(b.tour) || 0) : 0;
   const otherReservationCost = flightCost + tourCost;
-  const targetSpend = reservationTargetSpend(total, 0.82);
-  const maxSpend = Math.round(total * 0.97);
+  const localEstimate = b.localSpendingEstimate || localSpendingEstimate();
+  const localReserve = Math.max(0, Number(localEstimate?.min) || 0);
+  const localAwareReservationCap = Math.max(0, total - localReserve);
+  const targetSpend = Math.min(
+    reservationTargetSpend(total, 0.82),
+    localAwareReservationCap ? Math.round(localAwareReservationCap * 0.94) : reservationTargetSpend(total, 0.82),
+  );
+  const maxSpend = Math.min(
+    Math.round(total * 0.97),
+    localAwareReservationCap || Math.round(total * 0.97),
+  );
   const availableHotelBudget = targetSpend - otherReservationCost;
   const maxHotelBudget = maxSpend - otherReservationCost;
   if(availableHotelBudget <= 0 || maxHotelBudget <= 0) return null;
@@ -1788,7 +1797,8 @@ function reservationHotelTargetMeta(){
   const softCapNightly = range.softCap;
   const rawTargetNightly = Math.max(cityMin, Math.round(availableHotelBudget / nights / rooms));
   const rawMaxNightly = Math.max(cityMin, Math.round(maxHotelBudget / nights / rooms));
-  const targetNightly = Math.max(range.min, Math.min(rawTargetNightly, softCapNightly));
+  const budgetAwareTierMin = Math.min(range.min, rawMaxNightly);
+  const targetNightly = Math.max(cityMin, budgetAwareTierMin, Math.min(rawTargetNightly, softCapNightly));
   const maxNightly = Math.max(targetNightly, Math.min(rawMaxNightly, Math.round(softCapNightly * 1.15)));
   return {
     total,
@@ -1797,6 +1807,7 @@ function reservationHotelTargetMeta(){
     effectiveBudgetTier: tier,
     targetSpend,
     maxSpend,
+    localReserve,
     availableHotelBudget,
     maxHotelBudget,
     nights,
