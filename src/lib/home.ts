@@ -108,7 +108,7 @@ const HOME_CITY_CONFIG = {
   },
 } as const;
 
-const HOME_STAY_RECOMMENDATION_ORDER: CityCode[] = ["KIX", "FUK"];
+const HOME_STAY_RECOMMENDATION_ORDER: CityCode[] = ["FUK", "KIX"];
 
 function futureDate(offsetDays: number) {
   const target = new Date();
@@ -599,34 +599,26 @@ function mergeStayCardsByCity(
   liveCards: ProductCardData[],
   fallbackCards: ProductCardData[],
 ) {
-  if (!liveCards.length) return fallbackCards;
+  const fallbackPool = fallbackCards.filter((card) => card.source !== "agoda");
 
-  return fallbackCards.map((fallback) => {
-    if (fallback.source === "agoda") {
-      return fallback;
-    }
+  return HOME_STAY_RECOMMENDATION_ORDER.map((cityCode) => {
+    const config = HOME_CITY_CONFIG[cityCode];
+    const fallback = fallbackPool.find(
+      (card) => card.cityCode === cityCode || card.artVariant === config.stayArt,
+    );
+    const live = liveCards.find(
+      (card) => card.cityCode === cityCode || card.artVariant === config.stayArt,
+    );
+    const base = live ?? fallback;
 
-    const live = liveCards.find((card) => card.artVariant === fallback.artVariant);
+    if (!base) return null;
 
     return {
-      ...fallback,
+      ...(fallback ?? base),
       ...(live ?? {}),
-      artVariant: live?.artVariant ?? fallback.artVariant,
+      artVariant: base.artVariant,
     };
-  });
-}
-
-function pickDailyStayRecommendations(items: ProductCardData[]) {
-  const myrealtripCards = items.filter((item) => item.source !== "agoda");
-  const agodaCards = items.filter((item) => item.source === "agoda");
-  const first =
-    myrealtripCards[dailyIndex("home-stays-myrealtrip", myrealtripCards.length)] ??
-    items[dailyIndex("home-stays-fallback-first", items.length)];
-  const second =
-    agodaCards[dailyIndex("home-stays-agoda", agodaCards.length)] ??
-    items.find((item) => item.id !== first?.id);
-
-  return [first, second].filter((item): item is ProductCardData => Boolean(item));
+  }).filter((card): card is ProductCardData => card !== null);
 }
 
 function pickDailyRecommendations(
@@ -719,9 +711,7 @@ export async function getHomePageData(): Promise<HomePageData> {
     liveTourCardsResult.status === "fulfilled" ? liveTourCardsResult.value : [];
 
   const flightDeals = await mergeFlightDeals(null);
-  const stayCards = pickDailyStayRecommendations(
-    mergeStayCardsByCity(liveStayCards, homeMockData.stayCards),
-  );
+  const stayCards = mergeStayCardsByCity(liveStayCards, homeMockData.stayCards);
   const tourCards = pickDailyRecommendations(
     mergeProductCards(liveTourCards, homeMockData.tourCards),
     2,

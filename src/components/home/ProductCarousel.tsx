@@ -1,17 +1,15 @@
 "use client";
 
 import type { ProductCardData } from "@/src/data/home";
-import { SavedItemStarButton } from "@/src/components/SavedItemStarButton";
 import { Artwork } from "@/src/components/home/Artwork";
 import { StarIcon } from "@/src/components/home/icons";
-import type { SavedItem } from "@/src/types/savedTrip";
 
 type ProductCarouselProps = {
   id: string;
   title: string;
   viewAllHref: string;
   items: ProductCardData[];
-  savedItemType?: "hotel";
+  showMetaLabel?: boolean;
 };
 
 export function ProductCarousel({
@@ -19,7 +17,7 @@ export function ProductCarousel({
   title,
   viewAllHref,
   items,
-  savedItemType,
+  showMetaLabel = true,
 }: ProductCarouselProps) {
   const compactMeta = (label: string) => {
     const normalized = label.trim();
@@ -31,30 +29,6 @@ export function ProductCarousel({
     }
 
     return normalized.split("·").at(-1)?.trim() || normalized;
-  };
-
-  const savedItemFor = (item: ProductCardData): SavedItem | null => {
-    if (savedItemType !== "hotel") return null;
-
-    return {
-      id: item.id,
-      itemType: "hotel",
-      source: item.source ?? "unknown",
-      cityCode: item.cityCode,
-      cityName: item.cityName,
-      title: item.name,
-      subtitle: item.metaLabel,
-      area: item.cityName,
-      priceText: item.priceLabel,
-      imageUrl: item.imageUrl,
-      ratingText: item.rating,
-      badgeText: item.metaLabel,
-      detailPath: item.detailPath ?? (!item.href.startsWith("http") ? item.href : undefined),
-      bookingUrl: item.bookingUrl ?? (item.href.startsWith("http") ? item.href : undefined),
-      affiliateUrl: item.affiliateUrl,
-      originalUrl: item.originalUrl,
-      savedAt: new Date().toISOString(),
-    };
   };
 
   return (
@@ -69,20 +43,11 @@ export function ProductCarousel({
       </div>
 
       <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
-        {items.map((item) => {
-          const savedItem = savedItemFor(item);
-
-          return (
+        {items.map((item) => (
             <div
               key={item.id}
               className="relative h-[210px] w-[184px] shrink-0"
             >
-              {savedItem ? (
-                <SavedItemStarButton
-                  item={savedItem}
-                  className="absolute right-2 top-2 z-10 bg-white/95"
-                />
-              ) : null}
               <a
                 href={item.href}
                 target={item.href.startsWith("http") ? "_blank" : undefined}
@@ -121,9 +86,11 @@ export function ProductCarousel({
                   </div>
 
                   <div className="flex min-h-0 flex-1 flex-col px-3 py-2.5">
-                    <span className="mb-1.5 inline-flex w-fit max-w-full items-center rounded-full bg-[#f4efe9] px-1.5 py-0.5 text-[9px] font-bold tracking-[-0.03em] text-[#74665f]">
-                      {compactMeta(item.metaLabel)}
-                    </span>
+                    {showMetaLabel ? (
+                      <span className="mb-1.5 inline-flex w-fit max-w-full items-center rounded-full bg-[#f4efe9] px-1.5 py-0.5 text-[9px] font-bold tracking-[-0.03em] text-[#74665f]">
+                        {compactMeta(item.metaLabel)}
+                      </span>
+                    ) : null}
 
                     <h3 className="min-h-[39px] overflow-hidden pb-0.5 text-[13.5px] font-black leading-[1.42] tracking-[-0.045em] text-[#2c221d] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
                       {item.name}
@@ -137,8 +104,7 @@ export function ProductCarousel({
                 </div>
               </a>
             </div>
-          );
-        })}
+          ))}
       </div>
     </section>
   );
