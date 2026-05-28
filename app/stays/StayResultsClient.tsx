@@ -346,8 +346,8 @@ function StayCard({
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col p-4">
-        <div className="flex items-start justify-between gap-3 pr-9">
-          <div className="min-w-0">
+        <div className="flex items-start justify-between gap-3 pr-12">
+          <div className="min-w-0 w-full">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="inline-flex rounded-full bg-[#fff4f0] px-2 py-0.5 text-[10px] font-black text-[#cb4b42] ring-1 ring-[#f1d7cf]">
                 {stay.sourceLabel}

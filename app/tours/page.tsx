@@ -211,9 +211,9 @@ export default async function ToursPage({
                   <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(50,26,18,0.12)_100%)]" />
                 </div>
 
-                <div className="flex min-w-0 flex-1 flex-col p-3.5 pr-11">
+                <div className="flex min-w-0 flex-1 flex-col p-3.5">
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <div className="min-w-0">
+                    <div className="min-w-0 pr-10">
                       <p className="inline-flex max-w-full items-center rounded-full bg-[#f7eee8] px-2 py-1 text-[10px] font-black leading-none text-[#9a7368]">
                         {tour.category || "투어&티켓"}
                       </p>
