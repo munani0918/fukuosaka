@@ -6350,11 +6350,13 @@ async function fetchAndRender(options = {}){
 }
 
 // Boot
-startPageLoadingProgress();
 loadGoogleMapsEmbedKey();
 const initialSavedTripId = savedTripRequestId();
 if(initialSavedTripId) renderSavedTripResult(initialSavedTripId);
-else fetchAndRender();
+else {
+  startPageLoadingProgress();
+  fetchAndRender();
+}
 </script>
 </body>
 </html>
