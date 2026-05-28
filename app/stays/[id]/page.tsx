@@ -184,6 +184,7 @@ export default async function StayDetailPage({
   const stickyHref = buildMylinkUrl({
     targetUrl: rawStickyHref,
     utmContent: `stay-detail-${id}`,
+    openInApp: true,
   }).url;
   const stickyPrice =
     formatStayDetailPriceText(
@@ -478,6 +479,7 @@ export default async function StayDetailPage({
                                   buildMylinkUrl({
                                     targetUrl: room.bookUrl,
                                     utmContent: `stay-detail-${id}-room`,
+                                    openInApp: true,
                                   }).url
                                 }
                                 target="_blank"
