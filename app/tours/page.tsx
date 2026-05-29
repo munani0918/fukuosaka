@@ -12,6 +12,7 @@ import {
 } from "@/src/lib/myrealtrip";
 import {
   buildTourDetailHref,
+  buildTourRegionFallbackSearches,
   buildTourResultsHref,
   coerceTourSearchState,
   formatTourPriceLabel,
@@ -76,6 +77,63 @@ function tourSavedItemPayload(
   };
 }
 
+type TourSearchResult = Awaited<ReturnType<typeof searchTnaProductsViaApi>>;
+
+function mergeTourSearchResults(
+  primary: TourSearchResult,
+  fallbacks: TourSearchResult[],
+): TourSearchResult | null {
+  const okResults = [primary, ...fallbacks].filter((entry) => entry.ok);
+  const items = okResults.flatMap((entry) => entry.data.items);
+  if (!items.length) return null;
+
+  const seen = new Set<string>();
+  const mergedItems = items.filter((item) => {
+    const key = item.gid || item.productUrl || item.itemName;
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  if (!mergedItems.length) return null;
+
+  const first = okResults[0];
+  return {
+    ok: true,
+    status: first.status,
+    data: {
+      ...first.data,
+      items: mergedItems,
+      totalCount: Math.max(first.data.totalCount, mergedItems.length),
+      hasNextPage: okResults.some((entry) => entry.data.hasNextPage),
+    },
+    meta: first.meta,
+    result: first.result,
+  };
+}
+
+async function searchTnaProductsWithRegionFallback(
+  state: ReturnType<typeof coerceTourSearchState>,
+) {
+  const primary = await searchTnaProductsViaApi(state);
+  if (primary.ok && primary.data.items.length > 0) return primary;
+
+  const fallbackSearches = buildTourRegionFallbackSearches(state);
+  if (!fallbackSearches.length) return primary;
+
+  const fallbackResults = await Promise.all(
+    fallbackSearches.map((fallback) =>
+      searchTnaProductsViaApi({
+        ...state,
+        ...fallback,
+        page: 1,
+      }),
+    ),
+  );
+
+  return mergeTourSearchResults(primary, fallbackResults) ?? primary;
+}
+
 export default async function ToursPage({
   searchParams,
 }: {
@@ -91,7 +149,7 @@ export default async function ToursPage({
     ? "결과 화면으로 돌아가기"
     : "홈으로 돌아가기";
   const [result, categoryResult] = await Promise.all([
-    searchTnaProductsViaApi(state),
+    searchTnaProductsWithRegionFallback(state),
     searchTnaCategoriesViaApi({ city: state.city }),
   ]);
 

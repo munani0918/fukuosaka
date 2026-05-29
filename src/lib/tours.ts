@@ -32,6 +32,98 @@ const validSorts = new Set<TnaSort>([
   "selling_count_desc",
 ]);
 
+type TourRegion = "osaka" | "fukuoka";
+
+function normalizeRegionText(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, "");
+}
+
+export function detectTourRegionKeyword(value: string): TourRegion | null {
+  const normalized = normalizeRegionText(value);
+  if (["후쿠오카", "후쿠오까", "fukuoka", "fuk"].includes(normalized)) {
+    return "fukuoka";
+  }
+  if (["오사카", "오사까", "osaka", "kix"].includes(normalized)) {
+    return "osaka";
+  }
+
+  return null;
+}
+
+function tourRegionLabel(region: TourRegion) {
+  return region === "fukuoka" ? "후쿠오카" : "오사카";
+}
+
+function categoryFallbackKeyword(region: TourRegion, category: string) {
+  const value = category.trim().toLowerCase();
+  if (!value || value === "all") return "";
+
+  if (value.includes("근교") || value.includes("suburb")) {
+    return region === "fukuoka" ? "후쿠오카 다자이후" : "오사카 근교투어";
+  }
+  if (value.includes("티켓") || value.includes("입장") || value.includes("ticket")) {
+    return region === "fukuoka" ? "후쿠오카 입장권" : "USJ 입장권";
+  }
+  if (
+    value.includes("이동") ||
+    value.includes("교통") ||
+    value.includes("패스") ||
+    value.includes("transportation")
+  ) {
+    return region === "fukuoka" ? "후쿠오카 산큐패스" : "라피트";
+  }
+  if (
+    value.includes("와이파이") ||
+    value.includes("wifi") ||
+    value.includes("esim") ||
+    value.includes("유심") ||
+    value.includes("usim")
+  ) {
+    return "일본 eSIM";
+  }
+  if (value.includes("tour") || value.includes("투어")) {
+    return region === "fukuoka" ? "후쿠오카 시티투어" : "오사카 시티투어";
+  }
+
+  return "";
+}
+
+function regionFallbackCategories(region: TourRegion) {
+  return region === "fukuoka"
+    ? ["tour", "transportation", "ticket"]
+    : ["suburb_tour", "ticket_v2", "transportation_v2"];
+}
+
+export function buildTourRegionFallbackSearches(
+  state: Pick<TourSearchState, "keyword" | "city" | "category">,
+) {
+  const keywordRegion = detectTourRegionKeyword(state.keyword);
+  if (!keywordRegion) return [];
+
+  const region = keywordRegion;
+  const city = tourRegionLabel(region);
+  const category = state.category || "all";
+
+  if (category !== "all") {
+    const categoryKeyword = categoryFallbackKeyword(region, category);
+    const searches = [
+      { keyword: state.keyword, city, category },
+      categoryKeyword ? { keyword: categoryKeyword, city, category } : null,
+      categoryKeyword ? { keyword: categoryKeyword, city, category: "all" } : null,
+    ];
+
+    return searches.filter(Boolean) as Array<
+      Pick<TourSearchState, "keyword" | "city" | "category">
+    >;
+  }
+
+  return regionFallbackCategories(region).map((categoryName) => ({
+    keyword: city,
+    city,
+    category: categoryName,
+  }));
+}
+
 function formatDate(date: Date) {
   return date.toISOString().slice(0, 10);
 }
@@ -156,4 +248,3 @@ export function formatTourReviewLabel(score?: number | null, count?: number | nu
   if (countLabel) return `후기 ${countLabel}개`;
   return "후기 정보 확인";
 }
-
