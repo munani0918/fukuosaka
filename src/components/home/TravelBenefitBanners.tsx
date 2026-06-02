@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import type { HomeBenefitBanner } from "@/src/data/benefits";
 import { ArrowRightIcon } from "@/src/components/home/icons";
@@ -15,8 +15,7 @@ export function TravelBenefitBanners({ items }: TravelBenefitBannersProps) {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const pointerStartX = useRef(0);
   const pointerDeltaX = useRef(0);
-  const isInteracting = useRef(false);
-  const activeIndexRef = useRef(0);
+  const showDots = activeItems.length > 1;
 
   function scrollToIndex(index: number) {
     const scroller = scrollerRef.current;
@@ -27,25 +26,6 @@ export function TravelBenefitBanners({ items }: TravelBenefitBannersProps) {
     });
     setActiveIndex(index);
   }
-
-  useEffect(() => {
-    activeIndexRef.current = activeIndex;
-  }, [activeIndex]);
-
-  useEffect(() => {
-    if (activeItems.length <= 1) return undefined;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      return undefined;
-    }
-
-    const timer = window.setInterval(() => {
-      if (isInteracting.current) return;
-      const nextIndex = (activeIndexRef.current + 1) % activeItems.length;
-      scrollToIndex(nextIndex);
-    }, 5000);
-
-    return () => window.clearInterval(timer);
-  }, [activeItems.length]);
 
   if (!activeItems.length) return null;
 
@@ -80,7 +60,6 @@ export function TravelBenefitBanners({ items }: TravelBenefitBannersProps) {
             <a
               href={item.href ?? "#"}
               onPointerDown={(event) => {
-                isInteracting.current = true;
                 pointerStartX.current = event.clientX;
                 pointerDeltaX.current = 0;
               }}
@@ -93,12 +72,6 @@ export function TravelBenefitBanners({ items }: TravelBenefitBannersProps) {
                   event.preventDefault();
                   window.alert("이 혜택 페이지는 곧 준비될 예정이에요.");
                 }
-              }}
-              onPointerUp={() => {
-                isInteracting.current = false;
-              }}
-              onPointerCancel={() => {
-                isInteracting.current = false;
               }}
               className="relative block min-h-[150px] overflow-hidden rounded-[26px] border border-[#f1dcd3] bg-[linear-gradient(135deg,#fff5ef_0%,#ffe4d9_55%,#fffaf5_100%)] px-4 py-4 shadow-[0_14px_24px_rgba(118,67,55,0.06)]"
             >
@@ -144,19 +117,21 @@ export function TravelBenefitBanners({ items }: TravelBenefitBannersProps) {
         ))}
       </div>
 
-      <div className="mt-3 flex justify-center gap-1.5">
-        {activeItems.map((item, index) => (
-          <button
-            key={item.id}
-            type="button"
-            aria-label={`${index + 1}번째 혜택 보기`}
-            onClick={() => scrollToIndex(index)}
-            className={`h-1.5 rounded-full transition ${
-              index === activeIndex ? "w-5 bg-[#f05f5b]" : "w-1.5 bg-[#dccbc3]"
-            }`}
-          />
-        ))}
-      </div>
+      {showDots ? (
+        <div className="mt-3 flex justify-center gap-1.5">
+          {activeItems.map((item, index) => (
+            <button
+              key={item.id}
+              type="button"
+              aria-label={`${index + 1}번째 혜택 보기`}
+              onClick={() => scrollToIndex(index)}
+              className={`h-1.5 rounded-full transition ${
+                index === activeIndex ? "w-5 bg-[#f05f5b]" : "w-1.5 bg-[#dccbc3]"
+              }`}
+            />
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }
