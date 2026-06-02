@@ -120,17 +120,17 @@ export default function MyRealTripCouponPage() {
           <section className="relative min-h-[286px] overflow-hidden rounded-[30px] border border-[#f2d4c8] bg-[linear-gradient(135deg,#fffaf5_0%,#fff6ee_46%,#ffe7dc_100%)] p-5 shadow-[0_18px_42px_rgba(126,74,61,0.09)]">
             <HeroTravelIllustration />
 
-            <div className="relative z-10 max-w-[60%]">
+            <div className="relative z-10 max-w-[68%]">
               <span className="inline-flex whitespace-nowrap rounded-full bg-[#f45f56] px-3 py-1.5 text-[11.5px] font-black tracking-[-0.04em] text-white shadow-[0_10px_20px_rgba(244,95,86,0.18)]">
                 ✿ 후쿠오사카 전용 혜택
               </span>
-              <h2 className="mt-7 text-[34px] font-black leading-[1.18] tracking-[-0.075em] text-[#2c211d]">
-                예약 전에
-                <br />
-                쿠폰을 챙기세요
+              <h2 className="mt-7 text-[31px] font-black leading-[1.14] tracking-[-0.078em] text-[#2c211d] min-[390px]:text-[32px]">
+                <span className="block whitespace-nowrap">예약 전에</span>
+                <span className="block whitespace-nowrap">쿠폰을 챙기세요</span>
               </h2>
-              <p className="mt-5 whitespace-nowrap text-[18px] font-black leading-tight tracking-[-0.07em] text-[#f05f55] min-[390px]:text-[19px]">
-                투어·티켓 / 해외 숙소 혜택
+              <p className="mt-5 text-[18px] font-black leading-[1.22] tracking-[-0.07em] text-[#f05f55] min-[390px]:text-[19px]">
+                <span className="block whitespace-nowrap">투어·티켓</span>
+                <span className="block whitespace-nowrap">해외 숙소 혜택</span>
               </p>
             </div>
           </section>
@@ -156,7 +156,7 @@ export default function MyRealTripCouponPage() {
             {couponCards.map((card) => (
               <article
                 key={card.id}
-                className="flex min-h-[258px] flex-col rounded-[25px] border border-[#efd8ce] bg-white/94 p-3 text-center shadow-[0_16px_32px_rgba(126,74,61,0.07)]"
+                className="flex min-h-[278px] flex-col rounded-[25px] border border-[#efd8ce] bg-white/94 p-3.5 text-center shadow-[0_16px_32px_rgba(126,74,61,0.07)]"
               >
                 <div className="mx-auto flex h-[76px] w-[76px] items-center justify-center rounded-full bg-[#fff0e9] text-[#ef665b]">
                   {card.icon}
@@ -170,14 +170,16 @@ export default function MyRealTripCouponPage() {
                 <p className="mt-3 min-h-[44px] text-[12.5px] font-semibold leading-[1.62] tracking-[-0.045em] text-[#5d514c] min-[390px]:text-[13px]">
                   {card.description}
                 </p>
-                <a
-                  href={card.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-auto flex min-h-[50px] w-full items-center justify-center rounded-[16px] bg-[linear-gradient(135deg,#ff7466,#f25049)] px-2.5 py-3 text-center text-[13px] font-black leading-snug tracking-[-0.045em] text-white shadow-[0_14px_24px_rgba(213,91,78,0.18)] transition active:scale-[0.99] min-[390px]:text-[13.5px]"
-                >
-                  {card.cta}
-                </a>
+                <div className="mt-auto pt-5">
+                  <a
+                    href={card.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-h-[50px] w-full items-center justify-center rounded-[16px] bg-[linear-gradient(135deg,#ff7466,#f25049)] px-2.5 py-3 text-center text-[13px] font-black leading-snug tracking-[-0.045em] text-white shadow-[0_14px_24px_rgba(213,91,78,0.18)] transition active:scale-[0.99] min-[390px]:text-[13.5px]"
+                  >
+                    {card.cta}
+                  </a>
+                </div>
               </article>
             ))}
           </section>
