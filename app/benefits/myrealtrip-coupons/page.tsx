@@ -1,6 +1,11 @@
 import Link from "next/link";
 
-import { ArrowRightIcon } from "@/src/components/home/icons";
+import {
+  ArrowRightIcon,
+  BedIcon,
+  TicketIcon,
+  UserIcon,
+} from "@/src/components/home/icons";
 import { BottomTabBar } from "@/src/components/home/BottomTabBar";
 import type { BottomTabItem } from "@/src/data/home";
 import { myrealtripCouponLinks } from "@/src/data/benefits";
@@ -18,187 +23,206 @@ const couponCards = [
     id: "tour-ticket",
     title: "투어·티켓 쿠폰팩",
     subtitle: "선착순 할인쿠폰",
-    description: "입장권·교통패스·현지투어 예약 전 추천",
+    description: "후쿠오사카 인기 투어·티켓에 사용 가능한 할인쿠폰",
     cta: "투어·티켓 쿠폰팩 받기",
     href: myrealtripCouponLinks.tourTicket,
-    icon: "%",
+    icon: <TicketIcon className="h-8 w-8" />,
   },
   {
     id: "overseas-stay",
     title: "해외 숙소 쿠폰팩",
     subtitle: "선착순 할인쿠폰",
-    description: "숙소 예약 전 먼저 받아두세요",
+    description: "해외 숙소 예약에 사용 가능한 할인쿠폰",
     cta: "해외 숙소 쿠폰팩 받기",
     href: myrealtripCouponLinks.overseasStay,
-    icon: "▥",
+    icon: <BedIcon className="h-8 w-8" />,
   },
 ];
 
 const steps = [
   {
     title: "쿠폰팩 받기",
-    description: "원하는 쿠폰팩 버튼을 눌러 이동해요.",
+    icon: <TicketIcon className="h-8 w-8" />,
   },
   {
     title: "로그인 후 다운로드",
-    description: "마이리얼트립 로그인 후 쿠폰을 다운로드해요.",
+    icon: <UserIcon className="h-8 w-8" />,
   },
   {
     title: "결제 단계에서 쿠폰 적용",
-    description: "사용 가능한 쿠폰을 선택해 할인받아요.",
+    icon: <span className="text-[29px] font-black leading-none">%</span>,
   },
 ];
+
+function HeroTravelIllustration() {
+  return (
+    <div
+      aria-hidden="true"
+      className="absolute bottom-0 right-[-14px] h-[218px] w-[208px]"
+    >
+      <div className="absolute right-0 top-0 h-28 w-32 rounded-bl-[54px] rounded-tl-[54px] bg-[#ffe2d7]/78" />
+      <div className="absolute right-5 top-4 h-16 w-16 rounded-full border-[3px] border-[#f5a190]/72" />
+      <div className="absolute right-7 top-6 h-12 w-12 rounded-full border-[2px] border-[#f5a190]/60" />
+      <div className="absolute right-[39px] top-4 h-16 w-[2px] rotate-45 bg-[#f5a190]/58" />
+      <div className="absolute right-[39px] top-4 h-16 w-[2px] -rotate-45 bg-[#f5a190]/58" />
+
+      <div className="absolute right-[92px] top-[58px] h-24 w-7">
+        <div className="mx-auto h-4 w-3 rounded-t-full bg-[#d9a28d]" />
+        <div className="h-20 w-7 border-x-[3px] border-[#c98779]" />
+        <div className="absolute left-[-4px] top-10 h-[3px] w-10 bg-[#c98779]" />
+      </div>
+
+      <div className="absolute right-12 top-16 h-[76px] w-[98px]">
+        <div className="absolute left-7 top-0 h-5 w-12 bg-[#805b4a] [clip-path:polygon(50%_0,100%_100%,0_100%)]" />
+        <div className="absolute left-3 top-16 h-3 w-20 rounded-t-lg bg-[#7e5145]" />
+        <div className="absolute left-4 top-9 h-10 w-[72px] rounded-t-[10px] border border-[#f1c7b8] bg-[#fff8ee]" />
+        <div className="absolute left-0 top-23 h-0 w-0" />
+        <div className="absolute left-1 top-8 h-5 w-[88px] bg-[#f35f56] [clip-path:polygon(50%_0,100%_100%,0_100%)]" />
+        <div className="absolute left-7 top-11 h-8 w-8 rounded-t-lg border border-[#e8baaa] bg-white" />
+        <div className="absolute left-[50px] top-11 h-8 w-8 rounded-t-lg border border-[#e8baaa] bg-white" />
+      </div>
+
+      <div className="absolute bottom-[26px] right-9 h-[78px] w-[116px] rotate-[-4deg] rounded-[18px] bg-[linear-gradient(135deg,#ff8a76,#f45f56)] text-white shadow-[0_18px_28px_rgba(208,92,78,0.22)]">
+        <div className="absolute -left-3 top-7 h-6 w-6 rounded-full bg-[#fff8f5]" />
+        <div className="absolute -right-3 top-7 h-6 w-6 rounded-full bg-[#fff8f5]" />
+        <div className="absolute right-7 top-3 h-12 border-l border-dashed border-white/65" />
+        <div className="flex h-full items-center justify-center text-[38px] font-black">
+          %
+        </div>
+      </div>
+
+      <div className="absolute bottom-2 right-4 h-10 w-7 rounded-[8px] bg-[#f36b5f] shadow-[0_8px_14px_rgba(208,92,78,0.18)]">
+        <div className="mx-auto mt-[-8px] h-3 w-4 rounded-t-full border-2 border-[#f36b5f]" />
+        <div className="mx-auto mt-2 h-5 w-[2px] bg-white/38" />
+      </div>
+      <div className="absolute right-16 top-5 text-[18px] text-[#e6a14f]">✦</div>
+      <div className="absolute right-32 top-32 text-[14px] text-[#f0b65d]">✦</div>
+      <div className="absolute right-4 top-7 text-[15px] text-[#f2a9a0]">✿</div>
+      <div className="absolute right-20 top-2 text-[13px] text-[#f2a9a0]">✿</div>
+    </div>
+  );
+}
 
 export default function MyRealTripCouponPage() {
   return (
     <main id="top" className="min-h-dvh bg-[#fff8f5] text-[#2c211d]">
-      <div className="mx-auto min-h-dvh max-w-[430px] bg-[linear-gradient(180deg,#fffdfb_0%,#fff7f3_50%,#fff1ec_100%)] pb-[calc(env(safe-area-inset-bottom)+116px)] md:my-6 md:min-h-[calc(100dvh-3rem)] md:rounded-[40px] md:shadow-[0_30px_70px_rgba(126,74,61,0.14)]">
-        <header className="sticky top-0 z-20 border-b border-[#f0e0d8] bg-white/90 px-5 pt-[calc(env(safe-area-inset-top)+10px)] backdrop-blur-xl">
+      <div className="mx-auto min-h-dvh max-w-[430px] bg-[linear-gradient(180deg,#fffdfb_0%,#fff8f4_50%,#fff1ec_100%)] pb-[calc(env(safe-area-inset-bottom)+116px)] md:my-6 md:min-h-[calc(100dvh-3rem)] md:rounded-[40px] md:shadow-[0_30px_70px_rgba(126,74,61,0.14)]">
+        <header className="sticky top-0 z-20 border-b border-[#f0e0d8] bg-white/92 px-5 pt-[calc(env(safe-area-inset-top)+10px)] backdrop-blur-xl">
           <div className="flex h-14 items-center justify-center">
             <Link
               href="/"
               aria-label="홈으로 돌아가기"
-              className="absolute left-5 flex h-10 w-10 items-center justify-center rounded-full text-[29px] font-light leading-none text-[#3b2118] transition active:scale-[0.98]"
+              className="absolute left-5 flex h-10 w-10 items-center justify-center rounded-full text-[31px] font-light leading-none text-[#2c211d] transition active:scale-[0.98]"
             >
               ‹
             </Link>
-            <h1 className="text-[19px] font-black tracking-[-0.055em]">
+            <h1 className="text-[20px] font-black tracking-[-0.055em]">
               마이리얼트립 쿠폰팩
             </h1>
           </div>
         </header>
 
-        <div className="space-y-4 px-5 pt-5">
-          <section className="relative overflow-hidden rounded-[30px] border border-[#f3d6c9] bg-[radial-gradient(circle_at_82%_22%,#ffe0d5_0%,transparent_34%),linear-gradient(135deg,#fff7f0_0%,#fffdf9_48%,#ffe8de_100%)] p-5 shadow-[0_18px_42px_rgba(126,74,61,0.1)]">
-            <div
-              aria-hidden="true"
-              className="absolute -right-10 top-16 h-32 w-32 rounded-full bg-[#ffc4b4]/40"
-            />
-            <div
-              aria-hidden="true"
-              className="absolute right-6 top-16 h-24 w-20 rotate-[7deg] rounded-[18px] border-2 border-dashed border-white/80 bg-[#f26b61] text-center text-[13px] font-black uppercase tracking-[0.08em] text-white shadow-[0_18px_28px_rgba(205,91,78,0.16)]"
-            >
-              <div className="pt-6">Coupon</div>
-              <div className="mt-1 text-[25px]">%</div>
-            </div>
-            <div
-              aria-hidden="true"
-              className="absolute right-20 top-9 text-[21px] text-[#e5a349]"
-            >
-              ✦
-            </div>
-            <div
-              aria-hidden="true"
-              className="absolute right-36 top-24 text-[15px] text-[#efb35a]"
-            >
-              ✦
-            </div>
+        <div className="space-y-5 px-4 pt-5">
+          <section className="relative min-h-[292px] overflow-hidden rounded-[30px] border border-[#f2d4c8] bg-[linear-gradient(135deg,#fffaf5_0%,#fff6ee_46%,#ffe7dc_100%)] p-5 shadow-[0_18px_42px_rgba(126,74,61,0.09)]">
+            <HeroTravelIllustration />
 
-            <div className="relative z-10 max-w-[72%]">
-              <span className="inline-flex rounded-full bg-[#f45f56] px-3 py-1.5 text-[11.5px] font-black tracking-[-0.04em] text-white shadow-[0_10px_20px_rgba(244,95,86,0.2)]">
-                후쿠오사카 전용 혜택
+            <div className="relative z-10 max-w-[58%]">
+              <span className="inline-flex rounded-full bg-[#f45f56] px-3 py-1.5 text-[12px] font-black tracking-[-0.04em] text-white shadow-[0_10px_20px_rgba(244,95,86,0.18)]">
+                ✿ 후쿠오사카 전용 혜택
               </span>
-              <h2 className="mt-5 text-[30px] font-black leading-[1.18] tracking-[-0.07em]">
+              <h2 className="mt-7 text-[34px] font-black leading-[1.18] tracking-[-0.075em] text-[#2c211d]">
                 예약 전에
                 <br />
                 쿠폰을 챙기세요
               </h2>
-              <p className="mt-4 text-[16px] font-black tracking-[-0.055em] text-[#3d2921]">
+              <p className="mt-5 text-[20px] font-black leading-tight tracking-[-0.06em] text-[#f05f55]">
                 투어·티켓 / 해외 숙소 혜택
               </p>
-              <p className="mt-2.5 text-[13px] font-semibold leading-relaxed tracking-[-0.035em] text-[#7b675f]">
-                여행 예약 전에 받을 수 있는 쿠폰팩을 모아뒀어요.
-              </p>
             </div>
           </section>
 
-          <section className="rounded-[26px] border border-[#f1d3c7] bg-white/90 p-4.5 shadow-[0_16px_32px_rgba(126,74,61,0.08)]">
-            <div className="flex gap-3.5">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#ffb69f,#f35f56)] text-[26px] font-black text-white shadow-[0_12px_24px_rgba(211,92,77,0.16)]">
+          <section className="rounded-[22px] border border-[#f0d4c8] bg-white/82 px-4 py-3.5 shadow-[0_12px_24px_rgba(126,74,61,0.05)]">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#f26056] text-[17px] font-black text-white">
                 ✓
               </div>
-              <p className="text-[18px] font-black leading-[1.46] tracking-[-0.06em]">
-                마이리얼트립 공식홈페이지에는 없는
-                <br />
-                <span className="text-[#ee5f56]">파트너 전용 쿠폰팩</span>으로
-                <br />
-                <span className="text-[#ee5f56]">후쿠오사카</span>에서 받으실 수 있어요.
+              <p className="text-[13px] font-semibold leading-[1.65] tracking-[-0.035em] text-[#3f302b]">
+                마이리얼트립 공식홈페이지에는 없는{" "}
+                <span className="font-black text-[#ef5f55]">
+                  파트너 전용 쿠폰팩
+                </span>
+                으로{" "}
+                <span className="font-black text-[#ef5f55]">후쿠오사카</span>
+                에서 받으실 수 있어요.
               </p>
             </div>
           </section>
 
-          <section className="grid gap-3.5">
+          <section className="grid grid-cols-2 gap-3">
             {couponCards.map((card) => (
               <article
                 key={card.id}
-                className="rounded-[26px] border border-[#f0d7cb] bg-white/92 p-4 shadow-[0_16px_30px_rgba(126,74,61,0.07)]"
+                className="flex min-h-[268px] flex-col rounded-[26px] border border-[#efd8ce] bg-white/94 p-3.5 text-center shadow-[0_16px_32px_rgba(126,74,61,0.07)]"
               >
-                <div className="flex gap-3.5">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#fff0e9] text-[25px] font-black text-[#ef6b5d]">
-                    {card.icon}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-[19px] font-black tracking-[-0.055em]">
-                      {card.title}
-                    </h3>
-                    <p className="mt-1 text-[13.5px] font-black tracking-[-0.04em] text-[#e56559]">
-                      {card.subtitle}
-                    </p>
-                    <p className="mt-3 rounded-[17px] border border-[#f5cdbf] bg-[#fff8f4] px-3.5 py-3 text-[13.5px] font-semibold leading-relaxed tracking-[-0.035em] text-[#5c473f]">
-                      {card.description}
-                    </p>
-                  </div>
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#fff0e9] text-[#ef665b]">
+                  {card.icon}
                 </div>
+                <h3 className="mt-4 text-[18px] font-black leading-snug tracking-[-0.06em]">
+                  {card.title}
+                </h3>
+                <span className="mx-auto mt-2 inline-flex rounded-full bg-[#fff0e9] px-3 py-1 text-[12px] font-black tracking-[-0.04em] text-[#ec6258]">
+                  {card.subtitle}
+                </span>
+                <p className="mt-4 min-h-[48px] text-[13px] font-semibold leading-[1.65] tracking-[-0.04em] text-[#5d514c]">
+                  {card.description}
+                </p>
                 <a
                   href={card.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-[18px] bg-[#f26056] px-4 py-3.5 text-[15px] font-black tracking-[-0.045em] text-white shadow-[0_14px_24px_rgba(213,91,78,0.18)] transition active:scale-[0.99]"
+                  className="mt-auto flex min-h-[52px] w-full items-center justify-center gap-1.5 rounded-[16px] bg-[linear-gradient(135deg,#ff7466,#f25049)] px-2.5 py-3 text-center text-[13px] font-black leading-snug tracking-[-0.045em] text-white shadow-[0_14px_24px_rgba(213,91,78,0.18)] transition active:scale-[0.99]"
                 >
                   {card.cta}
-                  <ArrowRightIcon className="h-4 w-4" />
+                  <ArrowRightIcon className="h-3.5 w-3.5 shrink-0" />
                 </a>
               </article>
             ))}
           </section>
 
-          <section className="rounded-[26px] bg-white/74 p-4.5">
-            <h2 className="text-center text-[21px] font-black tracking-[-0.06em]">
+          <section className="pt-5">
+            <h2 className="text-center text-[23px] font-black tracking-[-0.06em]">
               쿠폰팩 사용 방법
             </h2>
-            <div className="mt-4 grid gap-3">
+            <div className="relative mt-5 grid grid-cols-3 gap-2">
+              <div
+                aria-hidden="true"
+                className="absolute left-[18%] right-[18%] top-[45px] hidden border-t-4 border-dotted border-[#f2d5c7] min-[370px]:block"
+              />
               {steps.map((step, index) => (
-                <div
-                  key={step.title}
-                  className="flex gap-3 rounded-[21px] border border-[#f1dfd6] bg-white px-4 py-4"
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#fff0e9] text-[15px] font-black text-[#e95f55]">
-                    {index + 1}
+                <div key={step.title} className="relative z-10 text-center">
+                  <div className="relative mx-auto flex h-[92px] w-[92px] items-center justify-center rounded-full border border-[#f2d7cb] bg-[#fffaf6] text-[#6f5549] shadow-[0_10px_20px_rgba(126,74,61,0.04)]">
+                    <span className="absolute -top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-[#f26056] text-[15px] font-black text-white">
+                      {index + 1}
+                    </span>
+                    <span className="text-[#6a5147]">{step.icon}</span>
                   </div>
-                  <div>
-                    <p className="text-[15.5px] font-black tracking-[-0.045em]">
-                      {step.title}
-                    </p>
-                    <p className="mt-1.5 text-[13.5px] font-semibold leading-[1.7] tracking-[-0.035em] text-[#76675f]">
-                      {step.description}
-                    </p>
-                  </div>
+                  <p className="mt-3 text-[13px] font-black leading-snug tracking-[-0.045em] text-[#2f241f]">
+                    {step.title}
+                  </p>
                 </div>
               ))}
             </div>
           </section>
 
-          <section className="rounded-[24px] border border-[#f0d9cd] bg-[#fff8f1] p-4.5">
-            <h2 className="text-[15px] font-black tracking-[-0.045em] text-[#4a3027]">
-              유의사항
-            </h2>
-            <ul className="mt-3 space-y-2.5 text-[13.5px] font-semibold leading-[1.75] tracking-[-0.035em] text-[#7a655d]">
-              <li>로그인이 안 되어 있으면 로그인 화면이 먼저 보일 수 있어요.</li>
-              <li>
-                쿠폰 사용 조건, 할인 금액, 적용 가능 상품은 마이리얼트립 페이지
-                기준으로 달라질 수 있어요.
-              </li>
-            </ul>
+          <section className="rounded-[22px] border border-[#f0d9cd] bg-[#fff9f3] px-4 py-3.5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dfb98d] text-[17px] font-black text-white">
+                i
+              </div>
+              <p className="text-[13.5px] font-semibold leading-[1.65] tracking-[-0.035em] text-[#57463f]">
+                로그인이 안 되어 있으면 로그인 화면이 먼저 보일 수 있어요.
+              </p>
+            </div>
           </section>
         </div>
       </div>
