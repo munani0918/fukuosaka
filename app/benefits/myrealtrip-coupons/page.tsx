@@ -1,11 +1,6 @@
 import Link from "next/link";
 
-import {
-  ArrowRightIcon,
-  BedIcon,
-  TicketIcon,
-  UserIcon,
-} from "@/src/components/home/icons";
+import { BedIcon, TicketIcon, UserIcon } from "@/src/components/home/icons";
 import { BottomTabBar } from "@/src/components/home/BottomTabBar";
 import type { BottomTabItem } from "@/src/data/home";
 import { myrealtripCouponLinks } from "@/src/data/benefits";
@@ -23,8 +18,8 @@ const couponCards = [
     id: "tour-ticket",
     title: "투어·티켓 쿠폰팩",
     subtitle: "선착순 할인쿠폰",
-    description: "후쿠오사카 인기 투어·티켓에 사용 가능한 할인쿠폰",
-    cta: "투어·티켓 쿠폰팩 받기",
+    description: "인기 투어·티켓에 사용 가능한 할인쿠폰",
+    cta: "쿠폰팩 다운로드",
     href: myrealtripCouponLinks.tourTicket,
     icon: <TicketIcon className="h-8 w-8" />,
   },
@@ -33,7 +28,7 @@ const couponCards = [
     title: "해외 숙소 쿠폰팩",
     subtitle: "선착순 할인쿠폰",
     description: "해외 숙소 예약에 사용 가능한 할인쿠폰",
-    cta: "해외 숙소 쿠폰팩 받기",
+    cta: "쿠폰팩 다운로드",
     href: myrealtripCouponLinks.overseasStay,
     icon: <BedIcon className="h-8 w-8" />,
   },
@@ -49,7 +44,7 @@ const steps = [
     icon: <UserIcon className="h-8 w-8" />,
   },
   {
-    title: "결제 단계에서 쿠폰 적용",
+    title: "결제 단계 쿠폰 적용",
     icon: <span className="text-[29px] font-black leading-none">%</span>,
   },
 ];
@@ -58,7 +53,7 @@ function HeroTravelIllustration() {
   return (
     <div
       aria-hidden="true"
-      className="absolute bottom-0 right-[-14px] h-[218px] w-[208px]"
+      className="absolute bottom-0 right-[-15px] h-[214px] w-[204px]"
     >
       <div className="absolute right-0 top-0 h-28 w-32 rounded-bl-[54px] rounded-tl-[54px] bg-[#ffe2d7]/78" />
       <div className="absolute right-5 top-4 h-16 w-16 rounded-full border-[3px] border-[#f5a190]/72" />
@@ -76,7 +71,6 @@ function HeroTravelIllustration() {
         <div className="absolute left-7 top-0 h-5 w-12 bg-[#805b4a] [clip-path:polygon(50%_0,100%_100%,0_100%)]" />
         <div className="absolute left-3 top-16 h-3 w-20 rounded-t-lg bg-[#7e5145]" />
         <div className="absolute left-4 top-9 h-10 w-[72px] rounded-t-[10px] border border-[#f1c7b8] bg-[#fff8ee]" />
-        <div className="absolute left-0 top-23 h-0 w-0" />
         <div className="absolute left-1 top-8 h-5 w-[88px] bg-[#f35f56] [clip-path:polygon(50%_0,100%_100%,0_100%)]" />
         <div className="absolute left-7 top-11 h-8 w-8 rounded-t-lg border border-[#e8baaa] bg-white" />
         <div className="absolute left-[50px] top-11 h-8 w-8 rounded-t-lg border border-[#e8baaa] bg-white" />
@@ -123,11 +117,11 @@ export default function MyRealTripCouponPage() {
         </header>
 
         <div className="space-y-5 px-4 pt-5">
-          <section className="relative min-h-[292px] overflow-hidden rounded-[30px] border border-[#f2d4c8] bg-[linear-gradient(135deg,#fffaf5_0%,#fff6ee_46%,#ffe7dc_100%)] p-5 shadow-[0_18px_42px_rgba(126,74,61,0.09)]">
+          <section className="relative min-h-[286px] overflow-hidden rounded-[30px] border border-[#f2d4c8] bg-[linear-gradient(135deg,#fffaf5_0%,#fff6ee_46%,#ffe7dc_100%)] p-5 shadow-[0_18px_42px_rgba(126,74,61,0.09)]">
             <HeroTravelIllustration />
 
-            <div className="relative z-10 max-w-[58%]">
-              <span className="inline-flex rounded-full bg-[#f45f56] px-3 py-1.5 text-[12px] font-black tracking-[-0.04em] text-white shadow-[0_10px_20px_rgba(244,95,86,0.18)]">
+            <div className="relative z-10 max-w-[60%]">
+              <span className="inline-flex whitespace-nowrap rounded-full bg-[#f45f56] px-3 py-1.5 text-[11.5px] font-black tracking-[-0.04em] text-white shadow-[0_10px_20px_rgba(244,95,86,0.18)]">
                 ✿ 후쿠오사카 전용 혜택
               </span>
               <h2 className="mt-7 text-[34px] font-black leading-[1.18] tracking-[-0.075em] text-[#2c211d]">
@@ -135,18 +129,18 @@ export default function MyRealTripCouponPage() {
                 <br />
                 쿠폰을 챙기세요
               </h2>
-              <p className="mt-5 text-[20px] font-black leading-tight tracking-[-0.06em] text-[#f05f55]">
+              <p className="mt-5 whitespace-nowrap text-[18px] font-black leading-tight tracking-[-0.07em] text-[#f05f55] min-[390px]:text-[19px]">
                 투어·티켓 / 해외 숙소 혜택
               </p>
             </div>
           </section>
 
-          <section className="rounded-[22px] border border-[#f0d4c8] bg-white/82 px-4 py-3.5 shadow-[0_12px_24px_rgba(126,74,61,0.05)]">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#f26056] text-[17px] font-black text-white">
+          <section className="rounded-[21px] border border-[#f0d4c8] bg-white/82 px-3.5 py-3 shadow-[0_12px_24px_rgba(126,74,61,0.05)]">
+            <div className="flex items-start gap-2.5">
+              <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#f26056] text-[15px] font-black text-white">
                 ✓
               </div>
-              <p className="text-[13px] font-semibold leading-[1.65] tracking-[-0.035em] text-[#3f302b]">
+              <p className="text-[12px] font-semibold leading-[1.58] tracking-[-0.04em] text-[#3f302b] min-[390px]:text-[12.5px]">
                 마이리얼트립 공식홈페이지에는 없는{" "}
                 <span className="font-black text-[#ef5f55]">
                   파트너 전용 쿠폰팩
@@ -162,28 +156,27 @@ export default function MyRealTripCouponPage() {
             {couponCards.map((card) => (
               <article
                 key={card.id}
-                className="flex min-h-[268px] flex-col rounded-[26px] border border-[#efd8ce] bg-white/94 p-3.5 text-center shadow-[0_16px_32px_rgba(126,74,61,0.07)]"
+                className="flex min-h-[258px] flex-col rounded-[25px] border border-[#efd8ce] bg-white/94 p-3 text-center shadow-[0_16px_32px_rgba(126,74,61,0.07)]"
               >
-                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#fff0e9] text-[#ef665b]">
+                <div className="mx-auto flex h-[76px] w-[76px] items-center justify-center rounded-full bg-[#fff0e9] text-[#ef665b]">
                   {card.icon}
                 </div>
-                <h3 className="mt-4 text-[18px] font-black leading-snug tracking-[-0.06em]">
+                <h3 className="mt-4 whitespace-nowrap text-[15.5px] font-black leading-snug tracking-[-0.07em] min-[390px]:text-[16px]">
                   {card.title}
                 </h3>
-                <span className="mx-auto mt-2 inline-flex rounded-full bg-[#fff0e9] px-3 py-1 text-[12px] font-black tracking-[-0.04em] text-[#ec6258]">
+                <span className="mx-auto mt-2 inline-flex whitespace-nowrap rounded-full bg-[#fff0e9] px-2.5 py-1 text-[11px] font-black tracking-[-0.045em] text-[#ec6258]">
                   {card.subtitle}
                 </span>
-                <p className="mt-4 min-h-[48px] text-[13px] font-semibold leading-[1.65] tracking-[-0.04em] text-[#5d514c]">
+                <p className="mt-3 min-h-[44px] text-[12.5px] font-semibold leading-[1.62] tracking-[-0.045em] text-[#5d514c] min-[390px]:text-[13px]">
                   {card.description}
                 </p>
                 <a
                   href={card.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-auto flex min-h-[52px] w-full items-center justify-center gap-1.5 rounded-[16px] bg-[linear-gradient(135deg,#ff7466,#f25049)] px-2.5 py-3 text-center text-[13px] font-black leading-snug tracking-[-0.045em] text-white shadow-[0_14px_24px_rgba(213,91,78,0.18)] transition active:scale-[0.99]"
+                  className="mt-auto flex min-h-[50px] w-full items-center justify-center rounded-[16px] bg-[linear-gradient(135deg,#ff7466,#f25049)] px-2.5 py-3 text-center text-[13px] font-black leading-snug tracking-[-0.045em] text-white shadow-[0_14px_24px_rgba(213,91,78,0.18)] transition active:scale-[0.99] min-[390px]:text-[13.5px]"
                 >
                   {card.cta}
-                  <ArrowRightIcon className="h-3.5 w-3.5 shrink-0" />
                 </a>
               </article>
             ))}
@@ -196,17 +189,17 @@ export default function MyRealTripCouponPage() {
             <div className="relative mt-5 grid grid-cols-3 gap-2">
               <div
                 aria-hidden="true"
-                className="absolute left-[18%] right-[18%] top-[45px] hidden border-t-4 border-dotted border-[#f2d5c7] min-[370px]:block"
+                className="absolute left-[18%] right-[18%] top-[43px] hidden border-t-4 border-dotted border-[#f2d5c7] min-[370px]:block"
               />
               {steps.map((step, index) => (
                 <div key={step.title} className="relative z-10 text-center">
-                  <div className="relative mx-auto flex h-[92px] w-[92px] items-center justify-center rounded-full border border-[#f2d7cb] bg-[#fffaf6] text-[#6f5549] shadow-[0_10px_20px_rgba(126,74,61,0.04)]">
-                    <span className="absolute -top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-[#f26056] text-[15px] font-black text-white">
+                  <div className="relative mx-auto flex h-[86px] w-[86px] items-center justify-center rounded-full border border-[#f2d7cb] bg-[#fffaf6] text-[#6f5549] shadow-[0_10px_20px_rgba(126,74,61,0.04)]">
+                    <span className="absolute -top-2 right-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-[#f26056] text-[15px] font-black text-white">
                       {index + 1}
                     </span>
                     <span className="text-[#6a5147]">{step.icon}</span>
                   </div>
-                  <p className="mt-3 text-[13px] font-black leading-snug tracking-[-0.045em] text-[#2f241f]">
+                  <p className="mt-3 text-[12.2px] font-black leading-snug tracking-[-0.055em] text-[#2f241f] min-[390px]:text-[12.7px]">
                     {step.title}
                   </p>
                 </div>
@@ -214,12 +207,12 @@ export default function MyRealTripCouponPage() {
             </div>
           </section>
 
-          <section className="rounded-[22px] border border-[#f0d9cd] bg-[#fff9f3] px-4 py-3.5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dfb98d] text-[17px] font-black text-white">
+          <section className="rounded-[22px] border border-[#f0d9cd] bg-[#fff9f3] px-3.5 py-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#dfb98d] text-[16px] font-black text-white">
                 i
               </div>
-              <p className="text-[13.5px] font-semibold leading-[1.65] tracking-[-0.035em] text-[#57463f]">
+              <p className="text-[13px] font-semibold leading-[1.58] tracking-[-0.04em] text-[#57463f]">
                 로그인이 안 되어 있으면 로그인 화면이 먼저 보일 수 있어요.
               </p>
             </div>
