@@ -10,7 +10,7 @@ import { TopAppBar } from "@/src/components/home/TopAppBar";
 import { TourCardCarousel } from "@/src/components/home/TourCardCarousel";
 import { TravelBenefitBanners } from "@/src/components/home/TravelBenefitBanners";
 import { budgetTemplates } from "@/src/data/budgetTemplates";
-import { homeBenefitBanners } from "@/src/data/homeBanners";
+import { homeBenefitBanners } from "@/src/data/benefits";
 import { getHomePageData } from "@/src/lib/home";
 
 export default async function HomePage() {

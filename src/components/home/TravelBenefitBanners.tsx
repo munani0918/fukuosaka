@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import type { HomeBenefitBanner } from "@/src/data/homeBanners";
+import type { HomeBenefitBanner } from "@/src/data/benefits";
 import { ArrowRightIcon } from "@/src/components/home/icons";
 
 type TravelBenefitBannersProps = {
@@ -15,8 +15,8 @@ export function TravelBenefitBanners({ items }: TravelBenefitBannersProps) {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const pointerStartX = useRef(0);
   const pointerDeltaX = useRef(0);
-
-  if (!activeItems.length) return null;
+  const isInteracting = useRef(false);
+  const activeIndexRef = useRef(0);
 
   function scrollToIndex(index: number) {
     const scroller = scrollerRef.current;
@@ -28,11 +28,44 @@ export function TravelBenefitBanners({ items }: TravelBenefitBannersProps) {
     setActiveIndex(index);
   }
 
+  useEffect(() => {
+    activeIndexRef.current = activeIndex;
+  }, [activeIndex]);
+
+  useEffect(() => {
+    if (activeItems.length <= 1) return undefined;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      if (isInteracting.current) return;
+      const nextIndex = (activeIndexRef.current + 1) % activeItems.length;
+      scrollToIndex(nextIndex);
+    }, 5000);
+
+    return () => window.clearInterval(timer);
+  }, [activeItems.length]);
+
+  if (!activeItems.length) return null;
+
   function syncActiveSlide() {
     const scroller = scrollerRef.current;
     if (!scroller) return;
     const nextIndex = Math.round(scroller.scrollLeft / scroller.clientWidth);
     setActiveIndex(Math.min(activeItems.length - 1, Math.max(0, nextIndex)));
+  }
+
+  function visualLabel(item: HomeBenefitBanner) {
+    if (item.visual === "guide") return "GUIDE";
+    if (item.visual === "event") return "SNS";
+    return "COUPON";
+  }
+
+  function visualMark(item: HomeBenefitBanner) {
+    if (item.visual === "guide") return "map";
+    if (item.visual === "event") return "share";
+    return "%";
   }
 
   return (
@@ -45,8 +78,9 @@ export function TravelBenefitBanners({ items }: TravelBenefitBannersProps) {
         {activeItems.map((item) => (
           <div key={item.id} className="w-full shrink-0 snap-center">
             <a
-              href={item.href}
+              href={item.href ?? "#"}
               onPointerDown={(event) => {
+                isInteracting.current = true;
                 pointerStartX.current = event.clientX;
                 pointerDeltaX.current = 0;
               }}
@@ -55,27 +89,51 @@ export function TravelBenefitBanners({ items }: TravelBenefitBannersProps) {
               }}
               onClick={(event) => {
                 if (pointerDeltaX.current > 8) event.preventDefault();
+                if (item.status === "soon") {
+                  event.preventDefault();
+                  window.alert("이 혜택 페이지는 곧 준비될 예정이에요.");
+                }
               }}
-              className="relative block min-h-[136px] overflow-hidden rounded-[24px] border border-[#f1dcd3] bg-[linear-gradient(135deg,#fff2ed_0%,#ffe4dc_58%,#fff8f4_100%)] px-4 py-4 shadow-[0_14px_24px_rgba(118,67,55,0.06)]"
+              onPointerUp={() => {
+                isInteracting.current = false;
+              }}
+              onPointerCancel={() => {
+                isInteracting.current = false;
+              }}
+              className="relative block min-h-[150px] overflow-hidden rounded-[26px] border border-[#f1dcd3] bg-[linear-gradient(135deg,#fff5ef_0%,#ffe4d9_55%,#fffaf5_100%)] px-4 py-4 shadow-[0_14px_24px_rgba(118,67,55,0.06)]"
             >
               <div
                 aria-hidden="true"
-                className="absolute -right-8 top-1/2 h-28 w-28 -translate-y-1/2 rounded-full bg-[#ffb9aa]/35"
+                className="absolute -right-10 top-1/2 h-32 w-32 -translate-y-1/2 rounded-full bg-[#ffb9aa]/35"
               />
               <div
                 aria-hidden="true"
-                className="absolute right-6 top-1/2 -translate-y-1/2 rotate-[-8deg] rounded-[16px] bg-white/75 px-4 py-3 text-[30px] font-black text-[#f05f5b] shadow-[0_14px_24px_rgba(146,70,53,0.08)]"
+                className="absolute right-5 top-5 rounded-full bg-white/70 px-2.5 py-1 text-[9px] font-black tracking-[0.12em] text-[#d95f55] shadow-[0_10px_18px_rgba(146,70,53,0.07)]"
               >
-                %
+                {visualLabel(item)}
+              </div>
+              <div
+                aria-hidden="true"
+                className="absolute bottom-4 right-5 flex h-16 w-16 rotate-[-8deg] items-center justify-center rounded-[18px] bg-white/80 text-[24px] font-black text-[#f05f5b] shadow-[0_14px_24px_rgba(146,70,53,0.08)]"
+              >
+                {visualMark(item)}
               </div>
 
-              <div className="relative z-10 max-w-[68%]">
-                <p className="text-[17px] font-black leading-6 tracking-[-0.05em] text-[#2c211d]">
+              <div className="relative z-10 max-w-[74%]">
+                <p className="mb-2 inline-flex rounded-full bg-white/75 px-2.5 py-1 text-[10px] font-black tracking-[-0.03em] text-[#d95f55]">
+                  {item.eyebrow}
+                </p>
+                <p className="text-[18px] font-black leading-6 tracking-[-0.05em] text-[#2c211d]">
                   {item.title}
                 </p>
                 <p className="mt-1.5 text-[12px] font-semibold leading-5 tracking-[-0.03em] text-[#7d675f]">
                   {item.description}
                 </p>
+                {item.note ? (
+                  <p className="mt-1 text-[10.5px] font-bold leading-4 tracking-[-0.03em] text-[#a06f61]">
+                    {item.note}
+                  </p>
+                ) : null}
                 <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#f05f5b] px-4 py-2 text-[12px] font-black text-white shadow-[0_10px_18px_rgba(244,89,85,0.18)]">
                   {item.ctaText}
                   <ArrowRightIcon className="h-3.5 w-3.5" />
