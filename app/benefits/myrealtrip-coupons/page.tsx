@@ -140,14 +140,18 @@ export default function MyRealTripCouponPage() {
               <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#f26056] text-[15px] font-black text-white">
                 ✓
               </div>
-              <p className="text-[12px] font-semibold leading-[1.58] tracking-[-0.04em] text-[#3f302b] min-[390px]:text-[12.5px]">
-                마이리얼트립 공식홈페이지에는 없는{" "}
-                <span className="font-black text-[#ef5f55]">
-                  파트너 전용 쿠폰팩
+              <p className="min-w-0 text-[11.4px] font-semibold leading-[1.62] tracking-[-0.075em] text-[#3f302b] min-[390px]:text-[11.8px]">
+                <span className="block whitespace-nowrap">
+                  마이리얼트립 공식홈페이지에는 없는{" "}
+                  <span className="font-black text-[#ef5f55]">
+                    파트너 전용 쿠폰팩
+                  </span>
+                  으로
                 </span>
-                으로{" "}
-                <span className="font-black text-[#ef5f55]">후쿠오사카</span>
-                에서 받으실 수 있어요.
+                <span className="block whitespace-nowrap">
+                  <span className="font-black text-[#ef5f55]">후쿠오사카</span>
+                  에서 받으실 수 있어요.
+                </span>
               </p>
             </div>
           </section>
