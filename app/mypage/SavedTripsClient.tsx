@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { getCurrentAuthUser } from "@/src/lib/auth/client";
 import {
@@ -246,6 +247,7 @@ function EmptyState({
 }
 
 export function SavedTripsClient() {
+  const router = useRouter();
   const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
   const [trips, setTrips] = useState<SavedTrip[]>([]);
   const [items, setItems] = useState<SavedItem[]>([]);
@@ -255,6 +257,8 @@ export function SavedTripsClient() {
   const [attachOpenItems, setAttachOpenItems] = useState<Record<string, boolean>>({});
   const [loaded, setLoaded] = useState(false);
   const [storageError, setStorageError] = useState("");
+  const [logoutError, setLogoutError] = useState("");
+  const [logoutPending, setLogoutPending] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -350,6 +354,28 @@ export function SavedTripsClient() {
       });
     } catch {
       setStorageError("이 브라우저에서는 저장 변경을 사용할 수 없어요.");
+    }
+  }
+
+  async function handleLogout() {
+    if (logoutPending) return;
+    setLogoutError("");
+    setLogoutPending(true);
+
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error("Logout failed");
+      }
+
+      router.replace("/account");
+    } catch {
+      setLogoutError("로그아웃 중 문제가 발생했어요. 잠시 후 다시 시도해주세요.");
+      setLogoutPending(false);
     }
   }
 
@@ -924,6 +950,22 @@ export function SavedTripsClient() {
             })}
           </div>
         )}
+      </section>
+
+      <section className="pt-1 text-center">
+        {logoutError ? (
+          <p className="mb-3 rounded-2xl border border-[#ffd8d2] bg-[#fff3f0] px-4 py-3 text-[12px] font-bold text-[#c75049]">
+            {logoutError}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          onClick={handleLogout}
+          disabled={logoutPending}
+          className="inline-flex items-center justify-center rounded-full border border-[#ead6cc] bg-white/70 px-5 py-2.5 text-[12px] font-black text-[#8a766f] transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {logoutPending ? "로그아웃 중..." : "로그아웃"}
+        </button>
       </section>
     </div>
   );

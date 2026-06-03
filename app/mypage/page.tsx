@@ -1,4 +1,5 @@
 import { BottomTabBar } from "@/src/components/home/BottomTabBar";
+import { PolicyLinks } from "@/src/components/PolicyLinks";
 import type { BottomTabItem } from "@/src/data/home";
 
 import { SavedTripsClient } from "./SavedTripsClient";
@@ -28,6 +29,7 @@ export default function MyPage() {
         </header>
 
         <SavedTripsClient />
+        <PolicyLinks className="mt-8" />
       </div>
 
       <BottomTabBar items={bottomTabs} />
