@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import { PolicyBackButton } from "@/src/components/PolicyBackButton";
 import { PolicyLinks } from "@/src/components/PolicyLinks";
 
 const notices = [
@@ -13,13 +12,7 @@ export default function AffiliateDisclosurePage() {
     <main className="min-h-dvh bg-[#fff8f5] text-[#2c211d]">
       <div className="mx-auto min-h-dvh max-w-[430px] bg-[linear-gradient(180deg,#fffdfb_0%,#fff7f3_55%,#fff1ec_100%)] px-5 pb-16 pt-[calc(env(safe-area-inset-top)+18px)] md:my-6 md:min-h-[calc(100dvh-3rem)] md:rounded-[40px] md:shadow-[0_30px_70px_rgba(126,74,61,0.14)]">
         <header className="flex items-center justify-between">
-          <Link
-            href="/account"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-[28px] leading-none text-[#2c211d] shadow-[0_8px_18px_rgba(126,74,61,0.06)]"
-            aria-label="계정으로 돌아가기"
-          >
-            ‹
-          </Link>
+          <PolicyBackButton label="이전 화면으로 돌아가기" />
           <h1 className="text-[21px] font-black tracking-[-0.055em]">제휴 안내</h1>
           <div className="h-10 w-10" />
         </header>

@@ -109,15 +109,20 @@ export function AccountClient({ loginStatus, error }: AccountClientProps) {
             로그인 필요
           </div>
           <h2 className="text-[22px] font-black leading-tight tracking-[-0.055em]">
-            로그인하고 여행 계획을 더 안정적으로 관리해보세요.
+            로그인하고 여행 계획을 더 편하게 관리해보세요.
           </h2>
           <p className="mt-3 text-[14px] font-semibold leading-relaxed text-[#76675f]">
-            여행 일정 저장과 상품 찜은 로그인 후 이용할 수 있어요. 현재 저장 데이터는
-            이 브라우저 보관을 기준으로 표시됩니다.
+            저장한 여행 일정과 찜한 숙소·투어를 마이페이지에서 한 번에 확인할 수
+            있어요.
           </p>
+          <div className="mt-4 grid gap-2 text-[12.5px] font-black text-[#7a6259]">
+            <span className="rounded-2xl bg-[#fff5ef] px-3 py-2">여행 일정 저장</span>
+            <span className="rounded-2xl bg-[#fff5ef] px-3 py-2">숙소·투어 찜하기</span>
+            <span className="rounded-2xl bg-[#fff5ef] px-3 py-2">마이페이지에서 보관함 확인</span>
+          </div>
           <Link
             href="/login?next=/account"
-            className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-[#f26b61] px-5 py-3 text-[14px] font-black text-white shadow-[0_12px_24px_rgba(214,95,85,0.18)] transition active:scale-[0.99]"
+            className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-[#f26b61] px-5 py-3 text-[14px] font-black text-white shadow-[0_12px_24px_rgba(214,95,85,0.18)] transition active:scale-[0.99]"
           >
             로그인하기
           </Link>
@@ -155,9 +160,15 @@ export function AccountClient({ loginStatus, error }: AccountClientProps) {
           </div>
         </div>
         <p className="mt-5 text-[14px] font-semibold leading-relaxed text-[#76675f]">
-          저장한 여행과 찜한 상품은 마이페이지에서 확인할 수 있어요. 현재 저장 데이터는
-          이 브라우저 보관을 기준으로 표시됩니다.
+          저장한 여행 일정과 찜한 숙소·투어는 마이페이지에서 확인할 수 있어요.
         </p>
+        <div className="mt-4 grid gap-2 text-[12.5px] font-black text-[#7a6259]">
+          <span className="rounded-2xl bg-[#fff5ef] px-3 py-2">저장한 여행 일정 확인</span>
+          <span className="rounded-2xl bg-[#fff5ef] px-3 py-2">찜한 숙소·투어 다시 보기</span>
+          <span className="rounded-2xl bg-[#fff5ef] px-3 py-2">
+            필요한 예약 페이지로 빠르게 이동
+          </span>
+        </div>
         <Link
           href="/mypage"
           className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-[#f26b61] px-5 py-3 text-[14px] font-black text-white shadow-[0_12px_24px_rgba(214,95,85,0.18)] transition active:scale-[0.99]"
