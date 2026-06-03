@@ -3,18 +3,20 @@ import type { NextRequest, NextResponse } from "next/server";
 
 export const SESSION_COOKIE_NAME = "fukuosaka_session";
 export const KAKAO_STATE_COOKIE_NAME = "fukuosaka_kakao_state";
+export const GOOGLE_STATE_COOKIE_NAME = "fukuosaka_google_oauth_state";
 export const AUTH_NEXT_COOKIE_NAME = "fukuosaka_auth_next";
 
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 const OAUTH_STATE_TTL_SECONDS = 60 * 10;
 
-export type AuthProvider = "kakao";
+export type AuthProvider = "kakao" | "google";
 
 export type AppSession = {
   provider: AuthProvider;
   providerUserId: string;
   nickname: string;
   profileImage?: string;
+  email?: string;
   loggedInAt: string;
   exp?: number;
 };
@@ -66,7 +68,7 @@ export async function verifySessionToken(token?: string | null) {
     const payload = verified.payload;
 
     if (
-      payload.provider !== "kakao" ||
+      (payload.provider !== "kakao" && payload.provider !== "google") ||
       typeof payload.providerUserId !== "string" ||
       typeof payload.nickname !== "string" ||
       typeof payload.loggedInAt !== "string"
@@ -80,6 +82,7 @@ export async function verifySessionToken(token?: string | null) {
       nickname: payload.nickname,
       profileImage:
         typeof payload.profileImage === "string" ? payload.profileImage : undefined,
+      email: typeof payload.email === "string" ? payload.email : undefined,
       loggedInAt: payload.loggedInAt,
       exp: typeof payload.exp === "number" ? payload.exp : undefined,
     } satisfies AppSession;
@@ -102,6 +105,7 @@ export function clearSessionCookie(response: NextResponse) {
 
 export function clearOAuthCookies(response: NextResponse) {
   response.cookies.set(KAKAO_STATE_COOKIE_NAME, "", getOAuthCookieOptions(0));
+  response.cookies.set(GOOGLE_STATE_COOKIE_NAME, "", getOAuthCookieOptions(0));
   response.cookies.set(AUTH_NEXT_COOKIE_NAME, "", getOAuthCookieOptions(0));
 }
 

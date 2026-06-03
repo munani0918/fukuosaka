@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 
 import { PolicyLinks } from "@/src/components/PolicyLinks";
 
@@ -20,12 +19,18 @@ function messageForError(error?: string) {
   if (error === "kakao_not_configured") {
     return "카카오 로그인이 아직 설정되지 않았어요.";
   }
+  if (error === "google_login_failed") {
+    return "Google 로그인 중 문제가 발생했어요. 다시 시도해주세요.";
+  }
+  if (error === "google_not_configured") {
+    return "Google 로그인이 아직 설정되지 않았어요.";
+  }
   return null;
 }
 
 export function LoginClient({ nextPath, error }: LoginClientProps) {
-  const [googleNotice, setGoogleNotice] = useState("");
   const kakaoHref = `/api/auth/kakao/start?next=${encodeURIComponent(nextPath)}`;
+  const googleHref = `/api/auth/google/start?next=${encodeURIComponent(nextPath)}`;
   const errorMessage = messageForError(error);
 
   return (
@@ -77,12 +82,6 @@ export function LoginClient({ nextPath, error }: LoginClientProps) {
               {errorMessage}
             </p>
           ) : null}
-          {googleNotice ? (
-            <p className="mt-5 rounded-2xl border border-[#eadbd3] bg-white/80 px-4 py-3 text-center text-[13px] font-bold text-[#7a6c65]">
-              {googleNotice}
-            </p>
-          ) : null}
-
           <div className="mt-7 space-y-3">
             <a
               href={kakaoHref}
@@ -90,16 +89,15 @@ export function LoginClient({ nextPath, error }: LoginClientProps) {
             >
               카카오로 계속하기
             </a>
-            <button
-              type="button"
-              onClick={() => setGoogleNotice("Google 로그인은 곧 지원될 예정입니다.")}
+            <a
+              href={googleHref}
               className="flex min-h-[54px] w-full items-center justify-center gap-2 rounded-[18px] border border-[#e5d8d0] bg-white px-5 text-[15px] font-black text-[#3a302c] shadow-[0_12px_22px_rgba(126,74,61,0.05)] transition active:scale-[0.99]"
             >
               <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[#e1d9d4] text-[15px] font-black">
                 G
               </span>
               Google로 계속하기
-            </button>
+            </a>
           </div>
         </section>
 

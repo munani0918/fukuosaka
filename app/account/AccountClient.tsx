@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type AuthUser = {
-  provider: "kakao";
+  provider: "kakao" | "google";
   nickname: string;
   profileImage?: string;
+  email?: string;
 };
 
 type AuthState =
@@ -27,6 +28,10 @@ function messageForError(error?: string) {
     return "카카오 로그인 중 문제가 발생했어요. 다시 시도해주세요.";
   }
   return null;
+}
+
+function providerLabel(provider: AuthUser["provider"]) {
+  return provider === "google" ? "Google로 로그인됨" : "카카오로 로그인됨";
 }
 
 export function AccountClient({ loginStatus, error }: AccountClientProps) {
@@ -153,10 +158,17 @@ export function AccountClient({ loginStatus, error }: AccountClientProps) {
             </div>
           )}
           <div className="min-w-0">
-            <p className="text-[12px] font-black text-[#d95f55]">카카오로 로그인됨</p>
+            <p className="text-[12px] font-black text-[#d95f55]">
+              {providerLabel(auth.user.provider)}
+            </p>
             <h2 className="truncate text-[22px] font-black tracking-[-0.055em]">
               {auth.user.nickname}
             </h2>
+            {auth.user.email ? (
+              <p className="mt-0.5 truncate text-[11px] font-bold text-[#9a8a83]">
+                {auth.user.email}
+              </p>
+            ) : null}
           </div>
         </div>
         <p className="mt-5 text-[14px] font-semibold leading-relaxed text-[#76675f]">

@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
         provider: session.provider,
         nickname: session.nickname,
         profileImage: session.profileImage,
+        email: session.email,
       },
     },
     { headers: { "Cache-Control": "no-store" } },

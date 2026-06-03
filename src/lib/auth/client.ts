@@ -1,7 +1,8 @@
 export type CurrentAuthUser = {
-  provider: "kakao";
+  provider: "kakao" | "google";
   nickname: string;
   profileImage?: string;
+  email?: string;
 };
 
 export type CurrentAuthState = {
