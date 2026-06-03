@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 
+import { getCurrentAuthUser } from "@/src/lib/auth/client";
 import {
   MAX_SAVED_ITEMS,
   SAVED_ITEMS_STORAGE_KEY,
@@ -15,6 +16,7 @@ import {
 
 type BoardKey = "all" | "unassigned" | string;
 type CategoryKey = "all" | "trips" | "hotels" | "tours";
+type AuthStatus = "checking" | "logged-out" | "logged-in";
 
 type ListEntry =
   | { id: string; kind: "trip"; savedAt: string; trip: SavedTrip }
@@ -244,6 +246,7 @@ function EmptyState({
 }
 
 export function SavedTripsClient() {
+  const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
   const [trips, setTrips] = useState<SavedTrip[]>([]);
   const [items, setItems] = useState<SavedItem[]>([]);
   const [selectedBoard, setSelectedBoard] = useState<BoardKey>("all");
@@ -254,6 +257,20 @@ export function SavedTripsClient() {
   const [storageError, setStorageError] = useState("");
 
   useEffect(() => {
+    let mounted = true;
+
+    async function loadSavedData() {
+      const auth = await getCurrentAuthUser();
+      if (!mounted) return;
+
+      if (!auth.loggedIn) {
+        setAuthStatus("logged-out");
+        setLoaded(true);
+        return;
+      }
+
+      setAuthStatus("logged-in");
+
     try {
       const raw = window.localStorage.getItem(SAVED_TRIPS_STORAGE_KEY);
       setTrips(normalizeSavedTrips(raw ? JSON.parse(raw) : []));
@@ -265,6 +282,12 @@ export function SavedTripsClient() {
     } finally {
       setLoaded(true);
     }
+    }
+
+    loadSavedData();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   function writeItems(nextItems: SavedItem[]) {
@@ -476,11 +499,36 @@ export function SavedTripsClient() {
 
   const emptyState = emptyCopy();
 
-  if (!loaded) {
+  if (authStatus === "checking" || !loaded) {
     return (
       <div className="rounded-[28px] border border-[#f2ded4] bg-white/80 p-6 text-center text-[13px] font-bold text-[#897970]">
-        저장한 여행을 불러오고 있어요.
+        로그인 상태를 확인하고 있어요.
       </div>
+    );
+  }
+
+  if (authStatus === "logged-out") {
+    return (
+      <section className="rounded-[30px] border border-[#f2ded4] bg-white/88 p-5 text-center shadow-[0_18px_42px_rgba(111,63,48,0.08)]">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#fff0e9] text-[24px] font-black text-[#ef665b]">
+          ♡
+        </div>
+        <h2 className="text-[22px] font-black tracking-[-0.06em] text-[#2c211d]">
+          로그인이 필요해요
+        </h2>
+        <p className="mt-3 text-[14px] font-semibold leading-relaxed text-[#75645d]">
+          로그인하면 저장한 여행과 찜한 상품을 이곳에서 관리할 수 있어요.
+        </p>
+        <p className="mt-2 text-[12.5px] font-semibold leading-relaxed text-[#9a8a82]">
+          현재 저장 데이터는 이 브라우저 보관을 기준으로 표시됩니다.
+        </p>
+        <a
+          href="/login?next=/mypage"
+          className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-[#f26b61] px-5 py-3 text-[14px] font-black text-white shadow-[0_14px_28px_rgba(219,85,75,0.18)]"
+        >
+          로그인하기
+        </a>
+      </section>
     );
   }
 

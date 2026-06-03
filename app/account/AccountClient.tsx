@@ -112,8 +112,8 @@ export function AccountClient({ loginStatus, error }: AccountClientProps) {
             로그인하고 여행 계획을 더 안정적으로 관리해보세요.
           </h2>
           <p className="mt-3 text-[14px] font-semibold leading-relaxed text-[#76675f]">
-            현재 저장한 여행과 찜한 상품은 이 브라우저에 보관돼요. 로그인 기능은
-            계정 기반 저장으로 확장하기 위한 첫 단계예요.
+            여행 일정 저장과 상품 찜은 로그인 후 이용할 수 있어요. 현재 저장 데이터는
+            이 브라우저 보관을 기준으로 표시됩니다.
           </p>
           <Link
             href="/login?next=/account"
@@ -155,13 +155,19 @@ export function AccountClient({ loginStatus, error }: AccountClientProps) {
           </div>
         </div>
         <p className="mt-5 text-[14px] font-semibold leading-relaxed text-[#76675f]">
-          저장한 여행과 찜한 상품은 아직 이 브라우저 보관함을 기준으로 보여줘요.
-          계정 저장 전환은 다음 단계에서 확장할 예정입니다.
+          저장한 여행과 찜한 상품은 마이페이지에서 확인할 수 있어요. 현재 저장 데이터는
+          이 브라우저 보관을 기준으로 표시됩니다.
         </p>
+        <Link
+          href="/mypage"
+          className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-[#f26b61] px-5 py-3 text-[14px] font-black text-white shadow-[0_12px_24px_rgba(214,95,85,0.18)] transition active:scale-[0.99]"
+        >
+          마이페이지 보기
+        </Link>
         <button
           type="button"
           onClick={handleLogout}
-          className="mt-6 inline-flex w-full items-center justify-center rounded-full border border-[#ead6cc] bg-white px-5 py-3 text-[14px] font-black text-[#7a5d54] transition active:scale-[0.99]"
+          className="mt-2 inline-flex w-full items-center justify-center rounded-full border border-[#ead6cc] bg-white px-5 py-3 text-[14px] font-black text-[#7a5d54] transition active:scale-[0.99]"
         >
           로그아웃
         </button>

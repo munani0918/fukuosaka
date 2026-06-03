@@ -312,6 +312,18 @@
     .save-trip-sticky-button { width:100%; min-height:46px; border:1px solid #F2B9B2; border-radius:999px; background:#F26B61; color:#fff; font-family:inherit; font-size:14px; line-height:1.2; font-weight:950; letter-spacing:-.03em; box-shadow:0 14px 34px rgba(203,75,66,.20); cursor:pointer; }
     .save-trip-sticky-button.saved, .save-trip-sticky-button:disabled { border-color:#EED8CF; background:#F7EEE9; color:#9F8B82; box-shadow:0 10px 24px rgba(88,54,43,.08); cursor:default; }
     .save-trip-sticky-button.saved:not(:disabled) { cursor:pointer; }
+    .login-required-overlay { position:fixed; inset:0; z-index:140; display:none; align-items:flex-end; justify-content:center; padding:0 16px calc(env(safe-area-inset-bottom) + 18px); background:rgba(44,33,29,.34); }
+    .login-required-overlay.show { display:flex; }
+    .login-required-sheet { width:min(100%, 398px); border:1px solid #F0D8CE; border-radius:30px; background:#FFFDFB; padding:20px; box-shadow:0 26px 70px rgba(60,34,25,.24); }
+    .login-required-handle { width:48px; height:6px; margin:0 auto 16px; border-radius:999px; background:#EAD8CF; }
+    .login-required-kicker { margin:0; font-size:11px; line-height:1.2; font-weight:950; letter-spacing:.18em; color:#EF665B; }
+    .login-required-title { margin:8px 0 0; font-size:22px; line-height:1.2; font-weight:950; letter-spacing:-.06em; color:#2C211D; }
+    .login-required-copy { margin:12px 0 0; font-size:14px; line-height:1.65; font-weight:750; color:#74635C; }
+    .login-required-sub { margin:6px 0 0; font-size:12.5px; line-height:1.6; font-weight:750; color:#9A8A82; }
+    .login-required-actions { display:grid; gap:8px; margin-top:18px; }
+    .login-required-primary, .login-required-secondary { display:inline-flex; align-items:center; justify-content:center; min-height:46px; border-radius:999px; padding:10px 18px; font-family:inherit; font-weight:950; cursor:pointer; text-decoration:none; }
+    .login-required-primary { border:1px solid #F26B61; background:#F26B61; color:#fff; box-shadow:0 14px 28px rgba(219,85,75,.18); }
+    .login-required-secondary { border:1px solid #EAD7CF; background:#fff; color:#8A6F66; }
     .saved-trip-notice { margin-top:10px; padding:10px 12px; border:1px solid #F1D6CF; border-radius:16px; background:#FFF8F5; color:#7E7067; font-size:12px; font-weight:750; line-height:1.45; }
     .saved-trip-notice strong { display:block; color:#C94D43; font-size:12.5px; margin-bottom:2px; }
     .saved-trip-error { margin:18px 0; padding:22px 18px; border:1px solid #F1D6CF; border-radius:24px; background:#FFF8F5; text-align:center; color:#2C221D; }
@@ -830,6 +842,20 @@
 
   <div class="save-trip-sticky is-hidden" id="save-trip-sticky" aria-hidden="true">
     <button class="save-trip-sticky-button primary" id="save-trip-sticky-button" type="button" onclick="saveCurrentTrip()">여행 일정 저장</button>
+  </div>
+
+  <div class="login-required-overlay" id="login-required-overlay" role="dialog" aria-modal="true" aria-labelledby="login-required-title" aria-hidden="true">
+    <div class="login-required-sheet">
+      <div class="login-required-handle" aria-hidden="true"></div>
+      <p class="login-required-kicker">FUKUOSAKA</p>
+      <h2 class="login-required-title" id="login-required-title">로그인이 필요해요</h2>
+      <p class="login-required-copy">저장한 여행과 찜한 상품은 로그인 후 관리할 수 있어요.</p>
+      <p class="login-required-sub">로그인하면 여행 계획을 더 안정적으로 보관할 수 있어요.</p>
+      <div class="login-required-actions">
+        <a class="login-required-primary" id="login-required-login-link" href="/login">로그인하고 계속하기</a>
+        <button class="login-required-secondary" type="button" onclick="hideLoginRequiredSheet()">나중에 할게요</button>
+      </div>
+    </div>
   </div>
 
   <!-- Bottom nav -->
@@ -4218,6 +4244,53 @@ function savedTripStorageAvailable(){
   }
 }
 
+function currentLoginNextPath(){
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function loginHrefForCurrentPage(){
+  return `/login?next=${encodeURIComponent(currentLoginNextPath())}`;
+}
+
+async function resultPageIsLoggedIn(){
+  try {
+    const response = await fetch('/api/auth/me', {
+      cache: 'no-store',
+      credentials: 'same-origin',
+    });
+    if(!response.ok) return false;
+    const data = await response.json();
+    return Boolean(data && data.loggedIn);
+  } catch(e) {
+    return false;
+  }
+}
+
+function showLoginRequiredSheet(){
+  const overlay = document.getElementById('login-required-overlay');
+  const loginLink = document.getElementById('login-required-login-link');
+  if(loginLink) loginLink.setAttribute('href', loginHrefForCurrentPage());
+  if(!overlay) {
+    window.location.href = loginHrefForCurrentPage();
+    return;
+  }
+  overlay.classList.add('show');
+  overlay.setAttribute('aria-hidden', 'false');
+}
+
+function hideLoginRequiredSheet(){
+  const overlay = document.getElementById('login-required-overlay');
+  if(!overlay) return;
+  overlay.classList.remove('show');
+  overlay.setAttribute('aria-hidden', 'true');
+}
+
+document.addEventListener('click', (event) => {
+  const overlay = document.getElementById('login-required-overlay');
+  if(!overlay || !overlay.classList.contains('show')) return;
+  if(event.target === overlay) hideLoginRequiredSheet();
+});
+
 function readSavedTrips(){
   try {
     const raw = window.localStorage.getItem(SAVED_TRIPS_STORAGE_KEY);
@@ -4299,10 +4372,15 @@ function saveItemButtonHtml(payload = {}){
   return `<button class="save-item-btn ${saved ? 'saved' : ''}" type="button" data-saved-key="${escapeAttr(key)}" aria-pressed="${saved ? 'true' : 'false'}" aria-label="${saved ? '찜 해제' : '찜하기'}" title="${saved ? '찜 해제' : '찜하기'}" onclick="toggleSavedItem(event, '${escapeAttr(token)}')">${saved ? '★' : '☆'}</button>`;
 }
 
-function toggleSavedItem(event, token){
+async function toggleSavedItem(event, token){
   if(event) {
     event.preventDefault();
     event.stopPropagation();
+  }
+  const loggedIn = await resultPageIsLoggedIn();
+  if(!loggedIn) {
+    showLoginRequiredSheet();
+    return false;
   }
   if(!savedTripStorageAvailable()) {
     alert('이 브라우저에서는 저장을 사용할 수 없어요.');
@@ -4624,10 +4702,15 @@ function setupSaveTripStickyCta(){
   }
 }
 
-function saveCurrentTrip(){
+async function saveCurrentTrip(){
   if(saveTripInProgress || SAVED_TRIP_VIEW) return;
   if(currentSavedTripId) {
-    cancelCurrentSavedTrip();
+    await cancelCurrentSavedTrip();
+    return;
+  }
+  const loggedIn = await resultPageIsLoggedIn();
+  if(!loggedIn) {
+    showLoginRequiredSheet();
     return;
   }
   if(!savedTripStorageAvailable()) {
@@ -4657,8 +4740,13 @@ function saveCurrentTrip(){
   }
 }
 
-function cancelCurrentSavedTrip(){
+async function cancelCurrentSavedTrip(){
   if(saveTripInProgress || SAVED_TRIP_VIEW) return;
+  const loggedIn = await resultPageIsLoggedIn();
+  if(!loggedIn) {
+    showLoginRequiredSheet();
+    return;
+  }
   const tripId = currentSavedTripId;
   if(!tripId) {
     setSaveTripButtonState('여행 일정 저장', false, false);
