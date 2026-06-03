@@ -4,6 +4,7 @@ import { BottomTabBar } from "@/src/components/home/BottomTabBar";
 import { BudgetSamplePlans } from "@/src/components/home/BudgetSamplePlans";
 import { AppSplash } from "@/src/components/home/AppSplash";
 import { HeroSection } from "@/src/components/home/HeroSection";
+import { HomePolicyFooter } from "@/src/components/home/HomePolicyFooter";
 import { QuickSearchLinks } from "@/src/components/home/QuickSearchLinks";
 import { StayCardCarousel } from "@/src/components/home/StayCardCarousel";
 import { TopAppBar } from "@/src/components/home/TopAppBar";
@@ -30,6 +31,7 @@ export default async function HomePage() {
           <QuickSearchLinks />
           <StayCardCarousel items={homeData.stayCards} />
           <TourCardCarousel items={homeData.tourCards} />
+          <HomePolicyFooter />
         </div>
       </div>
 
