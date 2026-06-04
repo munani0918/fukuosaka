@@ -62,3 +62,20 @@ input {
 input::placeholder {
   color: #b5a39c;
 }
+
+.flight-date-input {
+  min-width: 0;
+  white-space: nowrap;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+.flight-date-input::-webkit-date-and-time-value {
+  min-height: 1.35em;
+  text-align: left;
+}
+
+.flight-date-input::-webkit-calendar-picker-indicator {
+  margin-left: 2px;
+  padding: 0;
+}

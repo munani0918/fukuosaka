@@ -3,11 +3,12 @@
 import { useMemo, useState, type FormEvent } from "react";
 
 import {
-  addFlightDays,
   buildFlightResultsHref,
   getAvailableFlightOrigins,
   getDefaultFlightSearchState,
+  getMinimumFlightReturnDate,
   JAPAN_FLIGHT_DESTINATIONS,
+  normalizeFlightSearchState,
   type FlightAirportCode,
   type FlightDestinationCode,
   type FlightTripType,
@@ -28,7 +29,7 @@ export function FlightSearchSection() {
     setIsSubmitting(true);
 
     try {
-      window.location.assign(buildFlightResultsHref(search));
+      window.location.assign(buildFlightResultsHref(normalizeFlightSearchState(search)));
     } finally {
       setIsSubmitting(false);
     }
@@ -90,7 +91,7 @@ export function FlightSearchSection() {
                     origin: nextOrigin,
                   }));
                 }}
-                className="mt-1 block w-full bg-transparent text-[15px] font-bold text-[#2f2420] outline-none"
+                className="flight-date-input mt-1 block w-full min-w-0 bg-transparent text-[15px] font-bold text-[#2f2420] outline-none"
               >
                 {JAPAN_FLIGHT_DESTINATIONS.map((destination) => (
                   <option key={destination.code} value={destination.code}>
@@ -107,10 +108,12 @@ export function FlightSearchSection() {
               <select
                 value={search.tripType}
                 onChange={(event) =>
-                  setSearch((current) => ({
-                    ...current,
-                    tripType: event.target.value as FlightTripType,
-                  }))
+                  setSearch((current) =>
+                    normalizeFlightSearchState({
+                      ...current,
+                      tripType: event.target.value as FlightTripType,
+                    }),
+                  )
                 }
                 className="mt-1 block w-full bg-transparent text-[15px] font-bold text-[#2f2420] outline-none"
               >
@@ -148,14 +151,12 @@ export function FlightSearchSection() {
                 value={search.departDate}
                 onChange={(event) => {
                   const departDate = event.target.value;
-                  setSearch((current) => ({
-                    ...current,
-                    departDate,
-                    returnDate:
-                      current.returnDate > departDate
-                        ? current.returnDate
-                        : addFlightDays(departDate, 3),
-                  }));
+                  setSearch((current) =>
+                    normalizeFlightSearchState({
+                      ...current,
+                      departDate,
+                    }),
+                  );
                 }}
                 className="mt-1 block w-full bg-transparent text-[15px] font-bold text-[#2f2420] outline-none"
               />
@@ -165,20 +166,19 @@ export function FlightSearchSection() {
               <p className="text-[12px] font-semibold text-[#9a837b]">복귀일</p>
               <input
                 type="date"
-                min={search.departDate}
+                min={getMinimumFlightReturnDate(search.departDate)}
                 value={search.returnDate}
                 disabled={search.tripType === "OW"}
                 onChange={(event) => {
                   const returnDate = event.target.value;
-                  setSearch((current) => ({
-                    ...current,
-                    returnDate:
-                      returnDate > current.departDate
-                        ? returnDate
-                        : addFlightDays(current.departDate, 3),
-                  }));
+                  setSearch((current) =>
+                    normalizeFlightSearchState({
+                      ...current,
+                      returnDate,
+                    }),
+                  );
                 }}
-                className="mt-1 block w-full bg-transparent text-[15px] font-bold text-[#2f2420] outline-none disabled:text-[#c1aea6]"
+                className="flight-date-input mt-1 block w-full min-w-0 bg-transparent text-[15px] font-bold text-[#2f2420] outline-none disabled:text-[#c1aea6]"
               />
             </label>
           </div>

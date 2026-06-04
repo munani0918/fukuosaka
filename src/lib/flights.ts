@@ -55,20 +55,74 @@ function formatDate(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
+function parseFlightDateParts(value?: string) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return formatDate(date) === value ? { year, month, day } : null;
+}
+
+function isValidFlightDate(value?: string) {
+  return parseFlightDateParts(value) !== null;
+}
+
 export function futureFlightDate(offsetDays: number, now = new Date()) {
-  const target = new Date(now);
-  target.setDate(target.getDate() + offsetDays);
+  const target = new Date(
+    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + offsetDays),
+  );
   return formatDate(target);
 }
 
 export function addFlightDays(dateValue: string, days: number) {
-  const base = new Date(dateValue);
-  if (Number.isNaN(base.getTime())) {
+  const parts = parseFlightDateParts(dateValue);
+  if (!parts) {
     return futureFlightDate(days);
   }
 
-  base.setDate(base.getDate() + days);
-  return formatDate(base);
+  return formatDate(new Date(Date.UTC(parts.year, parts.month - 1, parts.day + days)));
+}
+
+export function getMinimumFlightReturnDate(departDate: string) {
+  return addFlightDays(departDate, 1);
+}
+
+export function normalizeFlightSearchDates(
+  state: Pick<FlightSearchState, "tripType" | "departDate" | "returnDate">,
+) {
+  const departDate = isValidFlightDate(state.departDate)
+    ? state.departDate
+    : futureFlightDate(35);
+  const minimumReturnDate = getMinimumFlightReturnDate(departDate);
+  const fallbackReturnDate = addFlightDays(departDate, 3);
+  let returnDate = isValidFlightDate(state.returnDate)
+    ? state.returnDate
+    : fallbackReturnDate;
+
+  if (state.tripType === "RT" && returnDate < minimumReturnDate) {
+    returnDate = minimumReturnDate;
+  }
+
+  return { departDate, returnDate };
+}
+
+export function normalizeFlightSearchState(
+  state: FlightSearchState,
+): FlightSearchState {
+  const tripType = state.tripType === "OW" ? "OW" : "RT";
+  const dates = normalizeFlightSearchDates({
+    tripType,
+    departDate: state.departDate,
+    returnDate: state.returnDate,
+  });
+
+  return {
+    ...state,
+    tripType,
+    departDate: dates.departDate,
+    returnDate: dates.returnDate,
+    adult: Number.isFinite(state.adult) && state.adult > 0 ? Math.min(state.adult, 9) : 1,
+  };
 }
 
 export function getAirportLabel(code: FlightAirportCode) {
@@ -109,7 +163,7 @@ export function getDefaultFlightSearchState(
 ): FlightSearchState {
   const departDate = overrides?.departDate || futureFlightDate(35);
 
-  return {
+  return normalizeFlightSearchState({
     origin: "ICN",
     destination: "KIX",
     tripType: "RT",
@@ -117,7 +171,7 @@ export function getDefaultFlightSearchState(
     returnDate: overrides?.returnDate || addFlightDays(departDate, 3),
     adult: 1,
     ...overrides,
-  };
+  });
 }
 
 export function coerceFlightSearchState(

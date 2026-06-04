@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { connection } from "next/server";
 
+import { FlightResultsList } from "@/app/flights/FlightResultsList";
+import { FlightSearchForm } from "@/app/flights/FlightSearchForm";
 import { Artwork } from "@/src/components/home/Artwork";
 import { BottomTabBar } from "@/src/components/home/BottomTabBar";
-import { FlightResultsList } from "@/app/flights/FlightResultsList";
 import {
-  JAPAN_FLIGHT_DESTINATIONS,
-  KOREA_DIRECT_FLIGHT_AIRPORTS,
   buildFlightResultsHref,
   coerceFlightSearchState,
   getAirportLabel,
@@ -55,7 +54,13 @@ export default async function FlightsPage({
               className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#7f6f69] shadow-[0_8px_18px_rgba(78,42,29,0.07)] ring-1 ring-[#efe3db]"
               aria-label="홈으로 돌아가기"
             >
-              <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <svg
+                className="h-4.5 w-4.5"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
                 <path d="M12.5 4.5 7 10l5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </Link>
@@ -69,97 +74,7 @@ export default async function FlightsPage({
             </div>
           </div>
 
-          <form action="/flights" method="get" className="mt-4 space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <label className="rounded-[16px] border border-[#eadcd3] bg-white px-3 py-2.5">
-                <span className="text-[10px] font-bold text-[#a08d85]">출발지</span>
-                <select
-                  name="origin"
-                  defaultValue={state.origin}
-                  className="mt-1 block w-full bg-transparent text-[12px] font-black text-[#2d211d] outline-none"
-                >
-                  <option value="ALL">전체 직항 공항</option>
-                  {KOREA_DIRECT_FLIGHT_AIRPORTS.map((airport) => (
-                    <option key={airport.code} value={airport.code}>
-                      {airport.city}({airport.code})
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="rounded-[16px] border border-[#eadcd3] bg-white px-3 py-2.5">
-                <span className="text-[10px] font-bold text-[#a08d85]">도착지</span>
-                <select
-                  name="destination"
-                  defaultValue={state.destination}
-                  className="mt-1 block w-full bg-transparent text-[12px] font-black text-[#2d211d] outline-none"
-                >
-                  {JAPAN_FLIGHT_DESTINATIONS.map((destination) => (
-                    <option key={destination.code} value={destination.code}>
-                      {destination.city}({destination.code})
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              <label className="rounded-[16px] border border-[#eadcd3] bg-white px-3 py-2.5">
-                <span className="text-[10px] font-bold text-[#a08d85]">여정</span>
-                <select
-                  name="tripType"
-                  defaultValue={state.tripType}
-                  className="mt-1 block w-full bg-transparent text-[12px] font-black text-[#2d211d] outline-none"
-                >
-                  <option value="RT">왕복</option>
-                  <option value="OW">편도</option>
-                </select>
-              </label>
-
-              <label className="rounded-[16px] border border-[#eadcd3] bg-white px-3 py-2.5">
-                <span className="text-[10px] font-bold text-[#a08d85]">출발일</span>
-                <input
-                  type="date"
-                  name="departDate"
-                  defaultValue={state.departDate}
-                  className="mt-1 block w-full bg-transparent text-[11px] font-black text-[#2d211d] outline-none"
-                />
-              </label>
-
-              <label className="rounded-[16px] border border-[#eadcd3] bg-white px-3 py-2.5">
-                <span className="text-[10px] font-bold text-[#a08d85]">복귀일</span>
-                <input
-                  type="date"
-                  name="returnDate"
-                  defaultValue={state.returnDate}
-                  className="mt-1 block w-full bg-transparent text-[11px] font-black text-[#2d211d] outline-none"
-                />
-              </label>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <label className="min-w-0 flex-1 rounded-[16px] border border-[#eadcd3] bg-white px-3 py-2.5">
-                <span className="text-[10px] font-bold text-[#a08d85]">성인</span>
-                <select
-                  name="adult"
-                  defaultValue={state.adult}
-                  className="mt-1 block w-full bg-transparent text-[12px] font-black text-[#2d211d] outline-none"
-                >
-                  {[1, 2, 3, 4, 5, 6].map((count) => (
-                    <option key={count} value={count}>
-                      {count}명
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                type="submit"
-                className="h-[54px] shrink-0 rounded-[18px] bg-[#cb4b42] px-5 text-[13px] font-black text-white shadow-[0_10px_18px_rgba(203,75,66,0.18)]"
-              >
-                항공 검색
-              </button>
-            </div>
-          </form>
+          <FlightSearchForm state={state} />
         </header>
 
         <section className="px-5 pb-4 pt-4">
@@ -169,7 +84,7 @@ export default async function FlightsPage({
               <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(26,14,11,0.02)_0%,rgba(26,14,11,0.34)_100%)]" />
               <div className="absolute bottom-4 left-4 right-4">
                 <span className="inline-flex rounded-full bg-white/90 px-3 py-1 text-[11px] font-black text-[#cb4b42]">
-                  대한민국 출발 직항 기준
+                  직항 출발 공항 기준
                 </span>
                 <h2 className="mt-2 text-[23px] font-black tracking-[-0.05em] text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.16)]">
                   {getAirportLabel(state.origin)} → {getDestinationLabel(state.destination)}
@@ -193,16 +108,16 @@ export default async function FlightsPage({
               </div>
 
               <p className="mt-3 text-[12px] leading-5 text-[#7d6f69]">
-                노선은 오사카·후쿠오카 직항 운항 이력이 있는 국내 공항 기준으로 구성했어요.
-                항공편 운항 여부와 가격은 항공사/시즌에 따라 달라질 수 있어 최종 화면에서 다시 확인해주세요.
+                오사카와 후쿠오카 직항 항공권을 국내 주요 출발 공항 기준으로 정리했어요.
+                항공권 요금은 항공사와 예약 시점에 따라 달라질 수 있어 최종 화면에서 다시 확인해 주세요.
               </p>
             </div>
           </div>
 
           {!isSelectedRouteValid ? (
             <div className="mt-3 rounded-[20px] bg-[#fff8f3] p-4 text-[12px] leading-6 text-[#7d6f69] ring-1 ring-[#efdcd3]">
-              선택한 출발지는 현재 {getDestinationLabel(state.destination)} 직항 후보에 없어서,
-              가능한 직항 출발 공항을 대신 보여드려요.
+              선택한 출발지는 현재 {getDestinationLabel(state.destination)} 직항 후보가 없어요.
+              가능한 직항 출발 공항을 대신 보여드릴게요.
             </div>
           ) : null}
         </section>
