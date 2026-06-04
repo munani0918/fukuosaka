@@ -380,12 +380,12 @@ const CITY_TNA_RULES = {
   FUK: {
     allow: ['후쿠오카', 'fukuoka', '하카타', 'hakata', '텐진', 'tenjin', '나카스', '다자이후', 'dazaifu', '오호리', '모모치', '유후인', 'yufuin', '벳푸', 'beppu', '산큐패스', 'sunq', '큐슈', 'kyushu'],
     exclude: ['오사카', 'osaka', '간사이', 'kansai', '난바', 'namba', '도톤보리', 'dotonbori', '신사이바시', 'shinsaibashi', '우메다', 'umeda', '교토', 'kyoto', '나라', 'nara', '고베', 'kobe', 'usj', '유니버셜', '유니버설', 'universal', '라피트', 'rapit', '주유패스', 'amazing pass'],
-    defaults: ['후쿠오카 eSIM', '후쿠오카 지하철패스', '다자이후', '유후인 벳푸 투어', '산큐패스'],
+    defaults: ['후쿠오카 eSIM', '후쿠오카 지하철패스', '산큐패스', '다자이후', '유후인 벳푸 투어'],
   },
   KIX: {
     allow: ['오사카', 'osaka', '간사이', 'kansai', '난바', 'namba', '도톤보리', 'dotonbori', '신사이바시', 'shinsaibashi', '우메다', 'umeda', '오사카성', '신세카이', '쓰텐카쿠', '교토', 'kyoto', '나라', 'nara', '고베', 'kobe', 'usj', '유니버셜', '유니버설', 'universal', '라피트', 'rapit', '주유패스', 'amazing pass'],
     exclude: ['후쿠오카', 'fukuoka', '하카타', 'hakata', '텐진', 'tenjin', '나카스', '다자이후', 'dazaifu', '유후인', 'yufuin', '벳푸', 'beppu', '산큐패스', 'sunq', '큐슈', 'kyushu'],
-    defaults: ['오사카 주유패스', '라피트', 'USJ 입장권', '도톤보리 크루즈', '교토 나라 투어', '일본 eSIM'],
+    defaults: ['오사카 주유패스', '라피트', '일본 eSIM', '도톤보리 크루즈', 'USJ 입장권', '교토 나라 투어'],
   },
 } as const;
 
@@ -468,7 +468,7 @@ function sampleTnaKeywords(options: {
     return ['후쿠오카 지하철 1일권', '산큐패스', '일본 eSIM'];
   }
   if (text.includes('standard') || text.includes('표준')) {
-    return ['오사카 주유패스', '유니버설 스튜디오 재팬', '일본 eSIM'];
+    return ['오사카 주유패스', '라피트', '일본 eSIM'];
   }
   return ['오사카 주유패스', '라피트', '일본 eSIM'];
 }
@@ -585,6 +585,36 @@ function getFallbackTnas(cityCode: string) {
   const curated = cityCode === 'FUK'
     ? [
         {
+          name: '일본 eSIM 데이터',
+          img: '',
+          rating: '4.7',
+          reviewCount: '1,120',
+          price: '성인 5,900원~',
+          bookUrl: 'https://experiences.myrealtrip.com/',
+          gid: 'fallback-japan-esim',
+          tag: '유심',
+        },
+        {
+          name: '후쿠오카 지하철 1일권',
+          img: '',
+          rating: '4.5',
+          reviewCount: '520',
+          price: '성인 12,000원~',
+          bookUrl: 'https://experiences.myrealtrip.com/',
+          gid: 'fallback-fukuoka-subway-pass',
+          tag: '패스',
+        },
+        {
+          name: '산큐패스 북큐슈 교통권',
+          img: '',
+          rating: '4.5',
+          reviewCount: '460',
+          price: '성인 38,000원~',
+          bookUrl: 'https://experiences.myrealtrip.com/',
+          gid: 'fallback-fukuoka-sunq-pass',
+          tag: '패스',
+        },
+        {
           name: '유후인·벳부 온천 데이투어',
           img: '',
           rating: '4.8',
@@ -594,38 +624,38 @@ function getFallbackTnas(cityCode: string) {
           gid: 'fallback-fukuoka-onsen',
           tag: '온천',
         },
-        {
-          name: '다자이후·야나가와 대표 근교 투어',
-          img: '',
-          rating: '4.7',
-          reviewCount: '280',
-          price: '성인 59,000원~',
-          bookUrl: 'https://experiences.myrealtrip.com/',
-          gid: 'fallback-fukuoka-nearby',
-          tag: '근교 관광',
-        },
-        {
-          name: '하카타·텐진 맛집 산책',
-          img: '',
-          rating: '4.6',
-          reviewCount: '210',
-          price: '성인 39,000원~',
-          bookUrl: 'https://experiences.myrealtrip.com/',
-          gid: 'fallback-fukuoka-food',
-          tag: '맛집',
-        },
-        {
-          name: '이토시마 감성 포토 코스',
-          img: '',
-          rating: '4.7',
-          reviewCount: '190',
-          price: '성인 69,000원~',
-          bookUrl: 'https://experiences.myrealtrip.com/',
-          gid: 'fallback-fukuoka-itoshima',
-          tag: '커플·관광',
-        },
       ]
     : [
+        {
+          name: '라피트 공항 특급권',
+          img: '',
+          rating: '4.6',
+          reviewCount: '1,250',
+          price: '성인 13,500원~',
+          bookUrl: 'https://experiences.myrealtrip.com/',
+          gid: 'fallback-osaka-rapit',
+          tag: '공항 이동',
+        },
+        {
+          name: '오사카 주유패스 1일권',
+          img: '',
+          rating: '4.6',
+          reviewCount: '640',
+          price: '성인 28,000원~',
+          bookUrl: 'https://experiences.myrealtrip.com/',
+          gid: 'fallback-osaka-amazing-pass',
+          tag: '패스',
+        },
+        {
+          name: '일본 eSIM 데이터',
+          img: '',
+          rating: '4.7',
+          reviewCount: '1,120',
+          price: '성인 5,900원~',
+          bookUrl: 'https://experiences.myrealtrip.com/',
+          gid: 'fallback-japan-esim',
+          tag: '유심',
+        },
         {
           name: '오사카 핵심 시티투어',
           img: '',
@@ -635,36 +665,6 @@ function getFallbackTnas(cityCode: string) {
           bookUrl: 'https://experiences.myrealtrip.com/',
           gid: 'fallback-osaka-citytour',
           tag: '관광',
-        },
-        {
-          name: '나라 반나절 근교 투어',
-          img: '',
-          rating: '4.7',
-          reviewCount: '640',
-          price: '성인 49,000원~',
-          bookUrl: 'https://experiences.myrealtrip.com/',
-          gid: 'fallback-osaka-nara',
-          tag: '근교 관광',
-        },
-        {
-          name: '구로몬시장·도톤보리 맛집 워크',
-          img: '',
-          rating: '4.6',
-          reviewCount: '360',
-          price: '성인 35,000원~',
-          bookUrl: 'https://experiences.myrealtrip.com/',
-          gid: 'fallback-osaka-food',
-          tag: '맛집',
-        },
-        {
-          name: '고베 야경·리버크루즈 코스',
-          img: '',
-          rating: '4.7',
-          reviewCount: '240',
-          price: '성인 79,000원~',
-          bookUrl: 'https://experiences.myrealtrip.com/',
-          gid: 'fallback-osaka-night',
-          tag: '야경',
         },
       ];
   return curated;

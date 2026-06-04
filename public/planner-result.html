@@ -818,12 +818,12 @@
       <div class="sec" id="sec-tour">
         <div class="sec-hdr">
           <span class="sec-ico">🎟</span>
-          <span class="sec-name">투어 &amp; 티켓</span>
-          <span class="sec-sub">현지 추천 액티비티</span>
+          <span class="sec-name">추천 투어·티켓</span>
+          <span class="sec-sub">투어·입장권·패스·eSIM</span>
         </div>
       </div>
       <div id="tour-list"></div>
-      <a href="/tours" class="more-btn tour-more-btn" onclick="return openResultMorePage('tours')">투어&티켓 더보기</a>
+      <a href="/tours" class="more-btn tour-more-btn" onclick="return openResultMorePage('tours')">투어·티켓 더보기</a>
     </div>
 
     <!-- 예상 비용 -->
@@ -3216,11 +3216,11 @@ function tourReason(){
   }
   if(city === 'fukuoka') {
     if(styles.has('onsen')) return '온천 성향을 반영해 유후인·벳부 같은 근교 투어를 우선 추천했어요.';
-    if(styles.has('food') || styles.has('sightseeing')) return '야타이, 대표 관광지, 근교 코스를 함께 고려해 투어&티켓을 추천했어요.';
-    return '후쿠오카 시내 핵심과 다자이후 같은 근교 동선을 고려해 투어&티켓을 추천했어요.';
+    if(styles.has('food') || styles.has('sightseeing')) return '야타이, 대표 관광지, 근교 코스를 함께 고려해 투어·티켓을 추천했어요.';
+    return '후쿠오카 시내 핵심과 다자이후 같은 근교 동선을 고려해 투어·티켓을 추천했어요.';
   }
   if(styles.has('couple') || styles.has('sightseeing')) return '도톤보리, 전망대, 리버크루즈처럼 분위기와 대표 명소가 있는 상품을 우선 추천했어요.';
-  return '오사카 대표 명소와 이동 편의가 좋은 투어&티켓을 우선 추천했어요.';
+  return '오사카 대표 명소와 이동 편의가 좋은 투어·티켓을 우선 추천했어요.';
 }
 
 function stayReasonV2(){
@@ -3255,7 +3255,7 @@ function tourReasonV2(){
     if(styles.has('couple')) return '커플 여행에 맞춰 이토시마, 모모치, 후쿠오카타워처럼 감성 동선이 있는 상품을 우선 추천했어요.';
     if(styles.has('family')) return '가족 여행에 맞춰 이동 부담이 적은 반나절·차량 이동형 상품을 우선 추천했어요.';
     if(styles.has('solo')) return '혼자 여행에 맞춰 자유이동, 교통패스, 반나절 상품을 우선 추천했어요.';
-    return '후쿠오카 시내 핵심과 다자이후 같은 대표 근교 동선을 고려해 투어&티켓을 추천했어요.';
+    return '후쿠오카 시내 핵심과 다자이후 같은 대표 근교 동선을 고려해 투어·티켓을 추천했어요.';
   }
   if(styles.has('onsen')) return '온천 성향을 반영하되 오사카는 스파·휴식형 또는 가족형 관광 상품으로 보정해 추천했어요.';
   if(styles.has('food')) return '맛집 성향을 반영해 구로몬시장, 도톤보리, 로컬 식도락 동선이 있는 상품을 우선 추천했어요.';
@@ -3767,11 +3767,7 @@ function renderTourCandidateGroup(){
   const isSupportTicketOnly = supportTicketsAllowed() && !packageIncludes('tour');
   if(!packageIncludes('tour') && !isSupportTicketOnly) return '';
   const tours = prepareTourResults(RESULT_DATA.tnas || []).slice(0, 3);
-  const ticketPassOnly = (PLAN_INPUT?.recommendedExtras || P.recommendedExtras) === 'ticketPassOnly';
-  const supportTitle = ticketPassOnly ? '이 플랜에 필요한 준비 티켓' : '일정 보조 티켓';
-  const supportCopy = ticketPassOnly
-    ? '근교 투어보다 공항 이동권·교통패스·eSIM처럼 실제 여행에 필요한 준비물을 먼저 추천해요.'
-    : '라피트, 교통패스, 원데이패스처럼 일정에 필요한 티켓을 골라봤어요.';
+  const supportCopy = '일정에 맞춰 투어·입장권·교통패스·eSIM을 함께 추천해요.';
   const body = tours.length
     ? tours.map((tour) => {
       const detailHref = buildTourDetailHrefForResult(tour);
@@ -3783,12 +3779,12 @@ function renderTourCandidateGroup(){
           <span class="preview-title">${escapeHtml(tour.displayTitle || tour.name || tour.title || '추천 투어')}</span>
           <span class="preview-meta">${escapeHtml(tourPreviewMeta(tour) || '추천 상품 확인')}</span>
         </span>
-        <span class="preview-side-actions">${saveButton}<span class="preview-go">›</span></span>
+        <span class="preview-side-actions">${saveButton}</span>
       </div>`;
     }).join('')
-    : bookingEmpty(isSupportTicketOnly ? '일정 보조 티켓을 불러오지 못했어요. 투어 탭에서 다시 확인해보세요.' : '투어 데이터를 불러오지 못했어요. 투어 탭에서 다시 확인해보세요.', 'tours');
+    : bookingEmpty(isSupportTicketOnly ? '추천 투어·티켓을 불러오지 못했어요. 투어 탭에서 다시 확인해보세요.' : '투어 데이터를 불러오지 못했어요. 투어 탭에서 다시 확인해보세요.', 'tours');
   return `<div class="booking-group">
-    <div class="booking-group-title">${isSupportTicketOnly ? supportTitle : '추천 투어&티켓'}</div>
+    <div class="booking-group-title">추천 투어·티켓</div>
     ${isSupportTicketOnly ? `<div class="booking-candidate-sub">${supportCopy}</div>` : ''}
     <div class="preview-list">${body}</div>
   </div>`;
@@ -5323,7 +5319,7 @@ function tourReasonFinal(){
     : '커플 여행에 맞춰 도톤보리 야경, 우메다 전망대, 리버크루즈, 고베 같은 분위기 있는 상품을 우선 추천했어요.';
   if(styles.has('family')) return '가족 여행에 맞춰 이동 부담이 적은 반나절 코스나 가이드/차량 이동형 상품을 우선 추천했어요.';
   if(styles.has('solo')) return '혼자 여행에 맞춰 자유이동, 교통패스, 반나절 상품처럼 부담이 적은 상품을 우선 추천했어요.';
-  return '선택한 여행 성향과 도시별 대표 동선을 기준으로 투어&티켓을 정렬했어요.';
+  return '선택한 여행 성향과 도시별 대표 동선을 기준으로 투어·티켓을 정렬했어요.';
 }
 
 function styleFallbackNoticeFinal(kind, items){
@@ -5374,6 +5370,7 @@ function getFallbackToursFinal(){
       { ...common, name:'다자이후·야나가와 대표 근교 투어', rating:'4.7', price:'성인 59,000원~', tag:'근교 관광', tags:['guided_tour','dazaifu','yanagawa','sightseeing','half_day','family'] },
       { ...common, name:'하카타·텐진 맛집 산책', rating:'4.6', price:'성인 39,000원~', tag:'맛집', tags:['guided_tour','food','market','half_day','solo'] },
       { ...common, name:'이토시마 감성 포토 코스', rating:'4.7', price:'성인 69,000원~', tag:'커플·관광', tags:['guided_tour','itoshima','couple','sightseeing','half_day'] },
+      { ...common, name:'일본 eSIM 데이터', rating:'4.7', price:'성인 5,900원~', tag:'유심', tags:['esim','essential_ticket','solo','family'] },
       { ...common, name:'후쿠오카 지하철 1일권', rating:'4.5', price:'성인 12,000원~', tag:'패스', tags:['transport_pass','essential_ticket','solo','shopping','half_day'] },
       { ...common, name:'산큐패스 북큐슈 교통권', rating:'4.5', price:'성인 38,000원~', tag:'패스', tags:['transport_pass','essential_ticket','sightseeing'] },
     ];
@@ -5386,6 +5383,7 @@ function getFallbackToursFinal(){
     { ...common, name:'라피트 공항 특급권', rating:'4.6', price:'성인 13,500원~', tag:'공항 이동', tags:['airport_transfer','transport_pass','essential_ticket'] },
     { ...common, name:'오사카 주유패스 1일권', rating:'4.6', price:'성인 28,000원~', tag:'패스', tags:['transport_pass','essential_ticket','shopping','sightseeing'] },
     { ...common, name:'오사카 메트로패스', rating:'4.5', price:'성인 8,000원~', tag:'패스', tags:['transport_pass','essential_ticket','solo','shopping','half_day'] },
+    { ...common, name:'일본 eSIM 데이터', rating:'4.7', price:'성인 5,900원~', tag:'유심', tags:['esim','essential_ticket','solo','family'] },
   ];
 }
 
@@ -5452,6 +5450,33 @@ function tourDedupeKey(item){
   return text.replace(/\s+/g, '').slice(0, 24);
 }
 
+function tourPriorityKind(item){
+  const badge = tourTypeBadgeLabel(item);
+  const text = asText(item?.displayTitle, item?.name, item?.title, item?.itemName, item?.tag, item?.category, item?.type, item?.tags);
+  if(badge === '유심' || hasAny(text, ['esim', 'e-sim', '유심', '데이터', 'sim'])) return 'communication';
+  if(badge === '공항이동' || hasAny(text, ['라피트', '하루카', '공항철도', '공항버스', '공항 이동', '공항이동'])) return 'airport-transfer';
+  if(badge === '패스' || hasAny(text, ['주유패스', '지하철패스', '메트로패스', '교통패스', '산큐패스', '원데이패스', '패스'])) return 'transport-pass';
+  if(badge === '입장권' || hasAny(text, ['입장권', '티켓', '전망대', '크루즈', 'admission', 'entry ticket'])) return 'entry-ticket';
+  if(badge === '근교투어' || hasAny(text, ['교토', '나라', '고베', '유후인', '벳푸', '벳부', '다자이후', '투어', 'guided_tour'])) return 'day-tour';
+  return 'other';
+}
+
+function preparationTicketFirstMode(){
+  const city = currentCity();
+  const styles = currentStyleSet();
+  const nights = Math.max(1, Number(P.nights) || Number(PLAN_INPUT?.nights) || 1);
+  if(supportTicketsAllowed() && !packageIncludes('tour')) return true;
+  if(budgetFirstMode()) return true;
+  if(styles.has('onsen')) return false;
+  if(city === 'osaka' && nights <= 2) return true;
+  if(city === 'fukuoka' && nights <= 2 && !styles.has('family')) return true;
+  return false;
+}
+
+function onsenTourFirstMode(){
+  return currentCity() === 'fukuoka' && currentStyleSet().has('onsen');
+}
+
 function diversifyTourItems(items, max = 3){
   const scored = Array.isArray(items) ? items.slice() : [];
   const fallbackTickets = scoreTours(getFallbackToursFinal()).filter(supportTicketsAllowed() && !packageIncludes('tour') ? isPreparationTicketItem : isTicketPassItem);
@@ -5466,8 +5491,26 @@ function diversifyTourItems(items, max = 3){
     selected.push(item);
     return true;
   };
-  const ticketFirst = pool.find(isPreparationTicketItem) || pool.find(isTicketPassItem);
-  add(ticketFirst);
+  const addKind = (kind) => add(pool.find((item) => tourPriorityKind(item) === kind));
+  const addMatching = (predicate) => add(pool.find(predicate));
+  if(onsenTourFirstMode()) {
+    addMatching((item) => tourPriorityKind(item) === 'day-tour' && hasAny(asText(item?.tags, item?.name, item?.title, item?.tag), ['온천', '유후인', '벳푸', '벳부', 'yufuin', 'beppu', 'onsen']));
+    addKind('transport-pass');
+    addKind('communication');
+    addKind('day-tour');
+    addKind('airport-transfer');
+  } else if(preparationTicketFirstMode()) {
+    addKind('airport-transfer');
+    addKind('transport-pass');
+    addKind('communication');
+    addKind('entry-ticket');
+    addMatching((item) => !isTicketPassItem(item));
+  } else {
+    const ticketFirst = pool.find(isPreparationTicketItem) || pool.find(isTicketPassItem);
+    add(ticketFirst);
+    pool.filter((item) => !isTicketPassItem(item)).forEach(add);
+  }
+  pool.filter(isPreparationTicketItem).forEach(add);
   pool.filter((item) => !isTicketPassItem(item)).forEach(add);
   pool.filter(isTicketPassItem).forEach(add);
   return selected.slice(0, max);
@@ -5641,7 +5684,7 @@ function renderTours(tnas){
   const el = document.getElementById('tour-list');
   const isSupportTicketOnly = supportTicketsAllowed() && !packageIncludes('tour');
   if(!packageIncludes('tour') && !isSupportTicketOnly){
-    el.innerHTML = `<div class="empty-card">투어&티켓 제외 구성입니다.</div>`;
+    el.innerHTML = `<div class="empty-card">투어·티켓 제외 구성입니다.</div>`;
     return;
   }
   const items = prepareTourResults(tnas);
