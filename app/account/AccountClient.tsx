@@ -114,16 +114,15 @@ export function AccountClient({ loginStatus, error }: AccountClientProps) {
             로그인 필요
           </div>
           <h2 className="text-[22px] font-black leading-tight tracking-[-0.055em]">
-            로그인하고 여행 계획을 더 편하게 관리해보세요.
+            나만의 여행 계획, 한곳에서 편하게!
           </h2>
           <p className="mt-3 text-[14px] font-semibold leading-relaxed text-[#76675f]">
-            저장한 여행 일정과 찜한 숙소·투어를 마이페이지에서 한 번에 확인할 수
-            있어요.
+            일정과 찜한 장소를 마이페이지에서 모아보세요.
           </p>
           <div className="mt-4 grid gap-2 text-[12.5px] font-black text-[#7a6259]">
             <span className="rounded-2xl bg-[#fff5ef] px-3 py-2">여행 일정 저장</span>
             <span className="rounded-2xl bg-[#fff5ef] px-3 py-2">숙소·투어 찜하기</span>
-            <span className="rounded-2xl bg-[#fff5ef] px-3 py-2">마이페이지에서 보관함 확인</span>
+            <span className="rounded-2xl bg-[#fff5ef] px-3 py-2">마이페이지에서 한 번에 확인</span>
           </div>
           <Link
             href="/login?next=/account"

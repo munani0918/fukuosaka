@@ -33,7 +33,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
             계정
           </h1>
           <p className="mt-2 text-[13px] font-semibold leading-relaxed text-[#81716a]">
-            로그인 상태와 여행 보관함 연결 준비 상태를 확인할 수 있어요.
+            로그인하고 여행 계획을 더 편하게 관리할 수 있어요.
           </p>
         </header>
 
