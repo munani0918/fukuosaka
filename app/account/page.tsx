@@ -40,7 +40,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
         <AccountClient loginStatus={params.login} error={params.error} />
 
         <div className="mt-auto pt-8">
-          <PolicyLinks />
+          <PolicyLinks variant="full" />
         </div>
       </div>
 

@@ -29,7 +29,7 @@ export default function MyPage() {
         </header>
 
         <SavedTripsClient />
-        <PolicyLinks className="mt-8" />
+        <PolicyLinks className="mt-8" variant="full" />
       </div>
 
       <BottomTabBar items={bottomTabs} />
