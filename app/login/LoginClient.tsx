@@ -201,7 +201,7 @@ export function LoginClient({ nextPath, error }: LoginClientProps) {
       <div className="mx-auto flex min-h-dvh max-w-[430px] flex-col bg-[linear-gradient(180deg,#fffdfb_0%,#fff7f3_52%,#fff1ec_100%)] px-5 pb-[calc(env(safe-area-inset-bottom)+28px)] pt-[calc(env(safe-area-inset-top)+18px)] md:my-6 md:min-h-[calc(100dvh-3rem)] md:rounded-[40px] md:shadow-[0_30px_70px_rgba(126,74,61,0.14)]">
         <header className="flex items-center justify-end">
           <Link
-            href={nextPath}
+            href="/"
             className="rounded-full bg-white/80 px-4 py-2 text-[13px] font-black text-[#8a6b61] shadow-[0_8px_18px_rgba(126,74,61,0.06)]"
           >
             둘러보기
