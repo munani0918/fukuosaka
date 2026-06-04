@@ -53,46 +53,54 @@ function HeroTravelIllustration() {
   return (
     <div
       aria-hidden="true"
-      className="absolute bottom-0 right-[-15px] h-[214px] w-[204px]"
+      className="absolute bottom-0 right-[-18px] h-[214px] w-[196px]"
     >
-      <div className="absolute right-0 top-0 h-28 w-32 rounded-bl-[54px] rounded-tl-[54px] bg-[#ffe2d7]/78" />
-      <div className="absolute right-5 top-4 h-16 w-16 rounded-full border-[3px] border-[#f5a190]/72" />
-      <div className="absolute right-7 top-6 h-12 w-12 rounded-full border-[2px] border-[#f5a190]/60" />
-      <div className="absolute right-[39px] top-4 h-16 w-[2px] rotate-45 bg-[#f5a190]/58" />
-      <div className="absolute right-[39px] top-4 h-16 w-[2px] -rotate-45 bg-[#f5a190]/58" />
+      <div className="absolute right-0 top-2 h-32 w-36 rounded-bl-[58px] rounded-tl-[58px] bg-[#ffe0d5]/80" />
+      <div className="absolute right-10 top-9 h-28 w-28 rounded-full bg-[#fff2ea]/75" />
+      <div className="absolute right-4 top-24 h-16 w-28 rounded-full bg-[#ffd8ce]/45 blur-xl" />
 
-      <div className="absolute right-[92px] top-[58px] h-24 w-7">
-        <div className="mx-auto h-4 w-3 rounded-t-full bg-[#d9a28d]" />
-        <div className="h-20 w-7 border-x-[3px] border-[#c98779]" />
-        <div className="absolute left-[-4px] top-10 h-[3px] w-10 bg-[#c98779]" />
+      <div className="absolute right-[54px] top-[34px] h-[58px] w-[96px] rotate-[-10deg] rounded-[16px] border border-[#f7beb0] bg-[#fff8f0] shadow-[0_12px_22px_rgba(210,100,82,0.12)]">
+        <div className="absolute -left-2 top-[22px] h-4 w-4 rounded-full bg-[#ffe8dd]" />
+        <div className="absolute -right-2 top-[22px] h-4 w-4 rounded-full bg-[#ffe8dd]" />
+        <div className="absolute right-5 top-2 h-10 border-l border-dashed border-[#f3a898]" />
+        <div className="absolute left-4 top-4 text-[10px] font-black tracking-[0.14em] text-[#f06b61]">
+          COUPON
+        </div>
       </div>
 
-      <div className="absolute right-12 top-16 h-[76px] w-[98px]">
-        <div className="absolute left-7 top-0 h-5 w-12 bg-[#805b4a] [clip-path:polygon(50%_0,100%_100%,0_100%)]" />
-        <div className="absolute left-3 top-16 h-3 w-20 rounded-t-lg bg-[#7e5145]" />
-        <div className="absolute left-4 top-9 h-10 w-[72px] rounded-t-[10px] border border-[#f1c7b8] bg-[#fff8ee]" />
-        <div className="absolute left-1 top-8 h-5 w-[88px] bg-[#f35f56] [clip-path:polygon(50%_0,100%_100%,0_100%)]" />
-        <div className="absolute left-7 top-11 h-8 w-8 rounded-t-lg border border-[#e8baaa] bg-white" />
-        <div className="absolute left-[50px] top-11 h-8 w-8 rounded-t-lg border border-[#e8baaa] bg-white" />
-      </div>
-
-      <div className="absolute bottom-[26px] right-9 h-[78px] w-[116px] rotate-[-4deg] rounded-[18px] bg-[linear-gradient(135deg,#ff8a76,#f45f56)] text-white shadow-[0_18px_28px_rgba(208,92,78,0.22)]">
+      <div className="absolute bottom-[50px] right-[54px] h-[78px] w-[122px] rotate-[5deg] rounded-[18px] bg-[#ffd7cb] shadow-[0_18px_28px_rgba(208,92,78,0.13)]">
         <div className="absolute -left-3 top-7 h-6 w-6 rounded-full bg-[#fff8f5]" />
         <div className="absolute -right-3 top-7 h-6 w-6 rounded-full bg-[#fff8f5]" />
-        <div className="absolute right-7 top-3 h-12 border-l border-dashed border-white/65" />
-        <div className="flex h-full items-center justify-center text-[38px] font-black">
+        <div className="absolute right-7 top-3 h-12 border-l border-dashed border-white/75" />
+        <div className="absolute left-5 top-5 h-3 w-12 rounded-full bg-white/55" />
+        <div className="absolute left-5 top-10 h-2 w-9 rounded-full bg-white/45" />
+      </div>
+
+      <div className="absolute bottom-[22px] right-8 h-[82px] w-[124px] rotate-[-5deg] rounded-[19px] bg-[linear-gradient(135deg,#ff8a76,#f45f56)] text-white shadow-[0_18px_28px_rgba(208,92,78,0.22)]">
+        <div className="absolute -left-3 top-7 h-6 w-6 rounded-full bg-[#fff8f5]" />
+        <div className="absolute -right-3 top-7 h-6 w-6 rounded-full bg-[#fff8f5]" />
+        <div className="absolute right-7 top-3 h-12 border-l border-dashed border-white/70" />
+        <div className="absolute left-4 top-3 text-[9px] font-black tracking-[0.16em] text-white/78">
+          COUPON
+        </div>
+        <div className="flex h-full items-center justify-center pt-2 text-[42px] font-black">
           %
         </div>
       </div>
 
-      <div className="absolute bottom-2 right-4 h-10 w-7 rounded-[8px] bg-[#f36b5f] shadow-[0_8px_14px_rgba(208,92,78,0.18)]">
-        <div className="mx-auto mt-[-8px] h-3 w-4 rounded-t-full border-2 border-[#f36b5f]" />
-        <div className="mx-auto mt-2 h-5 w-[2px] bg-white/38" />
+      <div className="absolute right-[122px] top-[108px] flex h-[42px] w-[42px] rotate-[-12deg] items-center justify-center rounded-full border border-[#f3b6a9] bg-white/88 text-[10px] font-black tracking-[-0.04em] text-[#ef6258] shadow-[0_10px_18px_rgba(126,74,61,0.08)]">
+        SALE
       </div>
+
+      <div className="absolute bottom-[14px] right-[132px] h-11 w-9 rotate-[10deg] rounded-[11px] border border-[#f5b5a8] bg-[#fff6ef] shadow-[0_10px_18px_rgba(208,92,78,0.11)]">
+        <div className="absolute left-1/2 top-2 h-2 w-2 -translate-x-1/2 rounded-full border border-[#f06b61]" />
+        <div className="absolute bottom-2 left-2 right-2 h-2 rounded-full bg-[#f06b61]/70" />
+      </div>
+
       <div className="absolute right-16 top-5 text-[18px] text-[#e6a14f]">✦</div>
-      <div className="absolute right-32 top-32 text-[14px] text-[#f0b65d]">✦</div>
-      <div className="absolute right-4 top-7 text-[15px] text-[#f2a9a0]">✿</div>
-      <div className="absolute right-20 top-2 text-[13px] text-[#f2a9a0]">✿</div>
+      <div className="absolute right-[136px] top-28 text-[14px] text-[#f0b65d]">✦</div>
+      <div className="absolute right-6 top-8 text-[15px] text-[#f2a9a0]">✦</div>
+      <div className="absolute right-24 top-1 text-[13px] text-[#f2a9a0]">✦</div>
     </div>
   );
 }
@@ -124,13 +132,15 @@ export default function MyRealTripCouponPage() {
               <span className="inline-flex whitespace-nowrap rounded-full bg-[#f45f56] px-3 py-1.5 text-[11.5px] font-black tracking-[-0.04em] text-white shadow-[0_10px_20px_rgba(244,95,86,0.18)]">
                 ✿ 후쿠오사카 전용 혜택
               </span>
-              <h2 className="mt-7 text-[31px] font-black leading-[1.14] tracking-[-0.078em] text-[#2c211d] min-[390px]:text-[32px]">
-                <span className="block whitespace-nowrap">예약 전에</span>
-                <span className="block whitespace-nowrap">쿠폰을 챙기세요</span>
+              <h2 className="mt-7 text-[25px] font-black leading-[1.18] tracking-[-0.072em] text-[#2c211d] min-[390px]:text-[26px]">
+                <span className="block whitespace-nowrap">결제 전 필수 확인!</span>
+                <span className="block whitespace-nowrap">
+                  <span className="text-[#ef5f55]">할인 쿠폰</span> 챙기셨나요?
+                </span>
               </h2>
-              <p className="mt-5 text-[18px] font-black leading-[1.22] tracking-[-0.07em] text-[#f05f55] min-[390px]:text-[19px]">
-                <span className="block whitespace-nowrap">투어·티켓</span>
-                <span className="block whitespace-nowrap">해외 숙소 혜택</span>
+              <p className="mt-5 text-[16px] font-black leading-[1.28] tracking-[-0.062em] text-[#f05f55] min-[390px]:text-[17px]">
+                <span className="block whitespace-nowrap">투어·티켓 할인부터</span>
+                <span className="block whitespace-nowrap">해외 숙소까지 알뜰하게!</span>
               </p>
             </div>
           </section>
