@@ -1,0 +1,32 @@
+{
+  "name": "후쿠오사카 - 일본 여행 예산 플래너",
+  "short_name": "후쿠오사카",
+  "description": "후쿠오카·오사카 여행 예산에 맞춰 항공·숙소·투어와 일정 뼈대를 확인하는 여행 플래너입니다.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fff7f1",
+  "theme_color": "#ef5b55",
+  "orientation": "portrait",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "/icons/fukuosaka-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/fukuosaka-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/fukuosaka-icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

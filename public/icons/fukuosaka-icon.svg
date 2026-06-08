@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="FUKUOSAKA">
+  <defs>
+    <linearGradient id="bg" x1="64" y1="48" x2="448" y2="464" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff4ec"/>
+      <stop offset="1" stop-color="#ff766d"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="168" y1="118" x2="344" y2="294" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffebe0"/>
+      <stop offset="1" stop-color="#ff9b88"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <circle cx="350" cy="150" r="74" fill="url(#sun)" opacity=".9"/>
+  <path d="M104 337c43-49 88-73 134-73 44 0 81 24 122 73" fill="none" stroke="#3a241d" stroke-width="27" stroke-linecap="round"/>
+  <path d="M128 337h256" stroke="#3a241d" stroke-width="27" stroke-linecap="round"/>
+  <path d="M154 298h204" stroke="#ffffff" stroke-width="16" stroke-linecap="round" opacity=".72"/>
+  <path d="M162 231c22-43 57-68 94-68s72 25 94 68" fill="none" stroke="#ff615b" stroke-width="30" stroke-linecap="round"/>
+  <path d="M196 230h120" stroke="#ffffff" stroke-width="18" stroke-linecap="round" opacity=".88"/>
+  <text x="256" y="407" text-anchor="middle" font-family="Arial, sans-serif" font-size="58" font-weight="800" letter-spacing="7" fill="#3a241d">F</text>
+</svg>

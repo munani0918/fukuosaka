@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.fukuosaka.app",
+      "sha256_cert_fingerprints": [
+        "23:69:AC:D8:93:AE:E5:C9:AF:A9:4C:BE:28:7C:0F:F9:52:AA:B3:BC:66:92:93:CD:F7:92:86:94:18:19:74:BD"
+      ]
+    }
+  }
+]
