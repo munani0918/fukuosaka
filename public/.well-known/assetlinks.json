@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "com.fukuosaka.app",
       "sha256_cert_fingerprints": [
-        "23:69:AC:D8:93:AE:E5:C9:AF:A9:4C:BE:28:7C:0F:F9:52:AA:B3:BC:66:92:93:CD:F7:92:86:94:18:19:74:BD"
+        "23:69:AC:D8:93:AE:E5:C9:AF:A9:4C:BE:28:7C:0F:F9:52:AA:B3:BC:66:92:93:CD:F7:92:86:94:18:19:74:BD",
+        "ED:9F:E5:81:3F:57:4D:12:49:50:2F:99:46:B5:A2:BA:0A:DE:D8:10:78:9C:19:FE:EC:30:1E:3B:B8:22:1B:31"
       ]
     }
   }
