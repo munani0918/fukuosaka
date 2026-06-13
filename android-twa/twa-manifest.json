@@ -1,0 +1,49 @@
+{
+  "packageId": "com.fukuosaka.app",
+  "host": "fukuosaka.vercel.app",
+  "name": "후쿠오사카 - 일본 여행 예산 플래너",
+  "launcherName": "후쿠오사카",
+  "display": "standalone",
+  "displayOverride": [
+    "standalone"
+  ],
+  "themeColor": "#EF5B55",
+  "themeColorDark": "#8F161B",
+  "navigationColor": "#FFFFFF",
+  "navigationColorDark": "#111111",
+  "navigationDividerColor": "#00000000",
+  "navigationDividerColorDark": "#00000000",
+  "backgroundColor": "#FFF7F1",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://fukuosaka.vercel.app/icons/fukuosaka-icon-512.png",
+  "maskableIconUrl": "https://fukuosaka.vercel.app/icons/fukuosaka-icon-maskable-512.png",
+  "splashScreenFadeOutDuration": 0,
+  "signingKey": {
+    "path": "C:\\Tmp\\fukuosaka-android-secrets\\fukuosaka-upload-key.jks",
+    "alias": "fukuosaka-upload"
+  },
+  "appVersionCode": 2,
+  "appVersion": "1.0.0",
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://fukuosaka.vercel.app/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://fukuosaka.vercel.app/",
+  "minSdkVersion": 23,
+  "orientation": "portrait",
+  "fingerprints": [
+    {
+      "value": "23:69:AC:D8:93:AE:E5:C9:AF:A9:4C:BE:28:7C:0F:F9:52:AA:B3:BC:66:92:93:CD:F7:92:86:94:18:19:74:BD"
+    }
+  ],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": []
+}

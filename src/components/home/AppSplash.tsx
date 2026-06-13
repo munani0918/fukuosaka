@@ -6,13 +6,26 @@ const SPLASH_STORAGE_KEY = "fukuosaka_splash_seen";
 
 type SplashPhase = "showing" | "leaving" | "hidden";
 
+function isStandaloneAppMode() {
+  if (typeof window === "undefined") return false;
+
+  return (
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    window.matchMedia?.("(display-mode: fullscreen)").matches ||
+    document.referrer.startsWith("android-app://")
+  );
+}
+
 function hasSeenSplash() {
   if (typeof window === "undefined") return false;
 
   try {
-    return window.sessionStorage.getItem(SPLASH_STORAGE_KEY) === "1";
+    return (
+      isStandaloneAppMode() ||
+      window.sessionStorage.getItem(SPLASH_STORAGE_KEY) === "1"
+    );
   } catch {
-    return false;
+    return isStandaloneAppMode();
   }
 }
 
@@ -51,7 +64,7 @@ export function AppSplash() {
     <>
       <script
         dangerouslySetInnerHTML={{
-          __html: `try{if(sessionStorage.getItem("${SPLASH_STORAGE_KEY}")==="1"){document.documentElement.dataset.fukuosakaSplashSeen="1"}}catch(e){}`,
+          __html: `try{if(matchMedia("(display-mode: standalone)").matches||matchMedia("(display-mode: fullscreen)").matches||document.referrer.indexOf("android-app://")===0||sessionStorage.getItem("${SPLASH_STORAGE_KEY}")==="1"){document.documentElement.dataset.fukuosakaSplashSeen="1"}}catch(e){}`,
         }}
       />
       <div

@@ -36,6 +36,14 @@ yarn-error.log*
 # vercel
 .vercel
 
+# android / twa build outputs
+android-twa/.gradle/
+android-twa/build/
+android-twa/app/build/
+android-twa/*.aab
+android-twa/*.apk
+android-twa/*.idsig
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
