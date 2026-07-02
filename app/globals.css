@@ -79,3 +79,22 @@ input::placeholder {
   margin-left: 2px;
   padding: 0;
 }
+
+
+.admin-input {
+  height: 42px;
+  min-width: 0;
+  border: 1px solid #dfd0c9;
+  border-radius: 12px;
+  background: #fff;
+  padding: 0 12px;
+  color: #34231f;
+  font-size: 13px;
+  font-weight: 700;
+  outline: none;
+}
+
+.admin-input:focus {
+  border-color: #df6258;
+  box-shadow: 0 0 0 3px rgba(223, 98, 88, 0.12);
+}

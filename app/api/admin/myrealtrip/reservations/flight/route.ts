@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
 import {
   fetchMyRealTripPartnerJson,
-  getMyRealTripConfigurationStatus,
   partnerFailure,
   partnerSuccess,
   requireAdminApiToken,
+  validateFlightReservationsQuery,
 } from "@/src/lib/myrealtripPartner";
 
 export const dynamic = "force-dynamic";
@@ -13,14 +13,14 @@ export async function GET(request: NextRequest) {
   const auth = requireAdminApiToken(request);
   if (!auth.ok) return auth.response;
 
-  const result = await fetchMyRealTripPartnerJson("/health", undefined, {
-    includeAuth: false,
-    timeoutMs: 5_000,
-  });
+  const query = validateFlightReservationsQuery(request.nextUrl.searchParams);
+  if (!query.ok) return query.response;
+
+  const result = await fetchMyRealTripPartnerJson(
+    "/v1/reservations/flight",
+    query.params,
+  );
   if (!result.ok) return partnerFailure(result);
 
-  return partnerSuccess("health", {
-    upstream: result.data,
-    configuration: getMyRealTripConfigurationStatus(),
-  });
+  return partnerSuccess("reservations/flight", result.data);
 }

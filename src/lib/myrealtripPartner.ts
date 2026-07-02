@@ -4,6 +4,8 @@ export const MYREALTRIP_PARTNER_API_BASE =
   "https://partner-ext-api.myrealtrip.com";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const GENERAL_RESERVATION_MAX_DAYS = 186;
+const FLIGHT_RESERVATION_MAX_DAYS = 31;
 const SENSITIVE_QUERY_KEYS = new Set([
   "apiKey",
   "api_key",
@@ -14,6 +16,29 @@ const SENSITIVE_QUERY_KEYS = new Set([
   "partner_id",
   "secret",
   "token",
+]);
+const PERSONAL_DATA_KEYS = new Set([
+  "booker",
+  "bookeremail",
+  "bookername",
+  "bookerphone",
+  "customer",
+  "customeremail",
+  "customername",
+  "customerphone",
+  "email",
+  "passenger",
+  "passengers",
+  "paymentinfo",
+  "phone",
+  "phonenumber",
+  "traveler",
+  "travelers",
+]);
+const MASKED_IDENTIFIER_KEYS = new Set([
+  "flightReservationNo",
+  "linkId",
+  "reservationNo",
 ]);
 const NO_STORE_HEADERS = {
   "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
@@ -97,6 +122,9 @@ export function validateReservationsQuery(
 
   if (!base.ok) return base;
 
+  const rangeError = validateDateRange(base.params, GENERAL_RESERVATION_MAX_DAYS);
+  if (rangeError) return badRequest(rangeError);
+
   const statuses = parseStatuses(params);
   if (!statuses.ok) return badRequest(statuses.error);
 
@@ -121,13 +149,63 @@ export function validateReservationsQuery(
   return base;
 }
 
+export function validateFlightReservationsQuery(
+  params: URLSearchParams,
+): QueryValidationResult {
+  const startDate = params.get("startDate")?.trim() ?? "";
+  const endDate = params.get("endDate")?.trim() ?? "";
+  const outbound = new URLSearchParams();
+
+  const startError = validateRequiredDate("startDate", startDate);
+  if (startError) return badRequest(startError);
+  const endError = validateRequiredDate("endDate", endDate);
+  if (endError) return badRequest(endError);
+
+  outbound.set("startDate", startDate);
+  outbound.set("endDate", endDate);
+
+  const rangeError = validateDateRange(outbound, FLIGHT_RESERVATION_MAX_DAYS);
+  if (rangeError) return badRequest(rangeError);
+
+  const statuses = parseAllowedStatuses(params, [
+    "WAITING",
+    "RESERVED",
+    "IN_PAY",
+    "CONFIRMED",
+    "NOT_PAID_CONFIRMED",
+    "CANCELLED",
+  ]);
+  if (!statuses.ok) return badRequest(statuses.error);
+  if (statuses.values.length > 0) {
+    outbound.set("statuses", statuses.values.join(","));
+  }
+
+  for (const name of ["page", "pageSize"] as const) {
+    const value = parsePositiveInt(params.get(name), name);
+    if (!value.ok) return badRequest(value.error);
+    if (value.value !== null) outbound.set(name, String(value.value));
+  }
+
+  return { ok: true, params: outbound };
+}
+
+export function getMyRealTripConfigurationStatus() {
+  return {
+    partnerApiKeyConfigured: Boolean(
+      process.env.MRT_PARTNER_API_KEY || process.env.MYREALTRIP_API_KEY,
+    ),
+    mylinkIdConfigured: Boolean(process.env.MYREALTRIP_MYLINK_ID),
+  };
+}
+
 export async function fetchMyRealTripPartnerJson(
   path: string,
   params?: URLSearchParams,
   options: { includeAuth?: boolean; timeoutMs?: number } = {},
 ): Promise<PartnerFetchResult> {
   const includeAuth = options.includeAuth ?? true;
-  const apiKey = process.env.MRT_PARTNER_API_KEY;
+  const apiKey =
+    process.env.MRT_PARTNER_API_KEY || process.env.MYREALTRIP_API_KEY;
 
   if (includeAuth && !apiKey) {
     return {
@@ -245,7 +323,7 @@ function parsePositiveInt(value: string | null, name: string) {
 }
 
 function parseStatuses(params: URLSearchParams) {
-  const allowed = new Set([
+  return parseAllowedStatuses(params, [
     "TEMP",
     "WAIT_DEPOSIT",
     "PENDING_PAYMENT",
@@ -256,6 +334,13 @@ function parseStatuses(params: URLSearchParams) {
     "CANCEL",
     "FAIL",
   ]);
+}
+
+function parseAllowedStatuses(
+  params: URLSearchParams,
+  allowedValues: readonly string[],
+) {
+  const allowed = new Set(allowedValues);
   const values = params
     .getAll("statuses")
     .flatMap((value) => value.split(","))
@@ -273,6 +358,30 @@ function parseStatuses(params: URLSearchParams) {
   return { ok: true as const, values };
 }
 
+function validateDateRange(params: URLSearchParams, maxDays: number) {
+  const start = parseDate(params.get("startDate") ?? "");
+  const end = parseDate(params.get("endDate") ?? "");
+  if (!start || !end) return "Dates must be valid calendar dates.";
+  if (end < start) return "endDate must be on or after startDate.";
+
+  const days = Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1;
+  if (days > maxDays) return `Date range must not exceed ${maxDays} days.`;
+  return "";
+}
+
+function parseDate(value: string) {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value
+    ? null
+    : date;
+}
+
+function maskIdentifier(value: unknown) {
+  const text = String(value ?? "");
+  if (!text) return "";
+  return text.length <= 4 ? "****" : `****${text.slice(-4)}`;
+}
+
 function maskMiddle(value: string) {
   if (value.length <= 6) return "***";
   return `${value.slice(0, 3)}***${value.slice(-3)}`;
@@ -286,6 +395,7 @@ function redactString(value: string) {
   for (const secret of [
     process.env.ADMIN_API_TOKEN,
     process.env.MRT_PARTNER_API_KEY,
+    process.env.MYREALTRIP_API_KEY,
     process.env.MYREALTRIP_MYLINK_ID,
   ]) {
     if (secret && output.includes(secret)) {
@@ -318,7 +428,16 @@ function redactSensitive(value: unknown, depth = 0): unknown {
 
   return Object.fromEntries(
     Object.entries(value as Record<string, unknown>).map(([key, item]) => {
+      const normalizedKey = key.toLowerCase();
       if (SENSITIVE_QUERY_KEYS.has(key)) return [key, "***"];
+      if (
+        PERSONAL_DATA_KEYS.has(normalizedKey) ||
+        normalizedKey.includes("email") ||
+        normalizedKey.includes("phone")
+      ) {
+        return [key, "***"];
+      }
+      if (MASKED_IDENTIFIER_KEYS.has(key)) return [key, maskIdentifier(item)];
       return [key, redactSensitive(item, depth + 1)];
     }),
   );
