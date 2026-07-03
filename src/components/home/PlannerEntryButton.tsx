@@ -40,6 +40,9 @@ export function PlannerEntryButton({
   source,
 }: PlannerEntryButtonProps) {
   function handleClick() {
+    // A new home entry always starts from the 1-person baseline.
+    window.sessionStorage.removeItem("plannerConditions");
+
     if (budgetPresetId) {
       window.sessionStorage.setItem("plannerBudgetPreset", budgetPresetId);
       window.sessionStorage.setItem("plannerBudgetInputMode", "preset");

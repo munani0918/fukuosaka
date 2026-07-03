@@ -55,7 +55,7 @@
       padding: calc(env(safe-area-inset-top) + 12px) 20px 14px;
       background: rgba(247, 241, 235, 0.96);
       backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(232, 221, 210, 0.72);
+      border-bottom: 0;
     }
     .back-btn {
       width: 40px;
@@ -986,7 +986,7 @@
       returnDate: "",
       nights: 3,
       origin: "ICN",
-      adults: 2,
+      adults: 1,
       children: 0,
       budget: 0,
       budgetPreset: "",
@@ -1328,6 +1328,7 @@
       }
       if (patch.totalBudget) {
         F.budget = Number(patch.totalBudget);
+        F.budgetPerPerson = Math.round(F.budget / travelerWeight());
         F.isBudgetManuallyEdited = true;
       }
       if (patch.budgetPreset) {
@@ -1337,7 +1338,7 @@
       if (patch.nearbyMode) F.nearbyMode = patch.nearbyMode;
       if (step === 3) {
         const input = document.getElementById("budget-in");
-        if (input) input.value = F.budget ? F.budget.toLocaleString("ko-KR") : "";
+        if (input) input.value = F.budgetPerPerson ? F.budgetPerPerson.toLocaleString("ko-KR") : "";
         updateBudgetUI();
       } else {
         renderStep(step, "forward");
@@ -1421,6 +1422,7 @@
         if (saved.budget) F.budget = Number(saved.budget);
         if (saved.budgetPreset) F.budgetPreset = normalizeBudgetPresetId(saved.budgetPreset);
         if (saved.budgetPerPerson) F.budgetPerPerson = Number(saved.budgetPerPerson);
+        else if (saved.budget) F.budgetPerPerson = Math.round(Number(saved.budget) / travelerWeight());
         if (saved.budgetInputMode === "preset" || saved.budgetInputMode === "custom") F.budgetInputMode = saved.budgetInputMode;
         if (saved.nearbyMode) F.nearbyMode = saved.nearbyMode;
         if (saved.feasibilityPackageType) F.feasibilityPackageType = saved.feasibilityPackageType;
@@ -1823,8 +1825,8 @@
       `,
 
       3: () => `
-        <h1 class="step-title">여행 예약 예산을 알려주세요</h1>
-        <p class="step-sub">항공·숙소·투어/티켓 예약 기준 예산이에요.</p>
+        <h1 class="step-title">1인 여행 예산을 알려주세요</h1>
+        <p class="step-sub">1인 예산을 기준으로 전체 여행비를 계산해요.</p>
         ${summaryChip()}
 
         <div class="people-grid single">
@@ -1838,17 +1840,17 @@
           </div>
         </div>
 
-        <div class="sec-lbl">여행 예약 예산</div>
-        <p class="budget-note">항공·숙소·투어/티켓 예약 예산을 입력해주세요. 식비·교통·간식 등 현지 사용비는 별도로 안내해드려요.</p>
+        <div class="sec-lbl">1인 여행 예산</div>
+        <p class="budget-note">항공·숙소·투어·티켓과 현지 사용 예산을 함께 계산할 1인 기준 금액이에요.</p>
         <div class="budget-wrap">
-          <input class="budget-in" id="budget-in" type="text" inputmode="numeric" placeholder="예: 1,600,000" value="${F.budget ? F.budget.toLocaleString("ko-KR") : ""}" oninput="onBudgetInput(this)">
+          <input class="budget-in" id="budget-in" type="text" inputmode="numeric" placeholder="예: 800,000" value="${F.budgetPerPerson ? F.budgetPerPerson.toLocaleString("ko-KR") : ""}" oninput="onBudgetInput(this)">
           <div class="budget-unit">원</div>
         </div>
         <div class="per-person" id="per-person-note"></div>
 
         <div class="small-label">예약 예산 빠른 선택</div>
         <div class="budget-presets">
-          ${[[500000, "50만"], [800000, "80만"], [1200000, "120만"], [1600000, "160만"], [2000000, "200만"]].map(([value, label]) => `<button class="bp ${F.budget === value ? "on" : ""}" type="button" onclick="pickBudget(${value})">${label}</button>`).join("")}
+          ${[[500000, "50만"], [800000, "80만"], [1200000, "120만"], [1600000, "160만"], [2000000, "200만"]].map(([value, label]) => `<button class="bp ${F.budgetPerPerson === value ? "on" : ""}" type="button" onclick="pickBudget(${value})">${label}</button>`).join("")}
         </div>
         <div id="budget-feasibility">${renderBudgetFeasibility("step3")}</div>
       `,
@@ -2268,14 +2270,14 @@
       if (key !== "adults") return;
       F[key] = Math.max(1, Math.min(10, F[key] + delta));
       const preset = activePreset();
-      if (preset && !F.isBudgetManuallyEdited) {
-        F.budget = totalBudgetFromPreset(preset);
+      if (F.budgetPerPerson > 0) {
+        F.budget = roundManwon(F.budgetPerPerson * travelerWeight());
       }
       const value = document.getElementById(`v-${key}`);
       if (value) value.textContent = F[key];
       const budgetInput = document.getElementById("budget-in");
       if (budgetInput && preset && !F.isBudgetManuallyEdited) {
-        budgetInput.value = F.budget ? F.budget.toLocaleString("ko-KR") : "";
+        budgetInput.value = F.budgetPerPerson ? F.budgetPerPerson.toLocaleString("ko-KR") : "";
       }
       const presetNote = document.getElementById("preset-budget-note");
       if (presetNote) presetNote.outerHTML = presetBudgetNote();
@@ -2287,16 +2289,18 @@
 
     function onBudgetInput(input) {
       const raw = input.value.replace(/[^0-9]/g, "");
-      F.budget = Number(raw) || 0;
+      F.budgetPerPerson = Number(raw) || 0;
+      F.budget = roundManwon(F.budgetPerPerson * travelerWeight());
       F.isBudgetManuallyEdited = true;
-      input.value = F.budget ? F.budget.toLocaleString("ko-KR") : "";
+      input.value = F.budgetPerPerson ? F.budgetPerPerson.toLocaleString("ko-KR") : "";
       document.querySelectorAll(".bp").forEach((btn) => btn.classList.remove("on"));
       updateBudgetUI();
       refreshCta();
     }
 
     function pickBudget(value) {
-      F.budget = value;
+      F.budgetPerPerson = value;
+      F.budget = roundManwon(value * travelerWeight());
       F.isBudgetManuallyEdited = true;
       const input = document.getElementById("budget-in");
       if (input) input.value = value.toLocaleString("ko-KR");
@@ -2315,9 +2319,10 @@
         refreshFeasibility("step3");
         return;
       }
-      const perPerson = Math.round(F.budget / weight).toLocaleString("ko-KR");
+      const perPerson = Math.round(F.budgetPerPerson || F.budget / weight).toLocaleString("ko-KR");
+      const total = Math.round(F.budget).toLocaleString("ko-KR");
       note.classList.add("show");
-      note.innerHTML = `현재 입력 예산 기준, 1인 약 <strong>${perPerson}원</strong>이에요`;
+      note.innerHTML = `1인 약 <strong>${perPerson}원</strong> · ${weight}명 전체 약 <strong>${total}원</strong>`;
       refreshFeasibility("step3");
     }
 

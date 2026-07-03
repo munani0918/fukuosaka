@@ -256,7 +256,7 @@ export function normalizePlanInput(raw: RawPlanInput = {}): PlanInput {
   if (nights > MAX_PLAN_NIGHTS) {
     throw new Error("MAX_TRIP_NIGHTS_EXCEEDED");
   }
-  const adults = Math.max(1, toNumber(raw.adults, 2));
+  const adults = Math.max(1, toNumber(raw.adults, 1));
   const children = 0;
 
   return {
@@ -347,31 +347,10 @@ function getBudgetTier(perPersonBudget: number): PlanSummary["budget"]["budgetTi
   return "comfort";
 }
 
-function dailyLocalBudgetByTier(tier: PlanSummary["budget"]["budgetTier"]) {
-  if (tier === "budget") return 50000;
-  if (tier === "standard") return 70000;
-  return 90000;
-}
-
 function roomNightRateByTier(tier: PlanSummary["budget"]["budgetTier"]) {
   if (tier === "budget") return 85000;
   if (tier === "standard") return 120000;
   return 170000;
-}
-
-function cityLocalMultiplier(city: PlanInput["city"]) {
-  return city === "osaka" ? 1.05 : 1;
-}
-
-function styleLocalMultiplier(styles: string[]) {
-  let bonus = 0;
-  styles.forEach((style) => {
-    if (style === "food") bonus += 0.15;
-    if (style === "shopping") bonus += 0.15;
-    if (style === "family") bonus += 0.05;
-    if (style === "couple") bonus += 0.05;
-  });
-  return Math.min(1.25, 1 + bonus);
 }
 
 function cityHotelMultiplier(city: PlanInput["city"]) {
@@ -413,69 +392,19 @@ function calculateTourBudget(input: PlanInput, totalTravelers: number) {
   return roundToNearestManwon(perTraveler * totalTravelers);
 }
 
-function calculateLocalBudget(input: PlanInput, tier: PlanSummary["budget"]["budgetTier"]) {
-  const adultDailyLocalBudget = dailyLocalBudgetByTier(tier);
-  const childDailyLocalBudget = adultDailyLocalBudget * 0.65;
-  const localDays = Math.max(1, input.days - 0.5);
-  const multiplier = cityLocalMultiplier(input.city) * styleLocalMultiplier(input.travelStyles);
-  const adultLocal = input.adults * adultDailyLocalBudget * multiplier * localDays;
-  const childLocal = input.children * childDailyLocalBudget * multiplier * localDays;
-  return roundToNearestManwon(adultLocal + childLocal);
+function calculateLocalBudget(input: PlanInput) {
+  return 100000 * input.nights * Math.max(1, input.adults + input.children);
 }
 
 function calculateLocalSpendingEstimate(input: PlanInput): PlanSummary["budget"]["localSpendingEstimate"] {
-  if (input.localBudgetMode === "custom" && input.customLocalBudget && input.customLocalBudget > 0) {
-    return {
-      min: input.customLocalBudget,
-      max: input.customLocalBudget,
-      basisText: "직접 입력한 현지 사용 예산이에요.",
-      perPersonPerDayMin: 0,
-      perPersonPerDayMax: 0,
-      isCustom: true,
-    };
-  }
-
-  const table = {
-    fukuoka: {
-      budget: [40000, 60000],
-      standard: [55000, 80000],
-      premium: [75000, 110000],
-    },
-    osaka: {
-      budget: [45000, 65000],
-      standard: [60000, 90000],
-      premium: [85000, 120000],
-    },
-  } as const;
-  const tier = input.budgetPreset === "premium" ? "premium" : input.budgetPreset === "budget" ? "budget" : "standard";
-  let [minDaily, maxDaily] = table[input.city][tier].map(Number);
-  const styles = new Set(input.travelStyles);
-  if (styles.has("food")) {
-    minDaily *= 1.1;
-    maxDaily *= 1.15;
-  }
-  if (styles.has("shopping")) {
-    minDaily *= 1.05;
-    maxDaily *= 1.25;
-  }
-  if (styles.has("family")) maxDaily *= 1.1;
-  if (styles.has("onsen")) maxDaily *= 1.1;
-  if (styles.has("couple")) maxDaily *= 1.1;
-
-  const localDays = Math.max(1, input.days - 0.5);
-  const min = roundToNearestManwon((input.adults * minDaily + input.children * minDaily * 0.65) * localDays);
-  const max = roundToNearestManwon((input.adults * maxDaily + input.children * maxDaily * 0.65) * localDays);
+  const total = calculateLocalBudget(input);
   return {
-    min,
-    max: Math.max(min, max),
-    basisText: "식비·교통·카페·간식 등은 여행 스타일에 따라 달라질 수 있어요.",
-    perPersonPerDayMin: Math.round(minDaily),
-    perPersonPerDayMax: Math.round(maxDaily),
+    min: total,
+    max: total,
+    basisText: "식비·교통·간식 등 현지에서 쓰는 비용을 1인 1박 10만원 기준으로 계산했어요.",
+    perPersonPerDayMin: 100000,
+    perPersonPerDayMax: 100000,
   };
-}
-
-function calculateBufferBudget(totalBudget: number, localBudget: number) {
-  return roundToNearestManwon(Math.max(totalBudget * 0.05, localBudget * 0.08, 50000));
 }
 
 function calculateBudgetStatus(totalBudget: number, remaining: number): PlanSummary["budget"]["status"] {
@@ -595,20 +524,20 @@ export function createPlanSummary(input: PlanInput): PlanSummary {
     : 0;
   const hotel = calculateHotelBudget(input, totalTravelers, budgetTier);
   const tour = calculateTourBudget(input, totalTravelers);
-  const local = calculateLocalBudget(input, budgetTier);
-  const buffer = calculateBufferBudget(input.totalBudget, local);
-  const localUsageTotal = local + buffer;
+  const local = calculateLocalBudget(input);
+  const buffer = 0;
+  const localUsageTotal = local;
   const reservationEstimatedTotal = flight + hotel + tour;
   const localSpendingEstimate = calculateLocalSpendingEstimate(input);
   const tripTotalReference = {
     min: reservationEstimatedTotal + localSpendingEstimate.min,
     max: reservationEstimatedTotal + localSpendingEstimate.max,
   };
-  const estimatedTotal = reservationEstimatedTotal;
+  const estimatedTotal = reservationEstimatedTotal + local;
   const remaining = input.totalBudget - estimatedTotal;
   const status = calculateBudgetStatus(input.totalBudget, remaining);
   const styleLabels = input.travelStyles.map((style) => STYLE_LABEL[style] ?? style).join(" · ");
-  const costBasisText = "숙소는 1실 1박 기준, 현지 사용 예산은 1인 1일 기준으로 계산했어요.";
+  const costBasisText = "숙소는 객실 1실 1박 기준, 현지 사용 예산은 1인 1박 10만원 기준으로 계산했어요.";
 
   return {
     title: `${CITY_LABEL[input.city]} ${input.nights}박 ${input.days}일 예산 플랜`,
