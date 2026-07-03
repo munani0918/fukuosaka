@@ -1426,11 +1426,12 @@ function hotelSource(item){
 
 function isBookableHotel(item){
   const source = hotelSource(item);
+  if(source === 'agoda') return Boolean(firstValidHotelUrl(item));
   return source === 'api' && Boolean(hotelProductId(item)) && Boolean(firstValidHotelUrl(item));
 }
 
 function bookableHotelItems(items){
-  return (items || []).filter((item) => item?.isBookable === true && item?.source === 'api' && firstValidHotelUrl(item));
+  return (items || []).filter((item) => item?.isBookable === true && isBookableHotel(item));
 }
 
 function fmtMan(won){ return won ? `약 ${Math.round(won/10000)}만원` : '—'; }
@@ -1456,6 +1457,10 @@ function fmtWon(won){
 }
 
 function summaryStatusMeta(status, level = PLAN_SUMMARY?.budget?.overBudgetLevel || PLAN_SUMMARY?.overBudgetLevel){
+  const usageStatus = PLAN_SUMMARY?.budget?.reservationBudgetUsageStatus;
+  if(usageStatus === 'very_roomy') return { label:'예산이 많이 남아요', cls:'status-close' };
+  if(usageStatus === 'near') return { label:'예산에 거의 맞아요', cls:'status-close' };
+  if(usageStatus === 'over') return { label:'예산을 초과했어요', cls:'status-over' };
   if(budgetFirstMode()) return { label: level === 'within_budget' ? '예산 우선 조정됨' : '예산 우선 조정 중', cls: level === 'within_budget' ? 'status-close' : 'status-over' };
   if(level === 'excessive_over') return { label:'예산 우선 조정이 필요해요', cls:'status-over' };
   if(level === 'manageable_over') return { label:'조정하면 맞출 수 있어요', cls:'status-over' };
@@ -1500,9 +1505,9 @@ function packageFlags(){
 function overBudgetLevel(total, estimatedTotal){
   const budget = Number(total) || 0;
   const estimated = Number(estimatedTotal) || 0;
-  if(!budget || estimated <= budget) return 'within_budget';
+  if(!budget || estimated <= budget * 0.95) return 'within_budget';
   const ratio = (estimated - budget) / budget;
-  if(ratio <= 0.10) return 'near_budget';
+  if(ratio <= 0.05) return 'near_budget';
   if(ratio <= 0.25) return 'manageable_over';
   return 'excessive_over';
 }
@@ -1522,10 +1527,10 @@ function reservationBudgetUsageStatus(total, reservationTotal){
   const budget = Number(total) || 0;
   const estimated = Number(reservationTotal) || 0;
   if(!budget) return 'fit';
-  if(estimated > budget) return 'over';
   const ratio = estimated / budget;
-  if(ratio >= 0.90) return 'fit';
-  if(ratio >= 0.75) return 'roomy';
+  if(ratio > 1.05) return 'over';
+  if(ratio > 0.95) return 'near';
+  if(ratio >= 0.65) return 'fit';
   return 'very_roomy';
 }
 
@@ -1759,9 +1764,31 @@ function updatePlanSummaryFlightBudget(flights){
   } catch(e){}
 }
 
+function updatePlanSummaryTourBudget(tours){
+  if(!PLAN_SUMMARY?.budget || !PLAN_INPUT || !packageIncludes('tour')) return;
+  const prepared = scoreTours([...(Array.isArray(tours) ? tours : []), ...getFallbackToursFinal()]);
+  const priorities = currentCity() === 'osaka'
+    ? ['airport-transfer','transport-pass','communication','entry-ticket','day-tour','other']
+    : ['communication','airport-transfer','transport-pass','entry-ticket','day-tour','other'];
+  const selected = priorities
+    .map((kind) => prepared.find((item) => tourPriorityKind(item) === kind && Number(item?.price) > 0))
+    .find(Boolean) || prepared.find((item) => Number(item?.price) > 0);
+  if(!selected) return;
+
+  const perPersonPrice = Number(selected.price) || 0;
+  const totalPrice = Math.round(perPersonPrice * travelerCount());
+  if(totalPrice <= 0) return;
+
+  const productUrl = firstTourProductUrl(selected);
+  PLAN_SUMMARY.budget.tour = totalPrice;
+  PLAN_SUMMARY.budget.selectedTourTicketCost = totalPrice;
+  PLAN_SUMMARY.budget.selectedTourTicketName = selected.displayTitle || selected.name || selected.title || '';
+  PLAN_SUMMARY.budget.selectedTourTicketIds = [tourProductId(selected, productUrl)];
+  recalcPlanBudget();
+}
+
 function roomCountForTravelers(){
-  const totalTravelers = travelerCount();
-  return totalTravelers <= 3 ? 1 : Math.ceil(totalTravelers / 2);
+  return Math.ceil(travelerCount() / 2);
 }
 
 function reservationTargetSpend(total = Number(PLAN_INPUT?.totalBudget || P.budget || 0), rate = 0.94){
@@ -1801,7 +1828,7 @@ function reservationHotelTargetMeta(){
   const level = b.overBudgetLevel || PLAN_SUMMARY.overBudgetLevel || overBudgetLevel(total, reservationTotal);
   if(reservationTotal >= total || b.status === 'over_budget' || ['manageable_over','excessive_over'].includes(level)) return null;
   const usageStatus = reservationBudgetUsageStatus(total, reservationTotal);
-  if(!['roomy','very_roomy'].includes(usageStatus)) return null;
+  if(usageStatus !== 'very_roomy') return null;
   const nights = Math.max(1, Number(PLAN_INPUT.nights || P.nights || 1));
   const rooms = Number(b.rooms || roomCountForTravelers());
   const flightCost = packageIncludes('flight') ? (Number(b.flight) || 0) : 0;
@@ -1809,24 +1836,21 @@ function reservationHotelTargetMeta(){
   const otherReservationCost = flightCost + tourCost;
   const localEstimate = b.localSpendingEstimate || localSpendingEstimate();
   const localReserve = Math.max(0, Number(localEstimate?.min) || 0);
-  const localAwareReservationCap = Math.max(0, total - localReserve);
-  const targetSpend = Math.min(
-    reservationTargetSpend(total, 0.82),
-    localAwareReservationCap ? Math.round(localAwareReservationCap * 0.94) : reservationTargetSpend(total, 0.82),
-  );
-  const maxSpend = Math.min(
-    Math.round(total * 0.97),
-    localAwareReservationCap || Math.round(total * 0.97),
-  );
+  // 현지 사용비는 별도 준비 팁이므로 예약 후보 활용률에서 다시 차감하지 않습니다.
+  const targetSpend = reservationTargetSpend(total, usageStatus === 'very_roomy' ? 0.72 : 0.82);
+  const maxSpend = Math.round(total * 0.97);
   const availableHotelBudget = targetSpend - otherReservationCost;
   const maxHotelBudget = maxSpend - otherReservationCost;
   if(availableHotelBudget <= 0 || maxHotelBudget <= 0) return null;
   const cityMin = cityMinHotelPerNight();
   const tier = effectiveBudgetTier();
   const range = hotelBudgetRangeNightly(currentCity(), tier);
-  const softCapNightly = range.softCap;
   const rawTargetNightly = Math.max(cityMin, Math.round(availableHotelBudget / nights / rooms));
   const rawMaxNightly = Math.max(cityMin, Math.round(maxHotelBudget / nights / rooms));
+  const utilizationCapNightly = Math.round(total * 0.45 / nights / rooms);
+  const softCapNightly = usageStatus === 'very_roomy'
+    ? Math.max(range.softCap, Math.min(rawMaxNightly, utilizationCapNightly, Math.round(range.softCap * 1.35)))
+    : range.softCap;
   const budgetAwareTierMin = Math.min(range.min, rawMaxNightly);
   const targetNightly = Math.max(cityMin, budgetAwareTierMin, Math.min(rawTargetNightly, softCapNightly));
   const maxNightly = Math.max(targetNightly, Math.min(rawMaxNightly, Math.round(softCapNightly * 1.15)));
@@ -1935,7 +1959,7 @@ function median(values){
 
 function updatePlanSummaryHotelBudget(stays){
   if(!PLAN_SUMMARY?.budget || !PLAN_INPUT || !packageIncludes('hotel')) return;
-  const meta = reservationHotelTargetMeta();
+  const meta = activeReservationHotelTargetMeta();
   const nights = Number(PLAN_INPUT.nights || P.nights || 1);
   const rooms = Number(PLAN_SUMMARY.budget.rooms || roomCountForTravelers());
   const currentHotelBudget = Number(PLAN_SUMMARY.budget.hotel) || 0;
@@ -2088,7 +2112,7 @@ function resultBudgetFeasibility(){
   const totalTravelers = adults;
   const travelerWeight = adults;
   const nights = Math.max(1, currentTripNights());
-  const rooms = totalTravelers <= 3 ? 1 : Math.ceil(totalTravelers / 2);
+  const rooms = Math.ceil(totalTravelers / 2);
   const styles = normalizeStyles(Array.isArray(P.styles) ? P.styles : PLAN_INPUT?.travelStyles || []);
   let subtotal = 0;
 
@@ -2769,7 +2793,9 @@ function normalizeHotel(item){
   const source = hotelSource(item);
   const productId = hotelProductId(item);
   const detailUrl = firstValidHotelUrl(item);
-  const isBookable = source === 'api' && Boolean(productId) && Boolean(detailUrl);
+  const isBookable = source === 'agoda'
+    ? Boolean(detailUrl)
+    : source === 'api' && Boolean(productId) && Boolean(detailUrl);
   if(hotelImageDebugEnabled()) {
     console.debug('[FUKUOSAKA hotel image]', {
       name: item.name,
@@ -3146,12 +3172,12 @@ function budgetAdviceCompact(){
   if(budgetFirstMode()) return '입력 예산에 가까운 후보를 먼저 보여드려요.';
   if(status === 'over_budget') return '숙소나 티켓 구성을 조정하면 예산에 더 가까워져요.';
   if(PLAN_SUMMARY?.budget?.reservationBudgetUsageStatus === 'very_roomy') {
-    if(hotelMatchStatus === 'candidate_shortage') return '현재 조회 가능한 실제 숙소 기준으로는 여행 예산이 여유롭게 남아요.';
+    if(hotelMatchStatus === 'candidate_shortage') return '조회 가능한 후보 기준으로 예산이 많이 남아요.';
     return PLAN_SUMMARY?.budget?.reservationHotelAdjusted && hotelMatchStatus === 'target_matched'
-      ? '여행 예산이 넉넉한 편이에요. 숙소 선택지를 넓혀봤어요.'
-      : '여행 예산이 넉넉한 편이에요.';
+      ? '예산이 여유로워요. 남은 예산 일부로 숙소 선택지를 넓혔어요.'
+      : '예산이 많이 남아요.';
   }
-  if(PLAN_SUMMARY?.budget?.reservationBudgetUsageStatus === 'roomy') return '여행 예산에 약간 여유가 있어요.';
+  if(PLAN_SUMMARY?.budget?.reservationBudgetUsageStatus === 'near') return '여행 예산에 거의 맞는 구성이에요.';
   if(status === 'close') return '여행 예산에 거의 맞는 구성이에요.';
   return '입력한 여행 예산 안에서 무리 없는 후보를 골랐어요.';
 }
@@ -3915,7 +3941,7 @@ function renderReservationBudgetCard(b){
   const usageStatus = b.reservationBudgetUsageStatus || reservationBudgetUsageStatus(b.total, costSummary.total);
   const hotelMatchStatus = b.hotelMatchStatus || 'not_needed';
   setReservationRenderDebug(b, costSummary);
-  const roomyCopy = remainingAmount > 0 && remainingAmount / Math.max(1, Number(b.total) || 0) >= 0.25
+  const roomyCopy = usageStatus === 'very_roomy' && remainingAmount > 0
     ? `<div class="budget-note">${
         hotelMatchStatus === 'target_matched'
           ? '숙소 선택지를 한 단계 넓혀봤어요.'
@@ -3926,9 +3952,10 @@ function renderReservationBudgetCard(b){
     : '';
   const statusCopy = {
     fit:'여행 예산 안에 맞아요.',
+    near:'여행 예산에 거의 맞아요.',
     roomy:'여행 예산에 약간 여유가 있어요.',
-    very_roomy:'여행 예산이 넉넉한 편이에요.',
-    over:'여행 예산을 초과할 수 있어요.',
+    very_roomy:'예산이 많이 남아요.',
+    over:'여행 예산을 초과했어요.',
   }[usageStatus] || '';
   const remainingNote = remainingAmount >= 0
     ? `<div class="budget-note">예산 여유 ${remainingMeta.value}${statusCopy ? ` · ${statusCopy}` : ''}</div>`
@@ -3945,9 +3972,17 @@ function renderReservationBudgetCard(b){
     packageIncludes('tour') ? renderBudgetLine('🎫', '투어/티켓', costSummary.tourTicketCost, false) : '',
   ].filter(Boolean).join('');
   const totalValueText = reservationTotalHtml(costSummary.total);
+  const totalBudget = Number(b.total || PLAN_INPUT?.totalBudget || P.budget || 0);
+  const inputBudgetText = travelerCount() > 1
+    ? `1인 ${fmtWon(Math.round(totalBudget / travelerCount()))} · 전체 ${fmtWon(totalBudget)}`
+    : `1인·전체 ${fmtWon(totalBudget)}`;
+  const roomCountNote = travelerCount() >= 3
+    ? `<div class="budget-note">${travelerCount()}명은 2인 1실 기준으로 객실 ${roomCountForTravelers()}개를 추정했어요.</div>`
+    : '';
   return `<div class="summary-card">
       <div class="summary-card-title">여행 예상 비용</div>
-      <div class="summary-sub" style="margin:-4px 0 14px">여행 예산에 맞는 항공·숙소·티켓 후보를 계산했어요.</div>
+      <div class="summary-sub" style="margin:-4px 0 6px">여행 예산에 맞는 항공·숙소·티켓 후보를 계산했어요.</div>
+      <div class="budget-note" style="margin:0 0 14px">입력 예산: ${inputBudgetText}</div>
       <div class="budget-list">${rows || '<div class="summary-empty">선택한 예약 항목이 없어요.</div>'}</div>
       <div class="budget-total-box">
         <div class="budget-total-row"><span class="budget-total-label">여행 예상 합계</span><span class="budget-total-value">${totalValueText}</span></div>
@@ -3957,6 +3992,7 @@ function renderReservationBudgetCard(b){
       ${remainingNote}
       ${roomyCopy}
       <div class="budget-note">숙소 비용은 객실 기준이며, 선택한 숙박일수로 합산했어요.</div>
+      ${roomCountNote}
     </div>`;
 }
 
@@ -5479,7 +5515,10 @@ function onsenTourFirstMode(){
 
 function diversifyTourItems(items, max = 3){
   const scored = Array.isArray(items) ? items.slice() : [];
-  const fallbackTickets = scoreTours(getFallbackToursFinal()).filter(supportTicketsAllowed() && !packageIncludes('tour') ? isPreparationTicketItem : isTicketPassItem);
+  const fallbackScored = scoreTours(getFallbackToursFinal());
+  const fallbackTickets = supportTicketsAllowed() && !packageIncludes('tour')
+    ? fallbackScored.filter(isPreparationTicketItem)
+    : fallbackScored;
   const pool = [...scored, ...fallbackTickets];
   const selected = [];
   const seen = new Set();
@@ -5586,7 +5625,7 @@ function renderHotels(stays){
     return;
   }
   const items = prepareHotelResults(stays);
-  const displayItems = mergeHotelDisplayItems(items, RESULT_DATA.agodaStays || []);
+  const displayItems = mergeHotelDisplayItems(items, RESULT_DATA.agodaStays || []).slice(0, 3);
   if(!displayItems.length){
     const isCheckingHotels = hotelFallbackInProgress || agodaHotelsInProgress;
     const fallbackNotice = isCheckingHotels
@@ -6164,7 +6203,8 @@ async function refreshBudgetOnly(timer = createRefreshTimer('budget-only refresh
     applyResultBudgetFeasibility();
     sanitizePlanSummaryForPackage();
     if(packageIncludes('flight')) updatePlanSummaryFlightBudget(RESULT_DATA.flights || []);
-    if(packageIncludes('hotel')) updatePlanSummaryHotelBudget(RESULT_DATA.stays || []);
+    if(packageIncludes('tour')) updatePlanSummaryTourBudget(RESULT_DATA.tnas || []);
+    if(packageIncludes('hotel')) updatePlanSummaryHotelBudget([...(RESULT_DATA.stays || []), ...(RESULT_DATA.agodaStays || [])]);
     sanitizePlanSummaryForPackage();
 
     timer.mark('render budget-only start');
@@ -6406,6 +6446,7 @@ async function fetchAndRender(options = {}){
 
     sanitizePlanSummaryForPackage();
     if(flags.flight) updatePlanSummaryFlightBudget(flights);
+    if(flags.tour) updatePlanSummaryTourBudget(tourItems);
     if(flags.hotel) updatePlanSummaryHotelBudget(rawStays);
     sanitizePlanSummaryForPackage();
     if(flags.hotel) stays = prepareHotelResults(rawStays);
@@ -6421,6 +6462,7 @@ async function fetchAndRender(options = {}){
       tourItems = shouldShowSupportTickets ? prepareTourResults(rawTnas) : [];
       RESULT_DATA = { flights, stays, agodaStays, tnas: tourItems };
       if(flags.flight) updatePlanSummaryFlightBudget(flights);
+      if(flags.tour) updatePlanSummaryTourBudget(tourItems);
       if(flags.hotel) updatePlanSummaryHotelBudget(rawStays);
       sanitizePlanSummaryForPackage();
       if(flags.hotel) stays = prepareHotelResults(rawStays);
@@ -6468,9 +6510,14 @@ async function fetchAndRender(options = {}){
         if(runId !== refreshRunSeq) return;
         RESULT_DATA.agodaStays = Array.isArray(nextAgodaStays) ? nextAgodaStays : [];
         agodaHotelsInProgress = false;
+        if(RESULT_DATA.agodaStays.length) {
+          updatePlanSummaryHotelBudget([...(RESULT_DATA.stays || []), ...RESULT_DATA.agodaStays]);
+        }
         if(timer) timer.mark('Agoda post-render received');
+        renderHeader();
         renderSummary();
         renderHotels(RESULT_DATA.stays || []);
+        renderCost(RESULT_DATA.flights || [], RESULT_DATA.stays || [], RESULT_DATA.tnas || []);
         if(timer) timer.mark('render hotels with Agoda end');
       }).catch(() => {
         if(runId !== refreshRunSeq) return;

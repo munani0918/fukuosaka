@@ -389,7 +389,6 @@ function styleHotelMultiplier(city: PlanInput["city"], styles: string[]) {
 }
 
 function calculateRooms(totalTravelers: number) {
-  if (totalTravelers <= 3) return 1;
   return Math.ceil(totalTravelers / 2);
 }
 
