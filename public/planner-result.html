@@ -789,7 +789,7 @@
         </div>
       </div>
       <div id="flight-list"></div>
-      <a href="https://www.myrealtrip.com/flights" target="_blank" class="more-btn">마이리얼트립에서 더 보기 →</a>
+      <a href="https://www.myrealtrip.com/flights?utm_source=fukuosaka&amp;utm_medium=webapp&amp;utm_campaign=initial_launch&amp;utm_content=result_flight_more" target="_blank" class="more-btn">마이리얼트립에서 더 보기 →</a>
     </div>
 
     <!-- 추천 숙소 -->
@@ -1277,6 +1277,30 @@ function isValidFlightCost(value){ return isValidMoney(value, 10000); }
 function isValidHotelCost(value){ return isValidMoney(value, 10000); }
 function isValidHotelNightlyCost(value){ return isValidMoney(value, 10000); }
 function isValidTicketCost(value){ return isValidMoney(value, 3000); }
+
+function addFukuosakaUtm(targetUrl, utmContent){
+  const value = String(targetUrl || '').trim();
+  if(!value || !/^https?:\/\//i.test(value)) return value;
+  try {
+    const url = new URL(value);
+    if(!/(^|\.)myrealtrip\.com$|(^|\.)myrealt\.rip$/i.test(url.hostname)) return value;
+    url.searchParams.set('utm_source', 'fukuosaka');
+    url.searchParams.set('utm_medium', 'webapp');
+    url.searchParams.set('utm_campaign', 'initial_launch');
+    url.searchParams.set('utm_content', String(utmContent || 'result_link').trim().replace(/\s+/g, '_').slice(0, 100));
+    return url.toString();
+  } catch {
+    return value;
+  }
+}
+
+function resultTourUtmContent(item = {}){
+  const text = asText(item.displayTitle, item.name, item.title, item.itemName, item.tag, item.category, item.tags).toLowerCase();
+  if(hasAny(text, ['라피트','rapi:t','rapit','난카이','nankai'])) return 'result_rapit';
+  if(hasAny(text, ['주유패스','amazing pass','오사카 패스'])) return 'result_amazing_pass';
+  if(hasAny(text, ['esim','e-sim','유심','심카드'])) return 'result_esim';
+  return 'result_tour_ticket';
+}
 
 function normalizeImageUrl(value){
   if(!value) return '';
@@ -4521,6 +4545,9 @@ function hotelSavedItemPayload(item = {}, detailPath = ''){
   const internalDetailPath = (detailPath && detailPath.startsWith('/') ? detailPath : '') || fallbackDetailPath || '';
   const rawExternalUrl = firstRawHotelUrl(item, detailPath);
   const bookingUrl = firstValidHotelUrl(item) || rawExternalUrl;
+  const trackedBookingUrl = source === 'api'
+    ? addFukuosakaUtm(bookingUrl, 'result_hotel')
+    : bookingUrl;
   return withCurrentTripAssociation({
     itemType:'hotel',
     source: source === 'agoda' ? 'agoda' : (source === 'api' ? 'myrealtrip' : 'unknown'),
@@ -4535,8 +4562,10 @@ function hotelSavedItemPayload(item = {}, detailPath = ''){
     ratingText:hotelRatingText(item) || '',
     badgeText:hotelSourceLabel(item),
     detailPath:internalDetailPath,
-    bookingUrl:bookingUrl || '',
-    affiliateUrl:item.affiliateUrl || item.affiliateLink || '',
+    bookingUrl:trackedBookingUrl || '',
+    affiliateUrl:source === 'api'
+      ? addFukuosakaUtm(item.affiliateUrl || item.affiliateLink || '', 'result_hotel')
+      : (item.affiliateUrl || item.affiliateLink || ''),
     originalUrl:bookingUrl || item.detailUrl || item.productUrl || item.deepLink || item.link || item.url || '',
   });
 }
@@ -4551,6 +4580,7 @@ function savedTourItemType(item = {}){
 
 function tourSavedItemPayload(item = {}, detailPath = ''){
   const productUrl = firstTourProductUrl(item);
+  const trackedProductUrl = addFukuosakaUtm(productUrl, resultTourUtmContent(item));
   const imageUrl = getProductImageUrl(item);
   return withCurrentTripAssociation({
     itemType:savedTourItemType(item),
@@ -4565,8 +4595,8 @@ function tourSavedItemPayload(item = {}, detailPath = ''){
     ratingText:item.rating ? `평점 ${item.rating}` : '',
     badgeText:tourTypeBadgeLabel(item),
     detailPath:detailPath && detailPath.startsWith('/') ? detailPath : '',
-    bookingUrl:productUrl || item.bookUrl || item.bookingUrl || '',
-    affiliateUrl:item.affiliateUrl || '',
+    bookingUrl:trackedProductUrl || addFukuosakaUtm(item.bookUrl || item.bookingUrl || '', resultTourUtmContent(item)),
+    affiliateUrl:addFukuosakaUtm(item.affiliateUrl || '', resultTourUtmContent(item)),
     originalUrl:productUrl || item.deepLink || item.url || item.href || item.link || '',
   });
 }
@@ -4630,7 +4660,9 @@ function savedTripSelectedTours(){
     .map(tour => {
       const detailPath = buildTourDetailHrefForResult(tour);
       const productUrl = firstTourProductUrl(tour);
-      const bookingUrl = /^https?:\/\//i.test(productUrl) ? productUrl : '';
+      const bookingUrl = /^https?:\/\//i.test(productUrl)
+        ? addFukuosakaUtm(productUrl, resultTourUtmContent(tour))
+        : '';
       return {
         title: tour.displayTitle || tour.name || tour.title || tour.itemName || '',
         priceText: tourPreviewMeta(tour) || formatTourPriceForMeta(tour) || '',
@@ -5317,7 +5349,10 @@ function renderFlights(flights){
       const o = f.outbound || {};
       const ret = f.inbound;
       const rawUrl = f.bookingUrl || f.bookUrl || f.url || buildFlightListUrl(o.origin || P.origin);
-      const url = String(rawUrl || '#').replace(/"/g,'&quot;');
+      const trackedUrl = /^https?:\/\//i.test(String(rawUrl || ''))
+        ? addFukuosakaUtm(rawUrl, 'result_flight')
+        : rawUrl;
+      const url = String(trackedUrl || '#').replace(/"/g,'&quot;');
       const logo = f.logoUrl
         ? `<img src="${String(f.logoUrl).replace(/"/g,'&quot;')}" alt="${escapeHtml(f.airline || '')}" loading="lazy">`
         : airlineInitial(f.airline);

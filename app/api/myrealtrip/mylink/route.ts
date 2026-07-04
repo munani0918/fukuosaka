@@ -32,10 +32,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const apiResult = await createMylinkViaApi(body.targetUrl);
+  const apiResult = await createMylinkViaApi(body.targetUrl, {
+    utmContent: body.utmContent ?? "myrealtrip_link",
+    openInApp: body.openInApp ?? false,
+  });
   const paramResult = buildMylinkUrl({
     targetUrl: body.targetUrl,
-    utmContent: body.utmContent ?? "home",
+    utmContent: body.utmContent ?? "myrealtrip_link",
     openInApp: body.openInApp ?? false,
   });
 

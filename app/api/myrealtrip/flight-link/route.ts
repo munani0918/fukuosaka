@@ -57,7 +57,10 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const mylinkResult = await createMylinkViaApi(landingResult.landingUrl);
+  const mylinkResult = await createMylinkViaApi(landingResult.landingUrl, {
+    utmContent: "flight_result",
+    openInApp: true,
+  });
   if (mylinkResult.ok && mylinkResult.mylinkUrl) {
     return NextResponse.json({
       url: mylinkResult.mylinkUrl,
@@ -68,7 +71,8 @@ export async function GET(request: NextRequest) {
 
   const parameterFallback = buildMylinkUrl({
     targetUrl: landingResult.landingUrl,
-    utmContent: "flight-result",
+    utmContent: "flight_result",
+    openInApp: true,
   });
 
   return NextResponse.json({

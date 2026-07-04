@@ -15,6 +15,7 @@ import {
 } from "@/src/lib/myrealtrip";
 import { buildStayDetailHref } from "@/src/lib/stays";
 import { buildTourDetailHref } from "@/src/lib/tours";
+import { addFukuosakaUtm } from "@/src/lib/tracking";
 
 const MRT_MCP_URL = "https://mcp-servers.myrealtrip.com/mcp";
 
@@ -477,7 +478,7 @@ async function getLiveStayCards() {
           childCount: 0,
           isDomestic: false,
         }),
-        bookingUrl: item.bookUrl,
+        bookingUrl: addFukuosakaUtm(item.bookUrl, "home_stay_card"),
         originalUrl: item.bookUrl,
         imageUrl: imageUrl ? normalizeExternalUrl(imageUrl) : undefined,
         artVariant: config.stayArt,

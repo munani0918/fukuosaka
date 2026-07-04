@@ -18,6 +18,7 @@ import {
   formatTourPriceLabel,
 } from "@/src/lib/tours";
 import { inferSavedTourItemType } from "@/src/lib/savedItems";
+import { addFukuosakaUtm } from "@/src/lib/tracking";
 import type { SavedItem } from "@/src/types/savedTrip";
 import { ReturnLink } from "../stays/ReturnLink";
 
@@ -70,8 +71,10 @@ function tourSavedItemPayload(
     ...(tour.reviewScore ? { ratingText: `★ ${tour.reviewScore.toFixed(1).replace(/\.0$/, "")}` } : {}),
     badgeText: tour.category || "투어·티켓",
     detailPath,
-    bookingUrl: tour.productUrl,
-    ...(tour.deepLink ? { affiliateUrl: tour.deepLink } : {}),
+    bookingUrl: addFukuosakaUtm(tour.productUrl, "tour_list_card"),
+    ...(tour.deepLink
+      ? { affiliateUrl: addFukuosakaUtm(tour.deepLink, "tour_list_card") }
+      : {}),
     originalUrl: tour.deepLink || tour.productUrl,
     savedAt: "",
   };

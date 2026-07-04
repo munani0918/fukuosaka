@@ -1,3 +1,5 @@
+import { addFukuosakaUtm } from "@/src/lib/tracking";
+
 export type HomeBenefitBanner = {
   id: string;
   eyebrow: string;
@@ -12,8 +14,14 @@ export type HomeBenefitBanner = {
 };
 
 export const myrealtripCouponLinks = {
-  tourTicket: "https://myrealt.rip/ajWV8f",
-  overseasStay: "https://myrealt.rip/ajWg22",
+  tourTicket: addFukuosakaUtm(
+    "https://myrealt.rip/ajWV8f",
+    "benefit_coupon_detail",
+  ),
+  overseasStay: addFukuosakaUtm(
+    "https://myrealt.rip/ajWg22",
+    "benefit_coupon_detail",
+  ),
 } as const;
 
 export const homeBenefitBanners: HomeBenefitBanner[] = [
@@ -23,7 +31,7 @@ export const homeBenefitBanners: HomeBenefitBanner[] = [
     title: "예약 전 쿠폰부터 챙기세요",
     description: "마이리얼트립 숙소·투어·티켓 쿠폰팩",
     ctaText: "쿠폰팩 보기",
-    href: "/benefits/myrealtrip-coupons",
+    href: "/benefits/myrealtrip-coupons?utm_source=fukuosaka&utm_medium=webapp&utm_campaign=initial_launch&utm_content=home_coupon_banner",
     status: "ready",
     visual: "coupon",
     isActive: true,

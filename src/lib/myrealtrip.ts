@@ -1,3 +1,5 @@
+import { addFukuosakaUtm } from "@/src/lib/tracking";
+
 /**
  * Server-side helpers for MyRealTrip partner integrations.
  *
@@ -325,6 +327,7 @@ export type MylinkApiResult = MylinkApiSuccess | MylinkApiError;
 
 export async function createMylinkViaApi(
   targetUrl: string,
+  options: { utmContent?: string; openInApp?: boolean } = {},
 ): Promise<MylinkApiResult> {
   const apiKey = getMyRealTripApiKey();
 
@@ -337,6 +340,13 @@ export async function createMylinkViaApi(
   }
 
   try {
+    const trackedTargetUrl = addFukuosakaUtm(
+      targetUrl,
+      options.utmContent ?? "myrealtrip_link",
+    );
+    const parsedTargetUrl = new URL(trackedTargetUrl);
+    if (options.openInApp) parsedTargetUrl.searchParams.set("open_in_app", "true");
+
     const response = await fetch(`${MYREALTRIP_API_BASE}${MYLINK_API_PATH}`, {
       method: "POST",
       headers: {
@@ -344,7 +354,9 @@ export async function createMylinkViaApi(
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify({ targetUrl } satisfies MylinkApiRequest),
+      body: JSON.stringify({
+        targetUrl: parsedTargetUrl.toString(),
+      } satisfies MylinkApiRequest),
       signal: AbortSignal.timeout(8_000),
       cache: "no-store",
     });
@@ -773,6 +785,7 @@ export function buildAccommodationCpaUrl(
   targetUrl: string,
   itemId: string,
   suffix = "",
+  utmContent = `stay_detail_${itemId}${suffix}`,
 ) {
   const originalUrl = targetUrl || "";
   if (!isMyRealTripAccommodationUrl(originalUrl)) return originalUrl;
@@ -780,14 +793,11 @@ export function buildAccommodationCpaUrl(
   try {
     const parsed = new URL(originalUrl);
     const existingMylinkId = parsed.searchParams.get("mylink_id");
-    const existingUtmContent = parsed.searchParams.get("utm_content");
 
     if (existingMylinkId) {
-      if (!existingUtmContent) {
-        parsed.searchParams.set("utm_content", `stay-detail-${itemId}${suffix}`);
-      }
-      parsed.searchParams.set("open_in_app", "true");
-      return parsed.toString();
+      const trackedUrl = new URL(addFukuosakaUtm(parsed.toString(), utmContent));
+      trackedUrl.searchParams.set("open_in_app", "true");
+      return trackedUrl.toString();
     }
   } catch {
     // Fall through to buildMylinkUrl, which also safely falls back to the original URL.
@@ -795,7 +805,7 @@ export function buildAccommodationCpaUrl(
 
   const withMylink = buildMylinkUrl({
     targetUrl: originalUrl,
-    utmContent: `stay-detail-${itemId}${suffix}`,
+    utmContent,
     openInApp: true,
   }).url;
 
@@ -1412,39 +1422,25 @@ export interface BuildMylinkUrlResult {
   hasMylink: boolean;
 }
 
-function buildSafeUtmContent(value: string | undefined) {
-  return (value ?? "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .slice(0, 100);
-}
-
 export function buildMylinkUrl({
   targetUrl,
-  utmContent = "home",
+  utmContent = "myrealtrip_link",
   openInApp = false,
 }: BuildMylinkUrlOptions): BuildMylinkUrlResult {
   const mylinkId = process.env.MYREALTRIP_MYLINK_ID;
   const originalUrl = targetUrl || "";
 
-  if (!originalUrl || !mylinkId) {
-    return { url: originalUrl, hasMylink: false };
-  }
+  if (!originalUrl) return { url: originalUrl, hasMylink: false };
 
   try {
-    const parsed = new URL(originalUrl);
-    parsed.searchParams.set("mylink_id", mylinkId);
-
-    const safeUtmContent = buildSafeUtmContent(utmContent);
-    if (safeUtmContent) {
-      parsed.searchParams.set("utm_content", safeUtmContent);
-    }
+    const parsed = new URL(addFukuosakaUtm(originalUrl, utmContent));
+    if (mylinkId) parsed.searchParams.set("mylink_id", mylinkId);
 
     if (openInApp) {
       parsed.searchParams.set("open_in_app", "true");
     }
 
-    return { url: parsed.toString(), hasMylink: true };
+    return { url: parsed.toString(), hasMylink: Boolean(mylinkId) };
   } catch {
     return { url: originalUrl, hasMylink: false };
   }

@@ -181,7 +181,15 @@ export default async function StayDetailPage({
     ? "결과 화면으로 돌아가기"
     : "검색 결과로 돌아가기";
   const rawStickyHref = primaryRoom?.bookUrl ?? stay.bookUrl;
-  const stickyHref = buildAccommodationCpaUrl(rawStickyHref, id);
+  const bookingUtmContent = returnUrl?.includes("planner-result.html")
+    ? "result_hotel"
+    : "stay_detail";
+  const stickyHref = buildAccommodationCpaUrl(
+    rawStickyHref,
+    id,
+    "",
+    bookingUtmContent,
+  );
   const stickyPrice =
     formatStayDetailPriceText(
       primaryRoom?.footerPriceText ??
@@ -472,7 +480,12 @@ export default async function StayDetailPage({
                               </div>
                               <a
                                 href={
-                                  buildAccommodationCpaUrl(room.bookUrl, id, "-room")
+                                  buildAccommodationCpaUrl(
+                                    room.bookUrl,
+                                    id,
+                                    "-room",
+                                    bookingUtmContent,
+                                  )
                                 }
                                 target="_blank"
                                 rel="noreferrer"

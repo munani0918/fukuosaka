@@ -263,10 +263,26 @@ function fmtDur(min) {
   return `${Math.floor(min/60)}h${min%60 > 0 ? ' ' + (min%60) + 'm' : ''}`;
 }
 
+function addFukuosakaUtm(targetUrl, utmContent) {
+  try {
+    const url = new URL(targetUrl);
+    url.searchParams.set('utm_source', 'fukuosaka');
+    url.searchParams.set('utm_medium', 'webapp');
+    url.searchParams.set('utm_campaign', 'initial_launch');
+    url.searchParams.set('utm_content', utmContent);
+    return url.toString();
+  } catch {
+    return targetUrl;
+  }
+}
+
 function renderCard(f) {
   const o   = f.outbound;
   const ret = f.inbound;
-  const url = (f.reservationUrl || 'https://www.myrealtrip.com/flights').replace(/"/g, '&quot;');
+  const url = addFukuosakaUtm(
+    f.reservationUrl || 'https://www.myrealtrip.com/flights',
+    'flight_result',
+  ).replace(/"/g, '&quot;');
   const cheapBadge  = f.isCheapest ? '<span class="badge badge-cheap">최저가</span>' : '';
   const directBadge = f.isDirect
     ? '<span class="badge badge-direct">직항</span>'
@@ -338,7 +354,7 @@ function sortFlights(mode) {
 
   document.getElementById('flight-list').innerHTML =
     sorted.map(renderCard).join('') +
-    `<a href="https://www.myrealtrip.com/flights" target="_blank" class="more-btn">마이리얼트립에서 더 보기 →</a>
+    `<a href="https://www.myrealtrip.com/flights?utm_source=fukuosaka&amp;utm_medium=webapp&amp;utm_campaign=initial_launch&amp;utm_content=flight_result_more" target="_blank" class="more-btn">마이리얼트립에서 더 보기 →</a>
      <div class="bottom-space"></div>`;
 }
 

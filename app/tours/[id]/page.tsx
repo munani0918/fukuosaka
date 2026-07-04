@@ -64,6 +64,21 @@ function safeRelativeReturnTo(value: string | null | undefined) {
   return value;
 }
 
+function tourUtmContent(tour: TourSnapshot, fromPlannerResult: boolean) {
+  if (!fromPlannerResult) return "tour_ticket_detail";
+
+  const text = [
+    tour.itemName,
+    tour.category,
+    tour.tags?.join(" "),
+  ].filter(Boolean).join(" ").toLowerCase();
+
+  if (/라피트|rapi:t|rapit|난카이|nankai/.test(text)) return "result_rapit";
+  if (/주유패스|amazing pass|오사카 패스/.test(text)) return "result_amazing_pass";
+  if (/esim|e-sim|유심|심카드/.test(text)) return "result_esim";
+  return "result_tour_ticket";
+}
+
 function buildSnapshot(
   id: string,
   input: Record<string, string | string[] | undefined>,
@@ -197,7 +212,10 @@ export default async function TourDetailPage({
     : "검색 결과로 돌아가기";
   const bookingUrl = buildMylinkUrl({
     targetUrl: tour.productUrl,
-    utmContent: `tour-detail-${id}`,
+    utmContent: tourUtmContent(
+      tour,
+      Boolean(returnTo?.includes("planner-result.html")),
+    ),
     openInApp: true,
   }).url;
   const detailPath = buildTourDetailHref(tour, state);

@@ -15,6 +15,7 @@ import {
   type StayPriceFilterOption,
   type StaySearchState,
 } from "@/src/lib/stays";
+import { addFukuosakaUtm } from "@/src/lib/tracking";
 import type { SavedItem } from "@/src/types/savedTrip";
 
 const ALL_PRICE_FILTER: StayPriceFilterOption = {
@@ -102,7 +103,7 @@ function mapMyRealTripStay(
     pricePerNight: stay.salePrice,
     href: buildStayDetailHref(stay, state),
     isExternal: false,
-    bookingUrl: stay.bookUrl,
+    bookingUrl: addFukuosakaUtm(stay.bookUrl, "stay_list_card"),
     affiliateUrl: "",
     originalUrl: stay.bookUrl,
   };

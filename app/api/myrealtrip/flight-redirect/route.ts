@@ -6,6 +6,7 @@ import {
   createMylinkViaApi,
 } from "@/src/lib/myrealtrip";
 import { requireAdminApiToken } from "@/src/lib/myrealtripPartner";
+import { addFukuosakaUtm } from "@/src/lib/tracking";
 
 type FlightRedirectFallbackType = "mylink-api" | "mylink-param" | "raw";
 const DEBUG_NO_STORE_HEADERS = {
@@ -28,7 +29,7 @@ function fallbackUrl(request: NextRequest) {
     target.searchParams.set("returnDate", params.get("returnDate") ?? "");
   }
 
-  return target.toString();
+  return addFukuosakaUtm(target.toString(), "flight_result");
 }
 
 function urlHost(value: string) {
@@ -96,7 +97,7 @@ export async function GET(request: NextRequest) {
           fallbackType: "raw" satisfies FlightRedirectFallbackType,
           finalUrlHost: urlHost(fallbackUrl(request)),
           finalUrlHasMylinkId: false,
-          finalUrlHasUtmContent: false,
+          finalUrlHasUtmContent: urlHasParam(fallbackUrl(request), "utm_content"),
           reason: "departDate is required.",
         },
         { status: 400 },
@@ -131,17 +132,21 @@ export async function GET(request: NextRequest) {
         fallbackType: "raw" satisfies FlightRedirectFallbackType,
         finalUrlHost: urlHost(fallback),
         finalUrlHasMylinkId: false,
-        finalUrlHasUtmContent: false,
+        finalUrlHasUtmContent: urlHasParam(fallback, "utm_content"),
         reason: summarizeDebugReason(landingResult.message),
       });
     }
     return NextResponse.redirect(fallbackUrl(request));
   }
 
-  const mylinkResult = await createMylinkViaApi(landingResult.landingUrl);
+  const mylinkResult = await createMylinkViaApi(landingResult.landingUrl, {
+    utmContent: "flight_result",
+    openInApp: true,
+  });
   const parameterFallback = buildMylinkUrl({
     targetUrl: landingResult.landingUrl,
-    utmContent: "flight-result",
+    utmContent: "flight_result",
+    openInApp: true,
   });
   const mylinkApiUrl = mylinkResult.ok ? mylinkResult.mylinkUrl : "";
   const fallbackType: FlightRedirectFallbackType =
