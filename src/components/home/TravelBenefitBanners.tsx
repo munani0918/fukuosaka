@@ -81,7 +81,7 @@ export function TravelBenefitBanners({ items }: TravelBenefitBannersProps) {
               />
               <div
                 aria-hidden="true"
-                className="absolute right-5 top-5 inline-flex items-center justify-center rounded-full bg-white/70 px-2.5 py-1 text-[9px] font-black leading-none tracking-[0.12em] text-[#d95f55] shadow-[0_10px_18px_rgba(146,70,53,0.07)]"
+                className="absolute right-5 top-5 rounded-full bg-white/70 px-2.5 py-1 text-[9px] font-black tracking-[0.12em] text-[#d95f55] shadow-[0_10px_18px_rgba(146,70,53,0.07)]"
               >
                 {visualLabel(item)}
               </div>
@@ -93,7 +93,7 @@ export function TravelBenefitBanners({ items }: TravelBenefitBannersProps) {
               </div>
 
               <div className="relative z-10 max-w-[74%]">
-                <p className="mb-2 inline-flex items-center justify-center rounded-full bg-white/75 px-2.5 py-1 text-[10px] font-black leading-none tracking-[-0.03em] text-[#d95f55]">
+                <p className="mb-2 inline-flex rounded-full bg-white/75 px-2.5 py-1 text-[10px] font-black tracking-[-0.03em] text-[#d95f55]">
                   {item.eyebrow}
                 </p>
                 <p className="text-[18px] font-black leading-6 tracking-[-0.05em] text-[#2c211d]">
@@ -107,7 +107,7 @@ export function TravelBenefitBanners({ items }: TravelBenefitBannersProps) {
                     {item.note}
                   </p>
                 ) : null}
-                <span className="mt-3 inline-flex min-h-8 items-center justify-center gap-1.5 rounded-full bg-[#f05f5b] px-4 py-2 text-[12px] font-black leading-none text-white shadow-[0_10px_18px_rgba(244,89,85,0.18)]">
+                <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#f05f5b] px-4 py-2 text-[12px] font-black text-white shadow-[0_10px_18px_rgba(244,89,85,0.18)]">
                   {item.ctaText}
                   <ArrowRightIcon className="h-3.5 w-3.5" />
                 </span>

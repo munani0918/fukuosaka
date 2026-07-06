@@ -75,22 +75,12 @@
       transition: border-color .16s ease, color .16s ease, transform .16s ease;
     }
     .back-btn:active { transform: scale(.96); }
-    .prog-wrap { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-    .prog-dots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-    .p-seg {
-      height: 4px;
-      border-radius: 999px;
-      overflow: hidden;
-      background: var(--border);
+    .prog-wrap {
+      flex: 1;
+      display: flex;
+      min-width: 0;
+      align-items: center;
     }
-    .p-seg-fill {
-      height: 100%;
-      width: 0;
-      border-radius: 999px;
-      background: var(--primary);
-      transition: none;
-    }
-    #app.progress-ready .p-seg-fill { transition: width .24s ease; }
     .prog-label {
       color: var(--tertiary);
       font-size: 12px;
@@ -852,7 +842,8 @@
       visibility: visible;
       pointer-events: auto;
     }
-    #app.is-loading #wizard { display: none; }
+    #app.is-loading #wizard,
+    #app.is-loading .prog-wrap { display: none; }
     html.planner-loading,
     body.planner-loading {
       overflow: hidden;
@@ -979,7 +970,6 @@
       <header class="wiz-header">
         <button class="back-btn" id="back-btn" type="button" onclick="goBack()" aria-label="이전">‹</button>
         <div class="prog-wrap">
-          <div class="prog-dots" id="prog-dots"></div>
           <div class="prog-label" id="prog-label">1/5 도시 선택</div>
         </div>
       </header>
@@ -1405,17 +1395,6 @@
     }
 
     function init() {
-      const dots = document.getElementById("prog-dots");
-      for (let i = 0; i < TOTAL; i += 1) {
-        const seg = document.createElement("div");
-        seg.className = "p-seg";
-        seg.id = `seg-${i}`;
-        const fill = document.createElement("div");
-        fill.className = "p-seg-fill";
-        seg.appendChild(fill);
-        dots.appendChild(seg);
-      }
-
       const dep = new Date();
       dep.setDate(dep.getDate() + 45);
       const ret = new Date();
@@ -1518,9 +1497,6 @@
 
       renderStep(1, "forward");
       updateProgress();
-      window.requestAnimationFrame(() => {
-        document.getElementById("app").classList.add("progress-ready");
-      });
     }
 
     function renderStep(nextStep, dir) {
@@ -1560,12 +1536,6 @@
       const count = totalSteps();
       const labels = isSamplePresetFlow() ? SAMPLE_PRESET_STEP_LABELS : isPresetFlow() ? PRESET_STEP_LABELS : STEP_LABELS;
       document.getElementById("prog-label").textContent = `${step}/${count} ${labels[step - 1]}`;
-      for (let i = 0; i < TOTAL; i += 1) {
-        const seg = document.getElementById(`seg-${i}`);
-        if (seg) seg.style.display = i < count ? "" : "none";
-        const fill = document.querySelector(`#seg-${i} .p-seg-fill`);
-        if (fill) fill.style.width = i < step ? "100%" : "0";
-      }
       document.getElementById("back-btn").style.opacity = step === 1 ? ".72" : "1";
     }
 

@@ -439,7 +439,7 @@ export function SearchSection({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex min-h-9 items-center justify-center leading-[1.2] rounded-full bg-[#ffe6df] px-4 py-2 text-[13px] font-bold text-[#f05f5b]"
+              className="rounded-full bg-[#ffe6df] px-4 py-2 text-[13px] font-bold text-[#f05f5b]"
             >
               {isSubmitting ? "이동" : "검색"}
             </button>
@@ -507,7 +507,7 @@ export function SearchSection({
                         current === filter.id ? null : filter.id,
                       )
                     }
-                    className={`inline-flex h-[34px] items-center justify-center leading-[1.2] rounded-full px-2.5 text-[12px] font-bold transition ${
+                    className={`h-[34px] rounded-full px-2.5 text-[12px] font-bold transition ${
                       selected
                         ? "bg-[#f05f5b] text-white shadow-[0_8px_16px_rgba(240,95,91,0.18)]"
                         : "bg-white text-[#8d726b] ring-1 ring-[#f3e4dc]"
@@ -529,7 +529,7 @@ export function SearchSection({
               key={`${activeTab.id}-${keyword}`}
               type="button"
               onClick={() => setQuery(keyword)}
-              className="inline-flex h-[30px] items-center justify-center leading-[1.2] rounded-full bg-white px-3 text-[12px] font-bold text-[#8d726b] ring-1 ring-[#f3e4dc]"
+              className="h-[30px] rounded-full bg-white px-3 text-[12px] font-bold text-[#8d726b] ring-1 ring-[#f3e4dc]"
             >
               {keyword}
             </button>
