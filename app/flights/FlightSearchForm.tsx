@@ -174,7 +174,7 @@ export function FlightSearchForm({ state }: FlightSearchFormProps) {
 
       <button
         type="submit"
-        className="h-[54px] w-full rounded-[18px] bg-[#cb4b42] px-5 text-[13px] font-black text-white shadow-[0_10px_18px_rgba(203,75,66,0.18)]"
+        className="flex h-[54px] items-center justify-center leading-[1.2] w-full rounded-[18px] bg-[#cb4b42] px-5 text-[13px] font-black text-white shadow-[0_10px_18px_rgba(203,75,66,0.18)]"
       >
         항공 검색
       </button>

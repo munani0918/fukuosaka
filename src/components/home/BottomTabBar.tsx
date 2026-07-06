@@ -37,7 +37,7 @@ export function BottomTabBar({ items }: BottomTabBarProps) {
               <a
                 key={item.id}
                 href={item.href}
-                className="flex flex-col items-center justify-center gap-0.5 px-1 py-1 text-center transition"
+                className="flex min-h-[52px] flex-col items-center justify-center gap-0.5 px-1 py-1 text-center transition"
               >
                 <span
                   className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
@@ -47,11 +47,11 @@ export function BottomTabBar({ items }: BottomTabBarProps) {
                   {iconForTab(item.icon)}
                 </span>
                 <span
-                  className={`text-[9.5px] font-semibold tracking-[-0.04em] ${
+                  className={`flex min-h-3 items-center justify-center text-[9.5px] font-semibold leading-none tracking-[-0.04em] ${
                     active ? "text-[#f05f5b]" : "text-[#847872]"
                   }`}
                 >
-                  <span className="whitespace-nowrap">{label}</span>
+                  <span className="whitespace-nowrap leading-none">{label}</span>
                 </span>
               </a>
             );
