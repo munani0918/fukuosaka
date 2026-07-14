@@ -6680,5 +6680,195 @@ else {
   fetchAndRender();
 }
 </script>
+
+  <!-- result-recommendation-analytics -->
+  <script id="result-recommendation-analytics">
+    (function () {
+      function cleanText(value) {
+        return String(value || "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 100);
+      }
+
+      function currentCityCode() {
+        return (
+          new URLSearchParams(window.location.search).get("cityCode") || ""
+        );
+      }
+
+      function linkType(href) {
+        try {
+          const url = new URL(href || "", window.location.origin);
+          return url.origin === window.location.origin
+            ? "internal"
+            : "external";
+        } catch {
+          return "unknown";
+        }
+      }
+
+      function productIdFromHref(href) {
+        try {
+          const url = new URL(href || "", window.location.origin);
+          const match = url.pathname.match(
+            /\/(?:stays|tours)\/(?:agoda\/)?([^/?#]+)/
+          );
+
+          return match ? cleanText(match[1]) : "";
+        } catch {
+          return "";
+        }
+      }
+
+      function tourPlacement(productName) {
+        const text = cleanText(productName).toLowerCase();
+
+        if (
+          /라피트|rapi:t|rapit|난카이|nankai/i.test(text)
+        ) {
+          return "result_rapit";
+        }
+
+        if (
+          /주유패스|amazing pass|오사카 패스/i.test(text)
+        ) {
+          return "result_amazing_pass";
+        }
+
+        if (
+          /esim|e-sim|유심|심카드/i.test(text)
+        ) {
+          return "result_esim";
+        }
+
+        return "result_tour_ticket";
+      }
+
+      function trackRecommendation(params) {
+        if (typeof window.gtag !== "function") return;
+
+        window.gtag("event", "recommendation_click", {
+          source: "planner_result",
+          city_code: currentCityCode(),
+          ...params,
+        });
+      }
+
+      document.addEventListener(
+        "click",
+        function (event) {
+          const target =
+            event.target instanceof Element ? event.target : null;
+
+          if (!target) return;
+
+          const hotelLink = target.closest(
+            "#hotel-list a.prod-btn"
+          );
+
+          if (hotelLink) {
+            const card = hotelLink.closest(".prod-card");
+            const productName = cleanText(
+              card?.querySelector(".prod-name")?.textContent
+            );
+            const href = hotelLink.getAttribute("href") || "";
+
+            trackRecommendation({
+              item_type: "hotel",
+              placement: "result_hotel",
+              product_name: productName,
+              product_id: productIdFromHref(href),
+              link_type: linkType(href),
+            });
+
+            return;
+          }
+
+          const tourLink = target.closest(
+            "#tour-list a.prod-btn"
+          );
+
+          if (tourLink) {
+            const card = tourLink.closest(".prod-card");
+            const productName = cleanText(
+              card?.querySelector(".prod-name")?.textContent
+            );
+            const href = tourLink.getAttribute("href") || "";
+
+            trackRecommendation({
+              item_type: "tour_ticket",
+              placement: tourPlacement(productName),
+              product_name: productName,
+              product_id: productIdFromHref(href),
+              link_type: linkType(href),
+            });
+
+            return;
+          }
+
+          const tourCard = target.closest(
+            "#tour-list .tour-card[data-href]"
+          );
+
+          if (tourCard) {
+            const nestedControl = target.closest(
+              "a, button, input, select, textarea"
+            );
+
+            if (nestedControl) return;
+
+            const productName = cleanText(
+              tourCard.querySelector(".prod-name")?.textContent
+            );
+            const href = tourCard.dataset.href || "";
+
+            trackRecommendation({
+              item_type: "tour_ticket",
+              placement: tourPlacement(productName),
+              product_name: productName,
+              product_id: productIdFromHref(href),
+              link_type: linkType(href),
+            });
+
+            return;
+          }
+
+          const flightLink = target.closest(
+            "#flight-list a.flight-result-card, " +
+              "#sec-flight-panel a.more-btn"
+          );
+
+          if (flightLink) {
+            const href = flightLink.getAttribute("href") || "";
+
+            if (!href) return;
+
+            const isMoreButton =
+              flightLink.classList.contains("more-btn");
+
+            const productName = isMoreButton
+              ? "flight_more"
+              : cleanText(
+                  flightLink.querySelector(
+                    ".flight-result-airline"
+                  )?.textContent
+                );
+
+            trackRecommendation({
+              item_type: "flight",
+              placement: isMoreButton
+                ? "result_flight_more"
+                : "result_flight",
+              product_name: productName,
+              product_id: "",
+              link_type: linkType(href),
+            });
+          }
+        },
+        true
+      );
+    })();
+  </script>
 </body>
 </html>
