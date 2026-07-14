@@ -2095,6 +2095,21 @@
 
     function pickCity(code) {
       F.city = code;
+
+      if (typeof window.gtag === "function") {
+        window.gtag("event", "destination_select", {
+          destination:
+            code === "FUK"
+              ? "fukuoka"
+              : code === "KIX"
+                ? "osaka"
+                : "unknown",
+          city_code: code,
+          source: "planner_wizard",
+          wizard_step: 1,
+        });
+      }
+
       document.querySelectorAll(".city-card").forEach((card) => {
         card.classList.toggle("selected", card.dataset.city === code);
       });
