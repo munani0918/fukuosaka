@@ -2,6 +2,7 @@ import { connection } from "next/server";
 import { notFound } from "next/navigation";
 
 import { SavedItemStarButton } from "@/src/components/SavedItemStarButton";
+import { AffiliateLink } from "@/src/components/AffiliateLink";
 import { BottomTabBar } from "@/src/components/home/BottomTabBar";
 import { Artwork } from "@/src/components/home/Artwork";
 import { StarIcon } from "@/src/components/home/icons";
@@ -478,7 +479,7 @@ export default async function StayDetailPage({
                                   </p>
                                 ) : null}
                               </div>
-                              <a
+                              <AffiliateLink
                                 href={
                                   buildAccommodationCpaUrl(
                                     room.bookUrl,
@@ -487,12 +488,20 @@ export default async function StayDetailPage({
                                     bookingUtmContent,
                                   )
                                 }
-                                target="_blank"
-                                rel="noreferrer"
+                                provider="myrealtrip"
+                                placement="stay_detail_room"
+                                itemType="hotel"
+                                productName={
+                                  room.title
+                                    ? `${stay.itemName} - ${room.title}`
+                                    : stay.itemName
+                                }
+                                productId={id}
+                                cityCode={cityCodeFromKeyword(state.keyword)}
                                 className="inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#cb4b42] px-3.5 text-[11px] font-black text-white"
                               >
                                 예약하기
-                              </a>
+                              </AffiliateLink>
                             </div>
                           </div>
                         </div>
@@ -563,14 +572,18 @@ export default async function StayDetailPage({
                 {primaryRoom?.title ?? stay.itemName}
               </p>
             </div>
-            <a
+            <AffiliateLink
               href={stickyHref}
-              target="_blank"
-              rel="noreferrer"
+              provider="myrealtrip"
+              placement="stay_detail_sticky"
+              itemType="hotel"
+              productName={stay.itemName}
+              productId={id}
+              cityCode={cityCodeFromKeyword(state.keyword)}
               className="shrink-0 whitespace-nowrap rounded-full bg-[#cb4b42] px-4 py-2.5 text-[12px] font-black text-white"
             >
               예약하기
-            </a>
+            </AffiliateLink>
           </div>
         </div>
       </div>

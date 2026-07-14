@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
 import { SavedItemStarButton } from "@/src/components/SavedItemStarButton";
+import { AffiliateLink } from "@/src/components/AffiliateLink";
 import { Artwork } from "@/src/components/home/Artwork";
 import { BottomTabBar } from "@/src/components/home/BottomTabBar";
 import { StarIcon } from "@/src/components/home/icons";
@@ -589,14 +590,24 @@ export default async function TourDetailPage({
                 {primaryPrice} · 마이리얼트립 예약 연동
               </p>
             </div>
-            <a
+            <AffiliateLink
               href={bookingUrl}
-              target="_blank"
-              rel="noreferrer"
+              provider="myrealtrip"
+              placement="tour_detail_sticky"
+              itemType="tour_ticket"
+              productName={tour.itemName}
+              productId={id}
+              cityCode={
+                state.city.includes("후쿠오카")
+                  ? "FUK"
+                  : state.city.includes("오사카")
+                    ? "KIX"
+                    : ""
+              }
               className="shrink-0 rounded-full bg-[#cb4b42] px-4 py-2.5 text-[12px] font-black text-white"
             >
               예약하기
-            </a>
+            </AffiliateLink>
           </div>
         </div>
       </div>

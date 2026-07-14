@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { connection } from "next/server";
 
 import { SavedItemStarButton } from "@/src/components/SavedItemStarButton";
+import { AffiliateLink } from "@/src/components/AffiliateLink";
 import { Artwork } from "@/src/components/home/Artwork";
 import { BottomTabBar } from "@/src/components/home/BottomTabBar";
 import { StarIcon } from "@/src/components/home/icons";
@@ -351,14 +352,18 @@ export default async function AgodaStayBridgePage({
                   {priceLabel}
                 </p>
               </div>
-              <a
+              <AffiliateLink
                 href={bookingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+                provider="agoda"
+                placement="agoda_detail_sticky"
+                itemType="hotel"
+                productName={stay?.name ?? "아고다 숙소"}
+                productId={id}
+                cityCode={city === "fukuoka" ? "FUK" : "KIX"}
                 className="shrink-0 whitespace-nowrap rounded-full bg-[#cb4b42] px-4 py-2.5 text-[12px] font-black text-white"
               >
                 아고다에서 예약하기
-              </a>
+              </AffiliateLink>
             </div>
           </div>
         </div>
