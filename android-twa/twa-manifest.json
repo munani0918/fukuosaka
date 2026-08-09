@@ -23,8 +23,8 @@
     "path": "C:\\Tmp\\fukuosaka-android-secrets\\fukuosaka-upload-key.jks",
     "alias": "fukuosaka-upload"
   },
-  "appVersionCode": 2,
-  "appVersion": "1.0.0",
+  "appVersionCode": 3,
+  "appVersion": "1.0.1",
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://fukuosaka.vercel.app/manifest.webmanifest",
